@@ -3,5 +3,8 @@ build/
 build-lsp/
 .vscode/
 image/
+server/node_modules/
+server/logs/
+server/uploads/
 compile_commands.json
 config.json
