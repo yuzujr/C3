@@ -54,7 +54,7 @@ For Linux, gcc compiler is recommended.
 
 `mkdir build && cd build`
 
-`cmake .. -DCMAKE_BUILD_TYPE=Release`
+`cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake`
 
 `cmake --build . --config Release`
 
