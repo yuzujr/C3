@@ -4,3 +4,4 @@ build-lsp/
 .vscode/
 image/
 compile_commands.json
+config.json
