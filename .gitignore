@@ -3,6 +3,7 @@ build/
 build-lsp/
 .vscode/
 image/
+scripts/
 server/node_modules/
 server/logs/
 server/uploads/
