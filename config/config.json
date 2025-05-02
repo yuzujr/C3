@@ -1,0 +1,6 @@
+{
+  "api": {
+    "upload_url": "http://path/to/your/api",
+    "interval_seconds": 60
+  }
+}
