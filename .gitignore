@@ -2,6 +2,7 @@
 build/
 build-lsp/
 .vscode/
+release/
 image/
 scripts/
 server/node_modules/
