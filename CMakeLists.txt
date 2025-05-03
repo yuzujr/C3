@@ -22,12 +22,7 @@ src/Logger.cpp src/Logger.h
 src/Config.cpp src/Config.h
 )
 
-if(WIN32)
 add_executable(ScreenUploader ${SOURCES})
-else()
-add_executable(ScreenUploader ${SOURCES})
-endif()
-
 
 target_link_libraries(ScreenUploader PRIVATE CURL::libcurl ${OpenCV_LIBS} nlohmann_json::nlohmann_json)
 

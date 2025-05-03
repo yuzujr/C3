@@ -26,16 +26,16 @@ public:
     ~ScreenUploader() = default;
 
     // 截取屏幕并返回 OpenCV Mat 对象
-    cv::Mat captureScreenMat();
+    static cv::Mat captureScreenMat();
 
     // 使用 curl 发送内存中的图像数据（JPEG 编码）
-    bool uploadImage(const cv::Mat& frame, const std::string& url);
+    static bool uploadImage(const cv::Mat& frame, const std::string& url);
 
 private:
     // 生成时间戳文件名
-    std::string generateTimestampFilename();
+    static std::string generateTimestampFilename();
     // 将图像编码为 JPEG 格式
-    std::vector<uchar> encodeImageToJPEG(const cv::Mat& frame);
+    static std::vector<uchar> encodeImageToJPEG(const cv::Mat& frame);
 };
 
 #endif  // SCREEN_UPLOADER_H

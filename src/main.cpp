@@ -14,7 +14,6 @@ int main() {
     Logger::log2stdout("Config loaded successfully");
     config.list();
 
-    ScreenUploader screenUploader;
     while (true) {
         // 检查配置文件是否有更新
         if (config.try_reload_config("config.json")) {
@@ -23,7 +22,7 @@ int main() {
 
         // 捕获屏幕图像
         Logger::log2stdout("Capturing screen...");
-        cv::Mat frame = screenUploader.captureScreenMat();
+        cv::Mat frame = ScreenUploader::captureScreenMat();
         if (frame.empty()) {
             Logger::log2stderr("Error: Failed to capture screen");
             continue;
@@ -33,7 +32,7 @@ int main() {
         bool success = false;
         // 最多重试config.max_retries次
         for (int attempt = 1; attempt <= config.max_retries; ++attempt) {
-            success = screenUploader.uploadImage(frame, config.upload_url);
+            success = ScreenUploader::uploadImage(frame, config.upload_url);
             if (success) break;
 
             Logger::log2stderr("Upload failed, retrying (" +
