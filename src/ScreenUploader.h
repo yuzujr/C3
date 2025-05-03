@@ -10,7 +10,7 @@
 #include <sstream>
 #include <vector>
 
-#include "logger.h"
+#include "Logger.h"
 
 #ifdef _WIN32
 #include <shellscalingapi.h>
