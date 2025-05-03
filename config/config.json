@@ -1,6 +1,8 @@
 {
   "api": {
-    "upload_url": "http://path/to/your/api",
-    "interval_seconds": 60
+    "upload_url": "http://example.com/upload",
+    "interval_seconds": 60,
+    "max_retries": 3,
+    "retry_delay_ms": 1000
   }
 }
