@@ -1,4 +1,4 @@
-#include "logger.h"
+#include "Logger.h"
 
 void Logger::log2stdout(const std::string& message) {
     std::cout << "[CLIENT] " << message << std::endl;

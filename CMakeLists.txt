@@ -18,10 +18,12 @@ find_package(nlohmann_json REQUIRED)
 
 set(SOURCES src/main.cpp 
 src/ScreenUploader.cpp src/ScreenUploader.h 
-src/logger.cpp src/logger.h)
+src/Logger.cpp src/Logger.h
+src/Config.cpp src/Config.h
+)
 
 if(WIN32)
-add_executable(ScreenUploader WIN32 ${SOURCES})
+add_executable(ScreenUploader ${SOURCES})
 else()
 add_executable(ScreenUploader ${SOURCES})
 endif()
