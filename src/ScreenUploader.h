@@ -22,8 +22,11 @@
 
 class ScreenUploader {
 public:
-    ScreenUploader();
-    ~ScreenUploader() = default;
+    // 禁止创建实例
+    ScreenUploader() = delete;
+    ~ScreenUploader() = delete;
+
+    static void enableHighDPI();
 
     // 截取屏幕并返回 OpenCV Mat 对象
     static cv::Mat captureScreenMat();

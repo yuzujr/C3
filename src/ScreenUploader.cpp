@@ -1,6 +1,6 @@
 #include "ScreenUploader.h"
 
-ScreenUploader::ScreenUploader() {
+void ScreenUploader::enableHighDPI() {
 #ifdef _WIN32
     // 启用高 DPI 感知
     SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);

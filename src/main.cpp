@@ -5,6 +5,7 @@
 #include "ScreenUploader.h"
 
 int main() {
+    // 读取配置文件
     Config config;
     if (!config.load("config.json")) {
         Logger::log2stderr("Failed to load config.json");
@@ -14,6 +15,8 @@ int main() {
     Logger::log2stdout("Config loaded successfully");
     config.list();
 
+    // 启用高 DPI 感知
+    ScreenUploader::enableHighDPI();
     while (true) {
         // 检查配置文件是否有更新
         if (config.try_reload_config("config.json")) {
