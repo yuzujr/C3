@@ -16,6 +16,11 @@ int main() {
 
     ScreenUploader screenUploader;
     while (true) {
+        // 检查配置文件是否有更新
+        if (config.try_reload_config("config.json")) {
+            config.list();
+        }
+
         // 捕获屏幕图像
         Logger::log2stdout("Capturing screen...");
         cv::Mat frame = screenUploader.captureScreenMat();

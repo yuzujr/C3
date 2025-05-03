@@ -111,7 +111,7 @@ bool ScreenUploader::uploadImage(const cv::Mat& frame, const std::string& url) {
     if (res != CURLE_OK) {
         Logger::log2stderr("upload failed: " +
                            std::string(curl_easy_strerror(res)));
-    } else if (http_code != 200) {
+    } else if (http_code < 200 || http_code >= 300) {
         Logger::log2stderr("upload failed: HTTP response code " +
                            std::to_string(http_code));
     } else {

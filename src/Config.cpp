@@ -38,6 +38,9 @@ bool Config::load(const std::string& path) {
             return false;
         }
 
+        // 将last_config_time初始化为当前文件的最后修改时间
+        // 确保在try_reload_config()中可以正确比较
+        last_config_time = std::filesystem::last_write_time(path);
         return true;
     } catch (const std::exception& e) {
         Logger::log2stderr("Error loading config: " + std::string(e.what()));
@@ -52,4 +55,19 @@ void Config::list() const {
     Logger::log2stdout("\tMax retries: " + std::to_string(max_retries));
     Logger::log2stdout("\tRetry delay: " + std::to_string(retry_delay_ms) +
                        "ms");
+}
+
+bool Config::try_reload_config(const std::string& path) {
+    auto current_time = std::filesystem::last_write_time(path);
+    // 如果文件时间没有变化，则不重新加载
+    if (current_time != last_config_time) {
+        if (load(path)) {
+            last_config_time = current_time;
+            Logger::log2stdout("Config reloaded successfully");
+            return true;
+        } else {
+            Logger::log2stderr("Failed to reload config");
+        }
+    }
+    return false;
 }
