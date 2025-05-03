@@ -58,4 +58,4 @@ For Linux, gcc compiler is recommended.
 
 `cmake --build . --config Release`
 
-> On Windows, WIN32 is enabled by default(CMakeLists.txt:24), delete `WIN32` to see the program console.
+> On Windows, WIN32 is disabled by default(CMakeLists.txt:24), add `WIN32` to avoid the program console. (like add_executable(ScreenUploader WIN32 ${SOURCES}))
