@@ -35,14 +35,15 @@ int main() {
         bool success = false;
         // 最多重试config.max_retries次
         for (int attempt = 1; attempt <= config.max_retries; ++attempt) {
+            auto start = std::chrono::high_resolution_clock::now();
             success = ScreenUploader::uploadImage(frame, config.upload_url);
             if (success) break;
 
             Logger::log2stderr("Upload failed, retrying (" +
                                std::to_string(attempt) + "/" +
                                std::to_string(config.max_retries) + ")...");
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(config.retry_delay_ms));
+            std::this_thread::sleep_until(
+                start + std::chrono::milliseconds(config.retry_delay_ms));
         }
 
         if (!success) {
