@@ -24,6 +24,16 @@ bool Config::load(const std::string& path) {
         interval_seconds = api.value("interval_seconds", interval_seconds);
         max_retries = api.value("max_retries", max_retries);
         retry_delay_ms = api.value("retry_delay_ms", retry_delay_ms);
+        if (api.contains("add_to_startup") &&
+            api["add_to_startup"].is_boolean()) {
+            add_to_startup = api["add_to_startup"];
+        } else if (api.contains("add_to_startup") &&
+                   !api["add_to_startup"].is_boolean()) {
+            Logger::log2stderr(
+                "Warning: 'add_to_startup' should be a boolean value. "
+                "Defaulting to false.");
+            add_to_startup = false;
+        }
 
         if (upload_url.empty()) {
             Logger::log2stderr("Error: 'upload_url' is required.");
@@ -55,6 +65,8 @@ void Config::list() const {
     Logger::log2stdout("\tMax retries: " + std::to_string(max_retries));
     Logger::log2stdout("\tRetry delay: " + std::to_string(retry_delay_ms) +
                        "ms");
+    Logger::log2stdout("\tAdd to startup: " +
+                       std::string(add_to_startup ? "true" : "false"));
 }
 
 bool Config::try_reload_config(const std::string& path) {

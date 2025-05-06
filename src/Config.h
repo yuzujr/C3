@@ -29,6 +29,8 @@ public:
     int max_retries = 3;
     // 重试间隔时间（毫秒）
     int retry_delay_ms = 1000;
+    // 是否加入开机启动项
+    bool add_to_startup = false;
 
 private:
     // 数据

@@ -20,6 +20,7 @@ set(SOURCES src/main.cpp
 src/ScreenUploader.cpp src/ScreenUploader.h 
 src/Logger.cpp src/Logger.h
 src/Config.cpp src/Config.h
+src/Utils.cpp src/Utils.h
 )
 
 add_executable(ScreenUploader ${SOURCES})
