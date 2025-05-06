@@ -14,16 +14,15 @@ app.use(cors())
 const uploadDir = path.join(__dirname, 'uploads');
 const logsDir = path.join(__dirname, 'logs');
 
-// 创建 uploads 目录
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  logWithTime('[INIT] Create \"uploads\" directory:', uploadDir);
-}
-
 // 创建 logs 目录
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
   logWithTime('[INIT] Create \"logs\" directory:', logsDir);
+}
+// 创建 uploads 目录
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  logWithTime('[INIT] Create \"uploads\" directory:', uploadDir);
 }
 
 // 设置存储规则
