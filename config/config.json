@@ -3,6 +3,7 @@
     "upload_url": "http://example.com/upload",
     "interval_seconds": 60,
     "max_retries": 3,
-    "retry_delay_ms": 1000
+    "retry_delay_ms": 1000,
+    "add_to_startup": false
   }
 }
