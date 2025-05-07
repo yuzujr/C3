@@ -1,5 +1,9 @@
 #include "Config.h"
 
+#include <fstream>
+
+#include "Logger.h"
+
 using json = nlohmann::json;
 
 bool Config::load(const std::string& path) {
@@ -58,17 +62,6 @@ bool Config::load(const std::string& path) {
     }
 }
 
-void Config::list() const {
-    Logger::log2stdout("\tUpload URL: " + upload_url);
-    Logger::log2stdout(
-        "\tInterval_seconds: " + std::to_string(interval_seconds) + "s");
-    Logger::log2stdout("\tMax retries: " + std::to_string(max_retries));
-    Logger::log2stdout("\tRetry delay: " + std::to_string(retry_delay_ms) +
-                       "ms");
-    Logger::log2stdout("\tAdd to startup: " +
-                       std::string(add_to_startup ? "true" : "false"));
-}
-
 bool Config::try_reload_config(const std::string& path) {
     auto current_time = std::filesystem::last_write_time(path);
     // 如果文件时间没有变化，则不重新加载
@@ -82,4 +75,28 @@ bool Config::try_reload_config(const std::string& path) {
         }
     }
     return false;
+}
+
+void Config::list() const {
+    Logger::log2stdout("\tUpload URL: " + upload_url);
+    Logger::log2stdout(
+        "\tInterval_seconds: " + std::to_string(interval_seconds) + "s");
+    Logger::log2stdout("\tMax retries: " + std::to_string(max_retries));
+    Logger::log2stdout("\tRetry delay: " + std::to_string(retry_delay_ms) +
+                       "ms");
+    Logger::log2stdout("\tAdd to startup: " +
+                       std::string(add_to_startup ? "true" : "false"));
+}
+
+void Config::list_default() {
+    Logger::log2stdout("\tUpload URL: " + Config::default_upload_url);
+    Logger::log2stdout("\tInterval_seconds: " +
+                       std::to_string(Config::default_interval_seconds) + "s");
+    Logger::log2stdout("\tMax retries: " +
+                       std::to_string(Config::default_max_retries));
+    Logger::log2stdout("\tRetry delay: " +
+                       std::to_string(Config::default_retry_delay_ms) + "ms");
+    Logger::log2stdout(
+        "\tAdd to startup: " +
+        std::string(Config::default_add_to_startup ? "true" : "false"));
 }

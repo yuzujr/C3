@@ -2,11 +2,8 @@
 #define CONFIG_H
 
 #include <filesystem>
-#include <fstream>
 #include <nlohmann/json.hpp>
 #include <string>
-
-#include "Logger.h"
 
 class Config {
 public:
@@ -21,20 +18,31 @@ public:
     // 展示配置文件内容
     void list() const;
 
+    // 展示默认配置文件内容
+    static void list_default();
+
     // 上传地址
-    std::string upload_url = "";
+    std::string upload_url = default_upload_url;
     // 上传间隔时间（秒）
-    int interval_seconds = 60;
+    int interval_seconds = default_interval_seconds;
     // 最大重试次数
-    int max_retries = 3;
+    int max_retries = default_max_retries;
     // 重试间隔时间（毫秒）
-    int retry_delay_ms = 1000;
+    int retry_delay_ms = default_retry_delay_ms;
     // 是否加入开机启动项
-    bool add_to_startup = false;
+    bool add_to_startup = default_add_to_startup;
 
 private:
-    // 数据
+    // 默认配置文件内容
+    static constexpr std::string default_upload_url = "";
+    static constexpr int default_interval_seconds = 60;
+    static constexpr int default_max_retries = 3;
+    static constexpr int default_retry_delay_ms = 1000;
+    static constexpr bool default_add_to_startup = false;
+
+    // 配置数据
     nlohmann::json json_data;
+
     // 上次读取配置文件的时间
     std::filesystem::file_time_type last_config_time;
 };

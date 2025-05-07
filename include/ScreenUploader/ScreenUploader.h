@@ -1,32 +1,15 @@
 #ifndef SCREEN_UPLOADER_H
 #define SCREEN_UPLOADER_H
 
-#include <curl/curl.h>
-
-#include <chrono>
-#include <ctime>
-#include <iostream>
 #include <opencv2/opencv.hpp>
-#include <sstream>
+#include <string>
 #include <vector>
-
-#include "Logger.h"
-
-#ifdef _WIN32
-#include <shellscalingapi.h>
-#include <windows.h>
-#else
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#endif
 
 class ScreenUploader {
 public:
     // 禁止创建实例
     ScreenUploader() = delete;
     ~ScreenUploader() = delete;
-
-    static void enableHighDPI();
 
     // 截取屏幕并返回 OpenCV Mat 对象
     static cv::Mat captureScreenMat();
@@ -37,6 +20,7 @@ public:
 private:
     // 生成时间戳文件名
     static std::string generateTimestampFilename();
+    
     // 将图像编码为 JPEG 格式
     static std::vector<uchar> encodeImageToJPEG(const cv::Mat& frame);
 };

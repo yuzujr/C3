@@ -3,17 +3,9 @@ SemanticTokens:
     "Operator"
   ]
 
-Diagnostics:
-  UnusedIncludes: None
-  Suppress: [
-    misc-unused-using-decls,
-    misc-unused-alias-decls,
-    ]
-
 CompileFlags:
   Add: [
     "-Wall",
-    "-Wextra",
-    "-D_CRT_SECURE_NO_WARNINGS"
+    "-Wextra"
   ]
   CompilationDatabase: "./"

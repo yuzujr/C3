@@ -1,73 +1,11 @@
 #include "ScreenUploader.h"
 
-void ScreenUploader::enableHighDPI() {
-#ifdef _WIN32
-    // 启用高 DPI 感知
-    SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
-#endif
-}
+#include <curl/curl.h>
 
-// 屏幕截图为 cv::Mat
-cv::Mat ScreenUploader::captureScreenMat() {
-#ifdef _WIN32
-    // Windows GDI截图
-    HDC hScreenDC = GetDC(NULL);
-    HDC hMemoryDC = CreateCompatibleDC(hScreenDC);
+#include <opencv2/opencv.hpp>
+#include <vector>
 
-    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-
-    HBITMAP hBitmap =
-        CreateCompatibleBitmap(hScreenDC, screenWidth, screenHeight);
-    HGDIOBJ oldBitmap = SelectObject(hMemoryDC, hBitmap);
-
-    BitBlt(hMemoryDC, 0, 0, screenWidth, screenHeight, hScreenDC, 0, 0,
-           SRCCOPY);
-    hBitmap = (HBITMAP)SelectObject(hMemoryDC, oldBitmap);
-
-    BITMAP bmp;
-    GetObject(hBitmap, sizeof(BITMAP), &bmp);
-
-    cv::Mat mat(bmp.bmHeight, bmp.bmWidth, CV_8UC4);
-    GetBitmapBits(hBitmap, bmp.bmHeight * bmp.bmWidthBytes, mat.data);
-
-    DeleteObject(hBitmap);
-    DeleteDC(hMemoryDC);
-    ReleaseDC(NULL, hScreenDC);
-
-    cv::cvtColor(mat, mat, cv::COLOR_BGRA2BGR);
-#else
-    Display* display = XOpenDisplay(nullptr);
-    if (!display) {
-        Logger::log2stderr("Cannot open X11 display");
-        return {};
-    }
-
-    Window root = DefaultRootWindow(display);
-    XWindowAttributes attributes = {};
-    XGetWindowAttributes(display, root, &attributes);
-
-    int width = attributes.width;
-    int height = attributes.height;
-
-    XImage* img =
-        XGetImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap);
-    if (!img) {
-        Logger::log2stderr("Failed to capture XImage");
-        XCloseDisplay(display);
-        return {};
-    }
-
-    cv::Mat mat(height, width, CV_8UC4, img->data);
-    mat = mat.clone();  // 拷贝数据，因为 img->data 是 X11 的内部数据
-
-    XDestroyImage(img);
-    XCloseDisplay(display);
-
-    cv::cvtColor(mat, mat, cv::COLOR_BGRA2BGR);
-#endif
-    return mat;
-}
+#include "Logger.h"
 
 // 使用 curl 发送内存中的图像数据（JPEG 编码）
 bool ScreenUploader::uploadImage(const cv::Mat& frame, const std::string& url) {
@@ -122,25 +60,6 @@ bool ScreenUploader::uploadImage(const cv::Mat& frame, const std::string& url) {
     curl_mime_free(form);
     curl_easy_cleanup(curl);
     return success;
-}
-
-std::string ScreenUploader::generateTimestampFilename() {
-    // 生成时间戳文件名
-    std::ostringstream filename;
-#ifdef _WIN32
-    std::time_t t = std::time(nullptr);
-    std::tm localTime;
-    localtime_s(&localTime, &t);
-    filename << "screen_" << std::put_time(&localTime, "%Y%m%d_%H%M%S")
-             << ".jpg";
-#else
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
-    std::tm* localTime = std::localtime(&now_time);
-    filename << "screen_" << std::put_time(localTime, "%Y%m%d_%H%M%S")
-             << ".jpg";
-#endif
-    return filename.str();
 }
 
 std::vector<uchar> ScreenUploader::encodeImageToJPEG(const cv::Mat& frame) {

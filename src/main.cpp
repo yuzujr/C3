@@ -3,7 +3,11 @@
 #include "Config.h"
 #include "Logger.h"
 #include "ScreenUploader.h"
-#include "Utils.h"
+#include "SystemUtils.h"
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 int main() {
     // 读取配置文件
@@ -13,21 +17,23 @@ int main() {
         return 1;
     }
 
-    Logger::log2stdout("Config loaded successfully");
+    Logger::log2stdout("Config loaded successfully:");
     config.list();
+    Logger::log2stdout("Default config:");
+    Config::list_default();
 
 #ifdef _WIN32
     if (config.add_to_startup) {
-        Utils::addToStartup("ScreenUploader");
+        SystemUtils::addToStartup("ScreenUploader");
         Logger::log2stdout("Added to startup successfully");
     } else {
-        Utils::removeFromStartup("ScreenUploader");
+        SystemUtils::removeFromStartup("ScreenUploader");
         Logger::log2stdout("Removed from startup successfully");
     }
 #endif  // _WIN32
 
     // 启用高 DPI 感知
-    ScreenUploader::enableHighDPI();
+    SystemUtils::enableHighDPI();
     while (true) {
         // 检查配置文件是否有更新
         if (config.try_reload_config("config.json")) {
