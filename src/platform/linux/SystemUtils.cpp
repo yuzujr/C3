@@ -1,3 +1,7 @@
 #include "SystemUtils.h"
 
-void SystemUtils::enableHighDPI() {}
+namespace SystemUtils {
+
+void enableHighDPI() {}
+
+}  // namespace SystemUtils
