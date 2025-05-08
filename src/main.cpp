@@ -22,7 +22,7 @@ int main() {
     Logger::log2stdout("Default config:");
     Config::list_default();
 
-#ifdef _WIN32
+    // 设置开机自启
     if (config.add_to_startup) {
         SystemUtils::addToStartup("ScreenUploader");
         Logger::log2stdout("Added to startup successfully");
@@ -30,11 +30,14 @@ int main() {
         SystemUtils::removeFromStartup("ScreenUploader");
         Logger::log2stdout("Removed from startup successfully");
     }
-#endif  // _WIN32
 
     // 启用高 DPI 感知
     SystemUtils::enableHighDPI();
+
+    // 进入主循环
     while (true) {
+        auto start = std::chrono::high_resolution_clock::now();
+
         // 检查配置文件是否有更新
         if (config.try_reload_config("config.json")) {
             config.list();
@@ -69,8 +72,8 @@ int main() {
                                " attempts.");
         }
 
-        std::this_thread::sleep_for(
-            std::chrono::seconds(config.interval_seconds));
+        std::this_thread::sleep_until(
+            start + std::chrono::milliseconds(config.interval_seconds));
     }
 
     return 0;

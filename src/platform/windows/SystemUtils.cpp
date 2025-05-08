@@ -1,9 +1,14 @@
+#include "SystemUtils.h"
+
 #include <shellscalingapi.h>
 #include <windows.h>
 
-#include "SystemUtils.h"
-
 namespace SystemUtils {
+
+void enableHighDPI() {
+    // 启用高 DPI 感知
+    SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+}
 
 void addToStartup(const std::string& appName) {
     std::string exePath = getExecutablePath();
@@ -33,11 +38,6 @@ std::string getExecutablePath() {
     DWORD length = GetModuleFileNameA(nullptr, path, MAX_PATH);
     if (length == 0 || length == MAX_PATH) return "";  // 失败或路径太长
     return std::string(path, length);
-}
-
-void enableHighDPI() {
-    // 启用高 DPI 感知
-    SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 }
 
 }  // namespace SystemUtils
