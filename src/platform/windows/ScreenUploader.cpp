@@ -44,7 +44,6 @@ std::string ScreenUploader::generateTimestampFilename() {
     std::time_t t = std::time(nullptr);
     std::tm localTime;
     localtime_s(&localTime, &t);
-    filename << "screen_" << std::put_time(&localTime, "%Y%m%d_%H%M%S")
-             << ".jpg";
+    filename << "screen_" << std::put_time(&localTime, "%Y%m%d_%H%M%S");
     return filename.str();
 }
