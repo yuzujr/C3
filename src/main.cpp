@@ -73,7 +73,7 @@ int main() {
         }
 
         std::this_thread::sleep_until(
-            start + std::chrono::milliseconds(config.interval_seconds));
+            start + std::chrono::seconds(config.interval_seconds));
     }
 
     return 0;
