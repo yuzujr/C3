@@ -34,7 +34,8 @@ public:
 
 private:
     // 默认配置文件内容
-    static constexpr std::string default_upload_url = "";
+    static inline const std::string default_upload_url =
+        "http://127.0.0.1:4000/upload";
     static constexpr int default_interval_seconds = 60;
     static constexpr int default_max_retries = 3;
     static constexpr int default_retry_delay_ms = 1000;
