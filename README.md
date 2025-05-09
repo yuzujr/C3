@@ -56,7 +56,7 @@ Example `config.json`:
 
 ## Build from source
 
-#### Client
+### Client
 
 For windows, msvc compiler is recommended.
 
@@ -64,16 +64,21 @@ For Linux, gcc compiler is recommended.
 
 **Dependencies**
 
-1. Install [cmake](https://cmake.org/download/)(version 3.16 minimum required).
+1. Install [cmake](https://cmake.org/download/) (version `3.16` minimum required).
 
 2. For windows, install [OpenCV](https://opencv.org/releases/).
 
 3. For linux, install `libopencv`, `libx11`, `libssl`, `libcurl`.
 
-   Ubuntu:`sudo apt install libopencv-dev`
-   Ubuntu:`sudo apt install libx11-dev`
-   Ubuntu:`sudo apt install libssl-dev`
-   Ubuntu:`sudo apt install libcurl4-openssl-dev`
+   Ubuntu:
+
+   `sudo apt install libopencv-dev`
+   
+   `sudo apt install libx11-dev`
+   
+   `sudo apt install libssl-dev`
+   
+   `sudo apt install libcurl4-openssl-dev`
 
 **Build**
 
