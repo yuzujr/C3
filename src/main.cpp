@@ -1,9 +1,7 @@
 #include <thread>
 
-#include "Config.h"
-#include "Logger.h"
-#include "ScreenUploader.h"
-#include "SystemUtils.h"
+#include "core/core.h"
+#include "net/net.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -45,7 +43,7 @@ int main() {
 
         // 捕获屏幕图像
         Logger::log2stdout("Capturing screen...");
-        cv::Mat frame = ScreenUploader::captureScreenMat();
+        cv::Mat frame = ScreenCapturer::captureScreen();
         if (frame.empty()) {
             Logger::log2stderr("Error: Failed to capture screen");
             continue;
@@ -56,7 +54,7 @@ int main() {
         // 最多重试config.max_retries次
         for (int attempt = 1; attempt <= config.max_retries; ++attempt) {
             auto start = std::chrono::high_resolution_clock::now();
-            success = ScreenUploader::uploadImage(frame, config.upload_url);
+            success = Uploader::uploadImage(frame, config.upload_url);
             if (success) break;
 
             Logger::log2stderr("Upload failed, retrying (" +

@@ -28,11 +28,29 @@ Mainly used for practicing server/client projects.
 
 - `upload_url` is server's api url. (If you run this server on **loop back address**, `upload_url` will be `http://127.0.0.1:4000/upload`)
 - `interval_seconds` is the interval that client send upload request. (60s by default)
+- `max_retries` is the number of retry attempts if upload fails. (3 by default)
+- `retry_delay_ms` is the delay between retry attempts in milliseconds. (1000ms by default)
+- `add_to_startup` determines whether to add the application to system startup. (false by default)
+
+Example `config.json`:
+```json
+{
+  "api": {
+    "upload_url": "http://127.0.0.1:4000/upload",
+    "interval_seconds": 60,
+    "max_retries": 3,
+    "retry_delay_ms": 1000,
+    "add_to_startup": false
+  }
+}
+```
 
 3. Move `config.json` to where the `ScreenUploader` executable is.
 
 4. Run `ScreenUploader` executable.
+
 5. Check the server terminal, you will see the upload logs.
+   Screenshots is saved in `uploads` folder, and logs are saved in `logs` folder.
 
 
 
@@ -46,16 +64,22 @@ For Linux, gcc compiler is recommended.
 
 **Dependencies**
 
-1. Install [cmake](https://cmake.org/download/), [vcpkg](https://github.com/microsoft/vcpkg) and [opencv](https://opencv.org/releases/).
+1. Install [cmake](https://cmake.org/download/)(version 3.16 minimum required).
 
-2. For linux, install `libx11-dev`.
+2. For windows, install [OpenCV](https://opencv.org/releases/).
 
+3. For linux, install `libopencv`, `libx11`, `libssl`, `libcurl`.
+
+   Ubuntu:`sudo apt install libopencv-dev`
    Ubuntu:`sudo apt install libx11-dev`
+   Ubuntu:`sudo apt install libssl-dev`
+   Ubuntu:`sudo apt install libcurl4-openssl-dev`
 
-`mkdir build && cd build`
+**Build**
 
-`cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake`
+1. `mkdir build && cd build`
 
-`cmake --build . --config Release`
+2. `cmake .. -DCMAKE_BUILD_TYPE=Release`
+   > For windows, you can pass '-DUSE_WIN32_GUI=ON' to avoid console window.
 
-> On Windows, WIN32 is disabled by default(CMakeLists.txt:24), add `WIN32` to avoid the program console. (like add_executable(ScreenUploader WIN32 ${SOURCES}))
+3. `cmake --build . --config Release`

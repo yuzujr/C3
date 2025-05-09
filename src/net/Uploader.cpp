@@ -1,14 +1,14 @@
-#include "ScreenUploader.h"
+#include "net/Uploader.h"
 
 #include <cpr/cpr.h>
 
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-#include "Logger.h"
+#include "core/Logger.h"
 
 // 使用 cpr 库上传图像
-bool ScreenUploader::uploadImage(const cv::Mat& frame, const std::string& url) {
+bool Uploader::uploadImage(const cv::Mat& frame, const std::string& url) {
     if (frame.empty()) {
         Logger::log2stderr("frame is empty!");
         return false;
@@ -53,7 +53,7 @@ bool ScreenUploader::uploadImage(const cv::Mat& frame, const std::string& url) {
 }
 
 // 将图像转换为 JPEG 格式
-std::vector<uchar> ScreenUploader::encodeImageToJPEG(const cv::Mat& frame) {
+std::vector<uchar> Uploader::encodeImageToJPEG(const cv::Mat& frame) {
     std::vector<uchar> imgData;
     std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
                                            85};  // 85是画质参数
@@ -61,4 +61,14 @@ std::vector<uchar> ScreenUploader::encodeImageToJPEG(const cv::Mat& frame) {
         return imgData;
     }
     return {};
+}
+
+std::string Uploader::generateTimestampFilename() {
+    // 生成时间戳文件名
+    std::ostringstream filename;
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    std::tm* localTime = std::localtime(&now_time);
+    filename << "screen_" << std::put_time(localTime, "%Y%m%d_%H%M%S");
+    return filename.str();
 }

@@ -1,8 +1,8 @@
-#include "Config.h"
+#include "core/Config.h"
 
 #include <fstream>
 
-#include "Logger.h"
+#include "core/Logger.h"
 
 using json = nlohmann::json;
 

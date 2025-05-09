@@ -1,4 +1,4 @@
-#include "ScreenUploader.h"
+#include "core/ScreenCapturer.h"
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -6,10 +6,10 @@
 #include <chrono>
 #include <ctime>
 
-#include "Logger.h"
+#include "core/Logger.h"
 
 // 屏幕截图为 cv::Mat
-cv::Mat ScreenUploader::captureScreenMat() {
+cv::Mat ScreenCapturer::captureScreen() {
     // X11 截图
     Display* display = XOpenDisplay(nullptr);
     if (!display) {
@@ -40,14 +40,4 @@ cv::Mat ScreenUploader::captureScreenMat() {
 
     cv::cvtColor(mat, mat, cv::COLOR_BGRA2BGR);
     return mat;
-}
-
-std::string ScreenUploader::generateTimestampFilename() {
-    // 生成时间戳文件名
-    std::ostringstream filename;
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
-    std::tm* localTime = std::localtime(&now_time);
-    filename << "screen_" << std::put_time(localTime, "%Y%m%d_%H%M%S");
-    return filename.str();
 }

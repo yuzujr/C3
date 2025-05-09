@@ -1,13 +1,13 @@
 
-#include "ScreenUploader.h"
+
+#include "core/ScreenCapturer.h"
 
 #include <windows.h>
 
-#include <ctime>
-#include <sstream>
+#include <opencv2/opencv.hpp>
 
 // 屏幕截图为 cv::Mat
-cv::Mat ScreenUploader::captureScreenMat() {
+cv::Mat ScreenCapturer::captureScreen() {
     // Windows GDI截图
     HDC hScreenDC = GetDC(NULL);
     HDC hMemoryDC = CreateCompatibleDC(hScreenDC);
@@ -36,14 +36,4 @@ cv::Mat ScreenUploader::captureScreenMat() {
     cv::cvtColor(mat, mat, cv::COLOR_BGRA2BGR);
 
     return mat;
-}
-
-std::string ScreenUploader::generateTimestampFilename() {
-    // 生成时间戳文件名
-    std::ostringstream filename;
-    std::time_t t = std::time(nullptr);
-    std::tm localTime;
-    localtime_s(&localTime, &t);
-    filename << "screen_" << std::put_time(&localTime, "%Y%m%d_%H%M%S");
-    return filename.str();
 }
