@@ -9,7 +9,7 @@ Mainly used for practicing server/client projects.
 
 
 ## Usage
-
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/yuzujr/ScreenUploader)
 1. Run server
 
    **Dependencies**
