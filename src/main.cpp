@@ -19,7 +19,7 @@ int main() {
         return 1;
     }
 
-    Logger::info("Config loaded successfully:");
+    Logger::info("Config loaded successfully");
     config.list();
     Logger::debug("Default config:");
     Config::list_default();
@@ -48,18 +48,18 @@ int main() {
         // 捕获屏幕图像
         Logger::info("Capturing screen...");
         cv::Mat frame = ScreenCapturer::captureScreen();
+
         if (frame.empty()) {
             Logger::error("Error: Failed to capture screen");
-            continue;
-        }
-
-        // 上传图像
-        bool success = Uploader::uploadWithRetry(frame, config.upload_url,
-                                                 config.max_retries,
-                                                 config.retry_delay_ms);
-        if (!success) {
-            Logger::error(std::format("Upload failed after {} attempts.\n",
-                                      config.max_retries));
+        } else {
+            // 上传图像
+            bool success = Uploader::uploadWithRetry(frame, config.upload_url,
+                                                     config.max_retries,
+                                                     config.retry_delay_ms);
+            if (!success) {
+                Logger::error(std::format("Upload failed after {} attempts.\n",
+                                          config.max_retries));
+            }
         }
 
         // 等待下一次上传
