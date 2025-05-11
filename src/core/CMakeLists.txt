@@ -41,13 +41,16 @@ target_include_directories(core PUBLIC
 # link third-party libraries PUBLIC
 target_link_libraries(core PUBLIC
     nlohmann_json::nlohmann_json
-    opencv_core
-    opencv_imgproc
-    opencv_imgcodecs
+    spdlog::spdlog
+    thirdparty::OpenCV_wrapper
 )
 # link system libraries PRIVATE
 if(WIN32)
-    target_link_libraries(core PRIVATE Shcore.lib)
+    target_link_libraries(core PRIVATE 
+        Shcore.lib
+    )
 elseif(UNIX)
-    target_link_libraries(core PRIVATE X11::X11)
+    target_link_libraries(core PRIVATE 
+        thirdparty::X11_wrapper
+    )
 endif()

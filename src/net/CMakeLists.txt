@@ -28,6 +28,7 @@ target_include_directories(net PUBLIC
 # link module core PRIVATE
 target_link_libraries(net PRIVATE
     core
+    thirdparty::OpenCV_wrapper
 )
 
 

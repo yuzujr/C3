@@ -2,27 +2,28 @@
 
 #include <cpr/cpr.h>
 
+#include <format>
 #include <opencv2/opencv.hpp>
 #include <vector>
 
 #include "core/Logger.h"
+#include "net/Uploader.h"
 
-// 使用 cpr 库上传图像
 bool Uploader::uploadImage(const cv::Mat& frame, const std::string& url) {
     if (frame.empty()) {
-        Logger::log2stderr("frame is empty!");
+        Logger::error("frame is empty!");
         return false;
     }
 
     // 图像转换为 JPEG 格式
     std::vector<uchar> imgData = encodeImageToJPEG(frame);
     if (imgData.empty()) {
-        Logger::log2stderr("Failed to encode image to JPEG");
+        Logger::error("Failed to encode image to JPEG");
         return false;
     }
 
     // 生成时间戳文件名
-    std::string filename = generateTimestampFilename() + ".jpg";
+    std::string filename = std::format("{}.jpg", generateTimestampFilename());
 
     // 构造 POST 请求
     cpr::Buffer buffer{
@@ -38,21 +39,49 @@ bool Uploader::uploadImage(const cv::Mat& frame, const std::string& url) {
                   cpr::Header{{"User-Agent", "cpr/1.11.0"}, {"Accept", "*/*"}});
 
     if (r.error) {
-        Logger::log2stderr("upload failed: " + r.error.message);
+        Logger::error(std::format("Upload failed: {}", r.error.message));
         return false;
     }
 
     if (r.status_code < 200 || r.status_code >= 300) {
-        Logger::log2stderr("upload failed: HTTP " +
-                           std::to_string(r.status_code));
+        std::string errorMsg =
+            std::format("Upload failed: HTTP {}", r.status_code);
+        if (!r.text.empty()) {
+            errorMsg += std::format(" - Message: {}", r.text);
+        }
+        Logger::error(errorMsg);
         return false;
     }
 
-    Logger::log2stdout("File uploaded successfully: " + filename);
+    if (!r.text.empty()) {
+        Logger::info(r.text, LogTarget::Server);
+    }
+
+    Logger::info(std::format("File uploaded successfully: {}\n", filename));
     return true;
 }
 
-// 将图像转换为 JPEG 格式
+bool Uploader::uploadWithRetry(const cv::Mat& image, const std::string& url,
+                               int max_retries, int retry_delay_ms) {
+    if (uploadImage(image, url)) {
+        return true;
+    }
+
+    for (int attempt = 1; attempt <= max_retries; ++attempt) {
+        auto start = std::chrono::high_resolution_clock::now();
+        Logger::info(std::format("retrying ({}/{})...", attempt, max_retries));
+
+        if (uploadImage(image, url)) return true;
+
+        if (attempt < max_retries) {
+            std::this_thread::sleep_until(
+                start + std::chrono::milliseconds(retry_delay_ms));
+        }
+    }
+
+    return false;
+}
+
 std::vector<uchar> Uploader::encodeImageToJPEG(const cv::Mat& frame) {
     std::vector<uchar> imgData;
     std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
@@ -64,7 +93,6 @@ std::vector<uchar> Uploader::encodeImageToJPEG(const cv::Mat& frame) {
 }
 
 std::string Uploader::generateTimestampFilename() {
-    // 生成时间戳文件名
     std::ostringstream filename;
     auto now = std::chrono::system_clock::now();
     std::time_t now_time = std::chrono::system_clock::to_time_t(now);

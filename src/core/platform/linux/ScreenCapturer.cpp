@@ -13,7 +13,7 @@ cv::Mat ScreenCapturer::captureScreen() {
     // X11 截图
     Display* display = XOpenDisplay(nullptr);
     if (!display) {
-        Logger::log2stderr("Cannot open X11 display");
+        Logger::error("Cannot open X11 display");
         return {};
     }
 
@@ -27,7 +27,7 @@ cv::Mat ScreenCapturer::captureScreen() {
     XImage* img =
         XGetImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap);
     if (!img) {
-        Logger::log2stderr("Failed to capture XImage");
+        Logger::error("Failed to capture XImage");
         XCloseDisplay(display);
         return {};
     }

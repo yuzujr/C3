@@ -57,7 +57,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
 
   if (!req.file) {
     errorWithTime('[UPLOAD] ❌ No file received.');
-    return res.status(400).send('[SERVER] No file received.\n');
+    return res.status(400).send('No file received.\n');
   }
 
   logWithTime('[UPLOAD] ✅ File received successfully:');
@@ -67,7 +67,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
   logWithTime(` - Path:          ${req.file.path}`);
   logWithTime(` - Size:          ${req.file.size} bytes\n`);
 
-  return res.send('[SERVER] Upload success: ' + req.file.filename + '\n');
+  return res.status(201).send('Upload success: ' + req.file.filename + '\n');
 });
 
 app.listen(PORT, '0.0.0.0', () => {

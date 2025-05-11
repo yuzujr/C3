@@ -11,8 +11,12 @@ public:
     Uploader() = delete;
     ~Uploader() = delete;
 
-    // 使用 curl 发送内存中的图像数据（JPEG 编码）
+    // 尝试上传一次
     static bool uploadImage(const cv::Mat& frame, const std::string& url);
+
+    // 有重试机制的上传
+    static bool uploadWithRetry(const cv::Mat& image, const std::string& url,
+                                int max_retries, int retry_delay_ms);
 
 private:
     // 生成时间戳文件名

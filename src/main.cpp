@@ -1,3 +1,4 @@
+#include <format>
 #include <thread>
 
 #include "core/core.h"
@@ -8,25 +9,28 @@
 #endif
 
 int main() {
+    // 初始化日志
+    Logger::init();
+
     // 读取配置文件
     Config config;
     if (!config.load("config.json")) {
-        Logger::log2stderr("Failed to load config.json");
+        Logger::error("Failed to load config.json");
         return 1;
     }
 
-    Logger::log2stdout("Config loaded successfully:");
+    Logger::info("Config loaded successfully:");
     config.list();
-    Logger::log2stdout("Default config:");
+    Logger::debug("Default config:");
     Config::list_default();
 
     // 设置开机自启
     if (config.add_to_startup) {
         SystemUtils::addToStartup("ScreenUploader");
-        Logger::log2stdout("Added to startup successfully");
+        Logger::info("Added to startup successfully");
     } else {
         SystemUtils::removeFromStartup("ScreenUploader");
-        Logger::log2stdout("Removed from startup successfully");
+        Logger::info("Removed from startup successfully");
     }
 
     // 启用高 DPI 感知
@@ -42,34 +46,24 @@ int main() {
         }
 
         // 捕获屏幕图像
-        Logger::log2stdout("Capturing screen...");
+        Logger::info("Capturing screen...");
         cv::Mat frame = ScreenCapturer::captureScreen();
         if (frame.empty()) {
-            Logger::log2stderr("Error: Failed to capture screen");
+            Logger::error("Error: Failed to capture screen");
             continue;
         }
 
         // 上传图像
-        bool success = false;
-        // 最多重试config.max_retries次
-        for (int attempt = 1; attempt <= config.max_retries; ++attempt) {
-            auto start = std::chrono::high_resolution_clock::now();
-            success = Uploader::uploadImage(frame, config.upload_url);
-            if (success) break;
-
-            Logger::log2stderr("Upload failed, retrying (" +
-                               std::to_string(attempt) + "/" +
-                               std::to_string(config.max_retries) + ")...");
-            std::this_thread::sleep_until(
-                start + std::chrono::milliseconds(config.retry_delay_ms));
-        }
-
+        bool success = Uploader::uploadWithRetry(frame, config.upload_url,
+                                                 config.max_retries,
+                                                 config.retry_delay_ms);
         if (!success) {
-            Logger::log2stderr("Upload failed after " +
-                               std::to_string(config.max_retries) +
-                               " attempts.");
+            Logger::error(std::format("Upload failed after {} attempts.\n",
+                                      config.max_retries));
         }
 
+        // 等待下一次上传
+        Logger::info("Waiting for next capture...");
         std::this_thread::sleep_until(
             start + std::chrono::seconds(config.interval_seconds));
     }

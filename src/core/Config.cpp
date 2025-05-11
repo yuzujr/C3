@@ -1,5 +1,6 @@
 #include "core/Config.h"
 
+#include <format>
 #include <fstream>
 
 #include "core/Logger.h"
@@ -10,15 +11,15 @@ bool Config::load(const std::string& path) {
     try {
         std::ifstream file(path);
         if (!file.is_open()) {
-            Logger::log2stderr("Error: Could not open config file: " + path);
+            Logger::error(
+                std::format("Error: Could not open config file: {}", path));
             return false;
         }
 
         file >> json_data;
 
         if (!json_data.contains("api") || !json_data["api"].is_object()) {
-            Logger::log2stderr(
-                "Error: Missing or invalid 'api' section in config.");
+            Logger::error("Error: Missing or invalid 'api' section in config.");
             return false;
         }
 
@@ -33,22 +34,22 @@ bool Config::load(const std::string& path) {
             add_to_startup = api["add_to_startup"];
         } else if (api.contains("add_to_startup") &&
                    !api["add_to_startup"].is_boolean()) {
-            Logger::log2stderr(
+            Logger::error(
                 "Warning: 'add_to_startup' should be a boolean value. "
                 "Defaulting to false.");
             add_to_startup = false;
         }
 
         if (upload_url.empty()) {
-            Logger::log2stderr("Error: 'upload_url' is required.");
+            Logger::error("Error: 'upload_url' is required.");
             return false;
         }
         if (interval_seconds <= 0) {
-            Logger::log2stderr("Error: 'interval_seconds' must be > 0.");
+            Logger::error("Error: 'interval_seconds' must be > 0.");
             return false;
         }
         if (max_retries < 0 || retry_delay_ms < 0) {
-            Logger::log2stderr("Error: retry parameters must be non-negative.");
+            Logger::error("Error: retry parameters must be non-negative.");
             return false;
         }
 
@@ -57,7 +58,7 @@ bool Config::load(const std::string& path) {
         last_config_time = std::filesystem::last_write_time(path);
         return true;
     } catch (const std::exception& e) {
-        Logger::log2stderr("Error loading config: " + std::string(e.what()));
+        Logger::error(std::format("Error loading config: {}", e.what()));
         return false;
     }
 }
@@ -68,35 +69,33 @@ bool Config::try_reload_config(const std::string& path) {
     if (current_time != last_config_time) {
         if (load(path)) {
             last_config_time = current_time;
-            Logger::log2stdout("Config reloaded successfully");
+            Logger::info("Config reloaded successfully");
             return true;
         } else {
-            Logger::log2stderr("Failed to reload config");
+            Logger::error("Failed to reload config");
         }
     }
     return false;
 }
 
 void Config::list() const {
-    Logger::log2stdout("\tUpload URL: " + upload_url);
-    Logger::log2stdout(
-        "\tInterval_seconds: " + std::to_string(interval_seconds) + "s");
-    Logger::log2stdout("\tMax retries: " + std::to_string(max_retries));
-    Logger::log2stdout("\tRetry delay: " + std::to_string(retry_delay_ms) +
-                       "ms");
-    Logger::log2stdout("\tAdd to startup: " +
-                       std::string(add_to_startup ? "true" : "false"));
+    Logger::debug(std::format("\tUpload URL: {}", upload_url));
+    Logger::debug(std::format("\tInterval_seconds: {}s", interval_seconds));
+    Logger::debug(std::format("\tMax retries: {}", max_retries));
+    Logger::debug(std::format("\tRetry delay: {}ms", retry_delay_ms));
+    Logger::debug(
+        std::format("\tAdd to startup: {}", add_to_startup ? "true" : "false"));
 }
 
 void Config::list_default() {
-    Logger::log2stdout("\tUpload URL: " + Config::default_upload_url);
-    Logger::log2stdout("\tInterval_seconds: " +
-                       std::to_string(Config::default_interval_seconds) + "s");
-    Logger::log2stdout("\tMax retries: " +
-                       std::to_string(Config::default_max_retries));
-    Logger::log2stdout("\tRetry delay: " +
-                       std::to_string(Config::default_retry_delay_ms) + "ms");
-    Logger::log2stdout(
-        "\tAdd to startup: " +
-        std::string(Config::default_add_to_startup ? "true" : "false"));
+    Logger::debug(std::format("\tUpload URL: {}", Config::default_upload_url));
+    Logger::debug(std::format("\tInterval_seconds: {}s",
+                              Config::default_interval_seconds));
+    Logger::debug(
+        std::format("\tMax retries: {}", Config::default_max_retries));
+    Logger::debug(
+        std::format("\tRetry delay: {}ms", Config::default_retry_delay_ms));
+    Logger::debug(
+        std::format("\tAdd to startup: {}",
+                    Config::default_add_to_startup ? "true" : "false"));
 }
