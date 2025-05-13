@@ -6,6 +6,7 @@ add_library(core STATIC)
 target_sources(core PRIVATE
     Config.cpp
     Logger.cpp
+    IDGenerator.cpp
 )
 # platform-specific source files
 if(WIN32)

@@ -4,6 +4,7 @@
     "interval_seconds": 60,
     "max_retries": 3,
     "retry_delay_ms": 1000,
-    "add_to_startup": false
+    "add_to_startup": false,
+    "client_id": ""
   }
 }

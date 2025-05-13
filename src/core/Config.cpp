@@ -2,7 +2,9 @@
 
 #include <format>
 #include <fstream>
+#include <nlohmann/json.hpp>
 
+#include "core/IDGenerator.h"
 #include "core/Logger.h"
 
 using json = nlohmann::json;
@@ -16,7 +18,7 @@ bool Config::load(const std::string& path) {
             return false;
         }
 
-        file >> json_data;
+        nlohmann::json json_data = json::parse(file);
 
         if (!json_data.contains("api") || !json_data["api"].is_object()) {
             Logger::error("Error: Missing or invalid 'api' section in config.");
@@ -25,10 +27,17 @@ bool Config::load(const std::string& path) {
 
         const auto& api = json_data["api"];
 
-        upload_url = api.value("upload_url", upload_url);
-        interval_seconds = api.value("interval_seconds", interval_seconds);
-        max_retries = api.value("max_retries", max_retries);
-        retry_delay_ms = api.value("retry_delay_ms", retry_delay_ms);
+        upload_url = api.value("upload_url", default_upload_url);
+        interval_seconds =
+            api.value("interval_seconds", default_interval_seconds);
+        max_retries = api.value("max_retries", default_max_retries);
+        retry_delay_ms = api.value("retry_delay_ms", default_retry_delay_ms);
+        client_id = api.value("client_id", default_client_id);
+        if (client_id.empty()) {
+            client_id = IDGenerator::generateUUID();
+            Logger::info(std::format("Generated new client ID: {}", client_id));
+            save(path);
+        }
         if (api.contains("add_to_startup") &&
             api["add_to_startup"].is_boolean()) {
             add_to_startup = api["add_to_startup"];
@@ -59,6 +68,31 @@ bool Config::load(const std::string& path) {
         return true;
     } catch (const std::exception& e) {
         Logger::error(std::format("Error loading config: {}", e.what()));
+        return false;
+    }
+}
+
+bool Config::save(const std::string& path) const {
+    try {
+        // 使用 ordered_json 确保输出顺序
+        nlohmann::ordered_json json_data;
+        json_data["api"]["upload_url"] = upload_url;
+        json_data["api"]["interval_seconds"] = interval_seconds;
+        json_data["api"]["max_retries"] = max_retries;
+        json_data["api"]["retry_delay_ms"] = retry_delay_ms;
+        json_data["api"]["add_to_startup"] = add_to_startup;
+        json_data["api"]["client_id"] = client_id;
+
+        std::ofstream file(path);
+        if (!file.is_open()) {
+            Logger::error(std::format(
+                "Error: Could not open config file for writing: {}", path));
+            return false;
+        }
+        file << json_data.dump(2);  // 以格式化的 JSON 存储
+        return true;
+    } catch (const std::exception& e) {
+        Logger::error(std::format("Error saving config: {}", e.what()));
         return false;
     }
 }
