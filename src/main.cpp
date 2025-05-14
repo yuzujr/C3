@@ -55,6 +55,7 @@ int main() {
             // 上传图像
             std::string upload_url = std::format(
                 "{}/upload?client_id={}", config.server_url, config.client_id);
+            Logger::info(std::format("Uploading to: {}", upload_url));
             bool success = Uploader::uploadWithRetry(
                 frame, upload_url, config.max_retries, config.retry_delay_ms);
             if (!success) {
@@ -64,7 +65,7 @@ int main() {
         }
 
         // 等待下一次上传
-        Logger::info("Waiting for next capture...");
+        Logger::info("Waiting for next capture...\n");
         std::this_thread::sleep_until(
             start + std::chrono::seconds(config.interval_seconds));
     }

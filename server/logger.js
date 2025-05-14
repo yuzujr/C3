@@ -7,10 +7,9 @@ const logsDir = path.join(__dirname, 'logs');
 // 创建 logs 目录（如果不存在）
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
-  console.log('[INIT] Created logs directory:', logsDir);
+  logWithTime('[INIT] Created "logs" directory:', logsDir);
 }
-// 引入logger.js
-const { logWithTime, errorWithTime } = require('./logger');
+
 // 获取当前日志文件路径（按小时记录）
 function getCurrentLogFilePath() {
   const now = new Date();
@@ -21,10 +20,12 @@ function getCurrentLogFilePath() {
   return path.join(logsDir, `${y}-${m}-${d}-${h}.log`);
 }
 
+
 // 获取北京时间字符串
 function getBeijingTime() {
   return new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
 }
+
 
 // 日志输出函数
 function logWithTime(...args) {
@@ -33,12 +34,14 @@ function logWithTime(...args) {
   fs.appendFileSync(getCurrentLogFilePath(), message + '\n');
 }
 
+
 // 错误日志输出
 function errorWithTime(...args) {
   const message = `[${getBeijingTime()}] ` + args.join(' ');
   console.error(message);
   fs.appendFileSync(getCurrentLogFilePath(), message + '\n');
 }
+
 
 module.exports = {
   logWithTime,

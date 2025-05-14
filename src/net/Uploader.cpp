@@ -57,7 +57,7 @@ bool Uploader::uploadImage(const cv::Mat& frame, const std::string& url) {
         Logger::info(r.text, LogTarget::Server);
     }
 
-    Logger::info(std::format("File uploaded successfully: {}\n", filename));
+    Logger::info(std::format("File uploaded successfully: {}", filename));
     return true;
 }
 
