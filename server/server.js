@@ -1,5 +1,5 @@
 const express = require('express');
-const multer  = require('multer');
+const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
@@ -8,41 +8,62 @@ const app = express();
 const PORT = 4000;
 
 app.use(express.json());
-app.use(cors())
+app.use(cors());
+
+const uploadRootDir = path.join(__dirname, 'uploads');
+const clientsJsonPath = path.join(__dirname, 'clients.json');
 
 
-const uploadDir = path.join(__dirname, 'uploads');
-const logsDir = path.join(__dirname, 'logs');
-
-// 创建 logs 目录
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-  logWithTime('[INIT] Create \"logs\" directory:', logsDir);
-}
 // 创建 uploads 目录
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  logWithTime('[INIT] Create \"uploads\" directory:', uploadDir);
+if (!fs.existsSync(uploadRootDir)) {
+  fs.mkdirSync(uploadRootDir, { recursive: true });
+  logWithTime('[INIT] Create \"uploads\" directory:', uploadRootDir);
 }
 
-// 设置存储规则
+
+// 读取 clients.json（人类可读别名）
+function loadClients() {
+  if (fs.existsSync(clientsJsonPath)) {
+    return JSON.parse(fs.readFileSync(clientsJsonPath, 'utf-8'));
+  }
+  return {};
+}
+
+
+// ---- Multer 设置 ----
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hour = String(now.getHours()).padStart(2, '0');
-
-    const folderName = `${year}-${month}-${day}-${hour}`;
-    const timeBasedDir = path.join(uploadDir, folderName);
-
-    if (!fs.existsSync(timeBasedDir)) {
-      fs.mkdirSync(timeBasedDir, { recursive: true });
-      logWithTime('[INIT] Create time based subdirectory:', timeBasedDir);
+    const clientId = req.query.client_id;
+    if (!clientId || !/^[a-f0-9-]{36}$/.test(clientId)) {
+      return cb(new Error("Missing or invalid client_id"));
     }
 
-    cb(null, timeBasedDir);
+    const clients = loadClients();
+    const alias = clients[clientId];
+    let folderName = clientId;
+
+    if (alias) {
+      const preferredName = `${alias}_${clientId}`;
+      const oldPath = path.join(uploadRootDir, clientId);
+      const newPath = path.join(uploadRootDir, preferredName);
+
+      if (fs.existsSync(oldPath) && !fs.existsSync(newPath)) {
+        fs.renameSync(oldPath, newPath);
+        logWithTime(`[RENAME] ${oldPath} → ${newPath}`);
+      }
+
+      folderName = preferredName;
+    }
+
+    // 时间子目录
+    const now = new Date();
+    const year = now.getFullYear(), month = String(now.getMonth() + 1).padStart(2, '0'), day = String(now.getDate()).padStart(2, '0'), hour = String(now.getHours()).padStart(2, '0');
+    const timeFolder = `${year}-${month}-${day}-${hour}`;
+    const fullDir = path.join(uploadRootDir, folderName, timeFolder);
+
+    fs.mkdirSync(fullDir, { recursive: true });
+    logWithTime(`[UPLOAD] Save to ${fullDir}`);
+    cb(null, fullDir);
   },
   filename: (req, file, cb) => {
     const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
@@ -52,58 +73,21 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// ---- 上传处理 ----
 app.post('/upload', upload.single('file'), (req, res) => {
-  logWithTime('[UPLOAD] Incoming upload request received.');
+  const clientId = req.query.client_id;
+  logWithTime('[UPLOAD] Incoming upload from client:', clientId);
 
   if (!req.file) {
     errorWithTime('[UPLOAD] ❌ No file received.');
     return res.status(400).send('No file received.\n');
   }
 
-  logWithTime('[UPLOAD] ✅ File received successfully:');
-  logWithTime(` - Original name: ${req.file.originalname}`);
-  logWithTime(` - Saved as:      ${req.file.filename}`);
-  logWithTime(` - MIME type:     ${req.file.mimetype}`);
-  logWithTime(` - Path:          ${req.file.path}`);
-  logWithTime(` - Size:          ${req.file.size} bytes\n`);
-
+  logWithTime('[UPLOAD] ✅ File uploaded:', req.file.path);
   return res.status(201).send('Upload success: ' + req.file.filename + '\n');
 });
 
+// ---- 启动服务器 ----
 app.listen(PORT, '0.0.0.0', () => {
-  logWithTime(`Server is running on http://0.0.0.0:${PORT}`);
+  logWithTime(`Server running at http://0.0.0.0:${PORT}`);
 });
-
-
-// --- 日志辅助函数 ---
-function getCurrentLogFilePath() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hour = String(now.getHours()).padStart(2, '0');
-  return path.join(logsDir, `${year}-${month}-${day}-${hour}.log`);
-}
-
-function getBeijingTime() {
-  const now = new Date(Date.now() + 8 * 60 * 60 * 1000);
-  return now.toISOString().replace('T', ' ').slice(0, 19);
-}
-
-function logWithTime(...args) {
-  const timeStr = getBeijingTime();
-  const message = `[${timeStr}] ` + args.join(' ');
-  console.log(message);
-  fs.appendFileSync(getCurrentLogFilePath(), message + '\n', 'utf8', (err) => {
-  if (err) console.error('Failed to write log:', err);
-});
-}
-
-function errorWithTime(...args) {
-  const timeStr = getBeijingTime();
-  const message = `[${timeStr}] ` + args.join(' ');
-  console.error(message);
-  fs.appendFileSync(getCurrentLogFilePath(), message + '\n', 'utf8', (err) => {
-  if (err) console.error('Failed to write log:', err);
-});
-}

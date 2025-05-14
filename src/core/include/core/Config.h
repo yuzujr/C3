@@ -23,8 +23,8 @@ public:
     // 展示默认配置文件内容
     static void list_default();
 
-    // 上传地址
-    std::string upload_url = default_upload_url;
+    // 服务端口地址
+    std::string server_url = default_server_url;
     // 上传间隔时间（秒）
     int interval_seconds = default_interval_seconds;
     // 最大重试次数
@@ -38,8 +38,8 @@ public:
 
 private:
     // 默认配置文件内容
-    static inline const std::string default_upload_url =
-        "http://127.0.0.1:4000/upload";
+    static inline const std::string default_server_url =
+        "http://127.0.0.1:4000";
     static constexpr int default_interval_seconds = 60;
     static constexpr int default_max_retries = 3;
     static constexpr int default_retry_delay_ms = 1000;

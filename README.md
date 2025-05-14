@@ -26,7 +26,7 @@ Mainly used for practicing server/client projects.
 
 2. Edit `config.json`:
 
-- `upload_url` is server's api url. (If you run this server on **loop back address**, `upload_url` will be `http://127.0.0.1:4000/upload`)
+- `server_url` is the address where the server running. (If you run this server on **loop back address**, `server_url` will be `http://127.0.0.1:4000`)
 - `interval_seconds` is the interval that client send upload request. (60s by default)
 - `max_retries` is the number of retry attempts if upload fails. (3 by default)
 - `retry_delay_ms` is the delay between retry attempts in milliseconds. (1000ms by default)
@@ -36,7 +36,7 @@ Example `config.json`:
 ```json
 {
   "api": {
-    "upload_url": "http://127.0.0.1:4000/upload",
+    "server_url": "http://127.0.0.1:4000",
     "interval_seconds": 60,
     "max_retries": 3,
     "retry_delay_ms": 1000,

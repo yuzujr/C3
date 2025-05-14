@@ -27,7 +27,7 @@ bool Config::load(const std::string& path) {
 
         const auto& api = json_data["api"];
 
-        upload_url = api.value("upload_url", default_upload_url);
+        server_url = api.value("server_url", default_server_url);
         interval_seconds =
             api.value("interval_seconds", default_interval_seconds);
         max_retries = api.value("max_retries", default_max_retries);
@@ -49,8 +49,8 @@ bool Config::load(const std::string& path) {
             add_to_startup = false;
         }
 
-        if (upload_url.empty()) {
-            Logger::error("Error: 'upload_url' is required.");
+        if (server_url.empty()) {
+            Logger::error("Error: 'server_url' is required.");
             return false;
         }
         if (interval_seconds <= 0) {
@@ -76,7 +76,7 @@ bool Config::save(const std::string& path) const {
     try {
         // 使用 ordered_json 确保输出顺序
         nlohmann::ordered_json json_data;
-        json_data["api"]["upload_url"] = upload_url;
+        json_data["api"]["server_url"] = server_url;
         json_data["api"]["interval_seconds"] = interval_seconds;
         json_data["api"]["max_retries"] = max_retries;
         json_data["api"]["retry_delay_ms"] = retry_delay_ms;
@@ -113,7 +113,7 @@ bool Config::try_reload_config(const std::string& path) {
 }
 
 void Config::list() const {
-    Logger::debug(std::format("\tUpload URL: {}", upload_url));
+    Logger::debug(std::format("\tUpload URL: {}", server_url));
     Logger::debug(std::format("\tInterval_seconds: {}s", interval_seconds));
     Logger::debug(std::format("\tMax retries: {}", max_retries));
     Logger::debug(std::format("\tRetry delay: {}ms", retry_delay_ms));
@@ -122,7 +122,7 @@ void Config::list() const {
 }
 
 void Config::list_default() {
-    Logger::debug(std::format("\tUpload URL: {}", Config::default_upload_url));
+    Logger::debug(std::format("\tUpload URL: {}", Config::default_server_url));
     Logger::debug(std::format("\tInterval_seconds: {}s",
                               Config::default_interval_seconds));
     Logger::debug(

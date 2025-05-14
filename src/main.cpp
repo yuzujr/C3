@@ -10,7 +10,7 @@
 
 int main() {
     // 初始化日志
-    Logger::init();
+    Logger::init(spdlog::level::info, spdlog::level::info);
 
     // 读取配置文件
     Config config;
@@ -53,9 +53,10 @@ int main() {
             Logger::error("Error: Failed to capture screen");
         } else {
             // 上传图像
-            bool success = Uploader::uploadWithRetry(frame, config.upload_url,
-                                                     config.max_retries,
-                                                     config.retry_delay_ms);
+            std::string upload_url = std::format(
+                "{}/upload?client_id={}", config.server_url, config.client_id);
+            bool success = Uploader::uploadWithRetry(
+                frame, upload_url, config.max_retries, config.retry_delay_ms);
             if (!success) {
                 Logger::error(std::format("Upload failed after {} attempts.\n",
                                           config.max_retries));

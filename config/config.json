@@ -1,6 +1,6 @@
 {
   "api": {
-    "upload_url": "http://127.0.0.1:4000/upload",
+    "server_url": "http://127.0.0.1:4000",
     "interval_seconds": 60,
     "max_retries": 3,
     "retry_delay_ms": 1000,
