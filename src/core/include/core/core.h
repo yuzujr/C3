@@ -6,5 +6,6 @@
 #include "core/Logger.h"
 #include "core/ScreenCapturer.h"
 #include "core/SystemUtils.h"
+#include "core/ControlCenter.h"
 
 #endif  // CORE_H

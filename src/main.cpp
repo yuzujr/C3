@@ -36,12 +36,14 @@ int main() {
     // 启用高 DPI 感知
     SystemUtils::enableHighDPI();
 
-    // 实例化命令获取器
-    CommandFetcher command_fetcher(config.server_url, config.client_id);
+    // 命令控制器
+    ControlCenter controlCenter;
+    // 命令获取器
+    CommandFetcher fetcher(config.server_url, config.client_id, controlCenter);
     // 启动命令获取线程
-    std::thread command_thread([&command_fetcher]() {
+    std::thread command_thread([&fetcher]() {
         while (true) {
-            command_fetcher.fetchAndHandleCommands();
+            fetcher.fetchAndHandleCommands();
             std::this_thread::sleep_for(std::chrono::seconds(10));
         }
     });
@@ -49,6 +51,9 @@ int main() {
     // 进入主循环
     while (true) {
         auto start = std::chrono::high_resolution_clock::now();
+        controlCenter.setNextUploadTime(start + std::chrono::seconds(config.interval_seconds));
+
+        controlCenter.waitIfPaused();
 
         // 检查配置文件是否有更新
         if (config.try_reload_config("config.json")) {
@@ -74,10 +79,13 @@ int main() {
             }
         }
 
+        if (controlCenter.consumeScreenshotRequest()) {
+            Logger::info("Screenshot triggered by remote command!");
+        }
+
         // 等待下一次上传
         Logger::info("Waiting for next capture...\n");
-        std::this_thread::sleep_until(
-            start + std::chrono::seconds(config.interval_seconds));
+        controlCenter.interruptibleSleepUntil(controlCenter.nextUploadTime());
     }
 
     return 0;

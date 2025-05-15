@@ -1,3 +1,9 @@
+const fs = require('fs');
+const path = require('path');
+
+// ---- 日志工具 ----
+const { logWithTime, errorWithTime } = require('./logger');
+
 // ---- 热加载 clients.json ----
 let clientsCache = {};
 const clientsJsonPath = path.join(__dirname, 'clients.json');
@@ -33,3 +39,5 @@ fs.watchFile(clientsJsonPath, { interval: 1000 }, (curr, prev) => {
     loadClientsFromDisk();
   }
 });
+
+module.exports = { getClients };

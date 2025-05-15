@@ -7,6 +7,7 @@ target_sources(core PRIVATE
     Config.cpp
     Logger.cpp
     IDGenerator.cpp
+    ControlCenter.cpp
 )
 # platform-specific source files
 if(WIN32)
