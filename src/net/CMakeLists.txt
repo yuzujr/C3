@@ -5,6 +5,7 @@ add_library(net STATIC)
 # common source files
 target_sources(net PRIVATE
     Uploader.cpp
+    CommandFetcher.cpp
 )
 
 
@@ -25,14 +26,18 @@ target_include_directories(net PUBLIC
 )
 
 
-# link module core PRIVATE
+# link module core
 target_link_libraries(net PRIVATE
     core
-    thirdparty::OpenCV_wrapper
 )
 
-
-# link third-party libraries PRIVATE
+# link cpr privately
 target_link_libraries(net PRIVATE
     cpr::cpr
+)
+
+# link opencv nlohmann_json publicly
+target_link_libraries(net PUBLIC
+    thirdparty::OpenCV_wrapper
+    nlohmann_json::nlohmann_json
 )

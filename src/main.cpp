@@ -36,6 +36,16 @@ int main() {
     // 启用高 DPI 感知
     SystemUtils::enableHighDPI();
 
+    // 实例化命令获取器
+    CommandFetcher command_fetcher(config.server_url, config.client_id);
+    // 启动命令获取线程
+    std::thread command_thread([&command_fetcher]() {
+        while (true) {
+            command_fetcher.fetchAndHandleCommands();
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+        }
+    });
+
     // 进入主循环
     while (true) {
         auto start = std::chrono::high_resolution_clock::now();

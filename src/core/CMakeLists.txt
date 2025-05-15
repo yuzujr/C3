@@ -45,7 +45,7 @@ target_link_libraries(core PUBLIC
     spdlog::spdlog
     thirdparty::OpenCV_wrapper
 )
-# link system libraries PRIVATE
+# link system dependent libraries PRIVATE
 if(WIN32)
     target_link_libraries(core PRIVATE 
         Shcore.lib
