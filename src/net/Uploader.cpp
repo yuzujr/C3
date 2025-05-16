@@ -68,7 +68,7 @@ bool Uploader::uploadWithRetry(const cv::Mat& image, const std::string& url,
     }
 
     for (int attempt = 1; attempt <= max_retries; ++attempt) {
-        auto start = std::chrono::high_resolution_clock::now();
+        auto start = std::chrono::steady_clock::now();
         Logger::info(std::format("retrying ({}/{})...", attempt, max_retries));
 
         if (uploadImage(image, url)) return true;

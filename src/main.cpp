@@ -50,8 +50,9 @@ int main() {
 
     // 进入主循环
     while (true) {
-        auto start = std::chrono::high_resolution_clock::now();
-        controlCenter.setNextUploadTime(start + std::chrono::seconds(config.interval_seconds));
+        auto start = std::chrono::steady_clock::now();
+        controlCenter.setNextUploadTime(
+            start + std::chrono::seconds(config.interval_seconds));
 
         controlCenter.waitIfPaused();
 
