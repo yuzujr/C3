@@ -30,7 +30,7 @@ app.use((req, res, next) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const clientId = url.searchParams.get('client_id');
 
-    if (clientId && /^[a-f0-9-]+$/i.test(clientId)) {
+    if (clientId) {
       req.clientId = clientId;
     } else {
       req.clientId = null;
@@ -118,8 +118,8 @@ app.get('/commands', (req, res) => {
     const alias = clients[clientId];
     const displayName = alias ? `${alias} (${clientId})` : clientId;
     
-    if (!clientId || !/^[a-f0-9-]+$/i.test(clientId)) {
-        return res.status(400).json({error: 'Invalid or missing client_id'});
+    if (!clientId) {
+        return res.status(400).send('Missing client_id');
     }
 
     const commands = getAndClearCommands(clientId);
