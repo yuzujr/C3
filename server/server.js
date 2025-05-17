@@ -12,11 +12,13 @@ app.use(express.json());
 app.use(cors());
 
 // ---- 日志工具 ----
-const { logWithTime, errorWithTime } = require('./logger');
+const { logWithTime, errorWithTime, getBeijingTime } = require('./logger');
 // ---- 设置上传目录 ----
 const uploadRootDir = path.join(__dirname, 'uploads');
 // ---- 热加载 clients.json ----
 const { getClients } = require('./clients');
+// ---- 客户端配置文件路径 ----
+const clientsConfigFile = path.join(__dirname, 'clients_config.json');
 
 // ---- 初始化 uploads 目录 ----
 if (!fs.existsSync(uploadRootDir)) {
@@ -112,6 +114,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
 
 // --- 命令接口 ---
 const {getAndClearCommands} = require('./commands');
+const { get } = require('http');
 app.get('/commands', (req, res) => {
     const clientId = req.query.client_id;
     const clients = getClients();
@@ -127,6 +130,42 @@ app.get('/commands', (req, res) => {
         logWithTime(`[COMMAND] ${displayName} -> ${JSON.stringify(commands)}`);
     }
     return res.json({commands});
+});
+
+app.post('/client_config', (req, res) => {
+  const clientId = req.query.client_id;
+  const config = req.body;
+
+  if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
+    errorWithTime('[CONFIG] ❌ Missing or invalid client_id');
+    return res.status(400).send('Missing or invalid client_id');
+  }
+
+  let allConfigs = {};
+  if (fs.existsSync(clientsConfigFile)) {
+    let raw = '';
+    try {
+      raw = fs.readFileSync(clientsConfigFile, 'utf-8').trim();
+      allConfigs = raw ? JSON.parse(raw) : {};  // 如果空内容，视为 {}
+    } catch (e) {
+      errorWithTime('[CONFIG] ❌ Failed to parse clients_config.json:', e);
+      return res.status(500).send('Failed to parse config file');
+    }
+  }
+
+  allConfigs[clientId] = {
+    ...config,
+    lastUpload: getBeijingTime(),
+  };
+
+  try {
+    fs.writeFileSync(clientsConfigFile, JSON.stringify(allConfigs, null, 2));
+    logWithTime(`[CONFIG] ✅ Received config from ${clientId}`);
+    return res.status(200).send('Config saved successfully');
+  } catch (e) {
+    errorWithTime('[CONFIG] ❌ Failed to write config:', e);
+    return res.status(500).send('Failed to save config');
+  }
 });
 
 // ---- 启动服务器 ----

@@ -5,7 +5,6 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-#include "core/Config.h"
 #include "core/IDGenerator.h"
 #include "core/Logger.h"
 #include "core/SystemUtils.h"
@@ -15,6 +14,7 @@ namespace fs = std::filesystem;
 
 bool Config::load(const std::string& configName) {
     try {
+        // 打开配置文件
         std::string configPath = getConfigPath(configName);
         std::ifstream file(configPath);
         if (!file.is_open()) {
@@ -23,47 +23,11 @@ bool Config::load(const std::string& configName) {
             return false;
         }
 
+        // 解析 JSON 数据
         nlohmann::json json_data = json::parse(file);
 
-        if (!json_data.contains("api") || !json_data["api"].is_object()) {
-            Logger::error("Error: Missing or invalid 'api' section in config.");
-            return false;
-        }
-
-        const auto& api = json_data["api"];
-
-        server_url = api.value("server_url", default_server_url);
-        interval_seconds =
-            api.value("interval_seconds", default_interval_seconds);
-        max_retries = api.value("max_retries", default_max_retries);
-        retry_delay_ms = api.value("retry_delay_ms", default_retry_delay_ms);
-        client_id = api.value("client_id", default_client_id);
-        if (client_id.empty()) {
-            client_id = IDGenerator::generateUUID();
-            Logger::info(std::format("Generated new client ID: {}", client_id));
-            save(configName);
-        }
-        if (api.contains("add_to_startup") &&
-            api["add_to_startup"].is_boolean()) {
-            add_to_startup = api["add_to_startup"];
-        } else if (api.contains("add_to_startup") &&
-                   !api["add_to_startup"].is_boolean()) {
-            Logger::error(
-                "Warning: 'add_to_startup' should be a boolean value. "
-                "Defaulting to false.");
-            add_to_startup = false;
-        }
-
-        if (server_url.empty()) {
-            Logger::error("Error: 'server_url' is required.");
-            return false;
-        }
-        if (interval_seconds <= 0) {
-            Logger::error("Error: 'interval_seconds' must be > 0.");
-            return false;
-        }
-        if (max_retries < 0 || retry_delay_ms < 0) {
-            Logger::error("Error: retry parameters must be non-negative.");
+        // 读取配置项
+        if (!parseConfig(json_data)) {
             return false;
         }
 
@@ -104,6 +68,36 @@ bool Config::save(const std::string& configName) const {
     }
 }
 
+bool Config::parseConfig(const nlohmann::json& data) {
+    if (!data.contains("api") || !data["api"].is_object()) {
+        Logger::error("Error: Missing or invalid 'api' section in config.");
+        return false;
+    }
+
+    const auto& api = data["api"];
+
+    // 如果没有对应配置项，则使用现有值
+    server_url = api.value("server_url", server_url);
+    interval_seconds = api.value("interval_seconds", interval_seconds);
+    max_retries = api.value("max_retries", max_retries);
+    retry_delay_ms = api.value("retry_delay_ms", retry_delay_ms);
+    client_id = api.value("client_id", client_id);
+    add_to_startup = api.value("add_to_startup", add_to_startup);
+
+    if (client_id.empty()) {
+        client_id = IDGenerator::generateUUID();
+        Logger::info(std::format("Generated new client ID: {}", client_id));
+    }
+
+    if (server_url.empty() || interval_seconds <= 0 || max_retries < 0 ||
+        retry_delay_ms < 0) {
+        Logger::error("Error: One or more config values are invalid.");
+        return false;
+    }
+
+    return true;
+}
+
 bool Config::try_reload_config(const std::string& configName) {
     std::string configPath = getConfigPath(configName);
     auto current_time = std::filesystem::last_write_time(configPath);
@@ -118,6 +112,17 @@ bool Config::try_reload_config(const std::string& configName) {
         }
     }
     return false;
+}
+
+nlohmann::json Config::toJson() const {
+    nlohmann::ordered_json json_data;
+    json_data["api"]["server_url"] = server_url;
+    json_data["api"]["interval_seconds"] = interval_seconds;
+    json_data["api"]["max_retries"] = max_retries;
+    json_data["api"]["retry_delay_ms"] = retry_delay_ms;
+    json_data["api"]["add_to_startup"] = add_to_startup;
+    json_data["api"]["client_id"] = client_id;
+    return json_data;
 }
 
 void Config::list() const {
@@ -143,26 +148,4 @@ void Config::list_default() {
 
 std::string Config::getConfigPath(const std::string& configName) const {
     return (fs::path(SystemUtils::getExecutableDir()) / configName).string();
-}
-
-bool Config::parseApi(const nlohmann::json& api) {
-    server_url = api.value("server_url", default_server_url);
-    interval_seconds = api.value("interval_seconds", default_interval_seconds);
-    max_retries = api.value("max_retries", default_max_retries);
-    retry_delay_ms = api.value("retry_delay_ms", default_retry_delay_ms);
-    client_id = api.value("client_id", default_client_id);
-    add_to_startup = api.value("add_to_startup", default_add_to_startup);
-
-    if (client_id.empty()) {
-        client_id = IDGenerator::generateUUID();
-        Logger::info(std::format("Generated new client ID: {}", client_id));
-    }
-
-    if (server_url.empty() || interval_seconds <= 0 || max_retries < 0 ||
-        retry_delay_ms < 0) {
-        Logger::error("Error: One or more config values are invalid.");
-        return false;
-    }
-
-    return true;
 }

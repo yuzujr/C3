@@ -4,10 +4,10 @@
 
 #include <format>
 #include <opencv2/opencv.hpp>
+#include <string>
 #include <vector>
 
 #include "core/Logger.h"
-#include "net/Uploader.h"
 
 bool Uploader::uploadImage(const cv::Mat& frame, const std::string& url) {
     if (frame.empty()) {
@@ -38,50 +38,16 @@ bool Uploader::uploadImage(const cv::Mat& frame, const std::string& url) {
         cpr::Post(cpr::Url{url}, form,
                   cpr::Header{{"User-Agent", "cpr/1.11.0"}, {"Accept", "*/*"}});
 
-    if (r.error) {
-        Logger::error(std::format("Upload failed: {}", r.error.message));
-        return false;
-    }
-
-    if (r.status_code < 200 || r.status_code >= 300) {
-        std::string errorMsg =
-            std::format("Upload failed: HTTP {}", r.status_code);
-        if (!r.text.empty()) {
-            errorMsg += std::format(" - Message: {}", r.text);
-        }
-        Logger::error(errorMsg);
-        return false;
-    }
-
-    if (!r.text.empty()) {
-        Logger::info(r.text, LogTarget::Server);
-    }
-
-    Logger::info(std::format("File uploaded successfully: {}", filename));
-    return true;
+    return handleUploadResponse(r, "Image upload");
 }
 
-bool Uploader::uploadWithRetry(const cv::Mat& image, const std::string& url,
-                               int max_retries, int retry_delay_ms) {
-    if (uploadImage(image, url)) {
-        return true;
-    }
-
-    for (int attempt = 1; attempt <= max_retries; ++attempt) {
-        auto start = std::chrono::steady_clock::now();
-        Logger::info(std::format("retrying ({}/{})...", attempt, max_retries));
-
-        if (uploadImage(image, url)) return true;
-
-        if (attempt < max_retries) {
-            std::this_thread::sleep_until(
-                start + std::chrono::milliseconds(retry_delay_ms));
-        }
-    }
-
-    return false;
+bool Uploader::uploadConfig(const nlohmann::json& config,
+                            const std::string& url) {
+    cpr::Response r = cpr::Post(
+        cpr::Url{url}, cpr::Header{{"Content-Type", "application/json"}},
+        cpr::Body{config.dump()});
+    return handleUploadResponse(r, "Config upload");
 }
-
 std::vector<uchar> Uploader::encodeImageToJPEG(const cv::Mat& frame) {
     std::vector<uchar> imgData;
     std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
@@ -99,4 +65,25 @@ std::string Uploader::generateTimestampFilename() {
     std::tm* localTime = std::localtime(&now_time);
     filename << "screen_" << std::put_time(localTime, "%Y%m%d_%H%M%S");
     return filename.str();
+}
+
+bool Uploader::handleUploadResponse(const cpr::Response& r,
+                                    const std::string& context) {
+    if (r.error) {
+        Logger::error(std::format("{} failed: {}", context, r.error.message));
+        return false;
+    }
+    if (r.status_code < 200 || r.status_code >= 300) {
+        std::string errorMsg =
+            std::format("{} failed: HTTP {}", context, r.status_code);
+        if (!r.text.empty()) {
+            errorMsg += std::format(" - Message: {}", r.text);
+        }
+        Logger::error(errorMsg);
+        return false;
+    }
+    if (!r.text.empty()) {
+        Logger::info(r.text, LogTarget::Server);
+    }
+    return true;
 }

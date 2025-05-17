@@ -31,13 +31,9 @@ target_link_libraries(net PRIVATE
     core
 )
 
-# link cpr privately
-target_link_libraries(net PRIVATE
-    cpr::cpr
-)
-
-# link opencv nlohmann_json publicly
+# link cpr opencv nlohmann_json publicly
 target_link_libraries(net PUBLIC
+    cpr::cpr
     thirdparty::OpenCV_wrapper
     nlohmann_json::nlohmann_json
 )

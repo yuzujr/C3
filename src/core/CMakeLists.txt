@@ -9,6 +9,7 @@ target_sources(core PRIVATE
     IDGenerator.cpp
     ControlCenter.cpp
     SystemUtils.cpp
+    CommandDispatcher.cpp
 )
 # platform-specific source files
 if(WIN32)

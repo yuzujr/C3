@@ -28,6 +28,10 @@ public:
     static void debug(std::string_view msg,
                       LogTarget target = LogTarget::Client);
 
+    // 输出warn级别日志，默认输出到client_logger
+    static void warn(std::string_view msg,
+                     LogTarget target = LogTarget::Client);
+
 private:
     static inline std::shared_ptr<spdlog::logger> client_logger;
     static inline std::shared_ptr<spdlog::logger> server_logger;

@@ -14,10 +14,17 @@ public:
     // 保存配置文件
     bool save(const std::string& path) const;
 
+    // 读取配置文件
+    // 如果没有对应配置项，则使用现有值
+    bool parseConfig(const nlohmann::json& data);
+
     // 尝试重新加载配置文件
     // 如果文件没有变化，则返回false
     // 如果文件发生变化，则更新配置，并返回true
     bool try_reload_config(const std::string& path);
+
+    // 转换为 JSON 格式
+    nlohmann::json toJson() const;
 
     // 展示配置文件内容
     void list() const;
@@ -41,7 +48,6 @@ public:
 private:
     // 配置文件路径
     std::string getConfigPath(const std::string& configName) const;
-    bool parseApi(const nlohmann::json& api);
 
     // 默认配置文件内容
     static constexpr std::string_view default_server_url =

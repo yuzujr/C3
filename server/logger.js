@@ -46,4 +46,5 @@ function errorWithTime(...args) {
 module.exports = {
   logWithTime,
   errorWithTime,
+  getBeijingTime,
 };

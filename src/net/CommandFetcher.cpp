@@ -2,16 +2,15 @@
 
 #include <cpr/cpr.h>
 
-#include <chrono>
+#include <format>
 #include <nlohmann/json.hpp>
-#include <string>
-#include <thread>
+#include <string_view>
 
 #include "core/Logger.h"
 
 void CommandFetcher::fetchAndHandleCommands() {
-    std::string url = std::string(serverUrl_) +
-                      "/commands?client_id=" + std::string(clientId_);
+    std::string_view url =
+        std::format("{}/commands?client_id={}", serverUrl_, clientId_);
     cpr::Response r =
         cpr::Get(cpr::Url{url},
                  cpr::Header{{"User-Agent", "cpr/1.11.0"}, {"Accept", "*/*"}});
@@ -19,31 +18,12 @@ void CommandFetcher::fetchAndHandleCommands() {
     if (r.status_code == 200) {
         try {
             nlohmann::json commands = nlohmann::json::parse(r.text);
-            handleCommands(commands);
+            dispatcher_.dispatch(commands);
         } catch (const std::exception& e) {
             Logger::error(std::format("Error parsing commands: {}", e.what()));
         }
     } else {
         Logger::error(std::format("Failed to fetch commands, status code: {}",
                                   r.status_code));
-    }
-}
-
-void CommandFetcher::handleCommands(const nlohmann::json& commands) {
-    for (const auto& cmd : commands["commands"]) {
-        std::string command = cmd["type"];
-        if (command == "pause") {
-            Logger::info("[command] pause");
-            controlCenter_.pause();
-        } else if (command == "resume") {
-            Logger::info("[command] resume");
-            controlCenter_.resume();
-        } else if (command == "update_config") {
-            Logger::info("[command] update config");
-            // TODO: Implement config update logic
-        } else if (command == "screenshot_now") {
-            Logger::info("[command] screenshot now");
-            controlCenter_.requestScreenshot();
-        }
     }
 }

@@ -41,3 +41,12 @@ void Logger::debug(std::string_view msg, LogTarget target) {
         server_logger->debug(msg);
     }
 }
+
+void Logger::warn(std::string_view msg, LogTarget target) {
+    if (target == LogTarget::Client) {
+        client_logger->warn(msg);
+    }
+    if (target == LogTarget::Server) {
+        server_logger->warn(msg);
+    }
+}

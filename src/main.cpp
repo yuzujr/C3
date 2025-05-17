@@ -18,13 +18,31 @@ void captureAndUpload(const Config& config) {
         // 上传图像
         std::string upload_url = std::format(
             "{}/upload?client_id={}", config.server_url, config.client_id);
-        Logger::info(std::format("Uploading to: {}", upload_url));
+        Logger::info(std::format("Uploading screenshot to: {}", upload_url));
         bool success = Uploader::uploadWithRetry(
-            frame, upload_url, config.max_retries, config.retry_delay_ms);
+            [&]() {
+                return Uploader::uploadImage(frame, upload_url);
+            },
+            config.max_retries, config.retry_delay_ms);
         if (!success) {
             Logger::error(std::format("Upload failed after {} attempts.\n",
                                       config.max_retries));
         }
+    }
+}
+
+void uploadConfig(const Config& config) {
+    std::string upload_url = std::format("{}/client_config?client_id={}",
+                                         config.server_url, config.client_id);
+    Logger::info(std::format("Uploading config to: {}", upload_url));
+    bool success = Uploader::uploadWithRetry(
+        [&]() {
+            return Uploader::uploadConfig(config.toJson(), upload_url);
+        },
+        config.max_retries, config.retry_delay_ms);
+    if (!success) {
+        Logger::error(std::format("Upload failed after {} attempts.\n",
+                                  config.max_retries));
     }
 }
 
@@ -41,6 +59,9 @@ int main() {
     Logger::info("Config loaded successfully");
     config.list();
 
+    // 上传配置文件
+    uploadConfig(config);
+
     // 设置开机自启
     if (config.add_to_startup) {
         SystemUtils::addToStartup("ScreenUploader");
@@ -53,10 +74,12 @@ int main() {
     // 启用高 DPI 感知
     SystemUtils::enableHighDPI();
 
-    // 命令控制器
+    // 逻辑控制器
     ControlCenter controlCenter;
+    // 命令处理器
+    CommandDispatcher dispatcher(controlCenter, config);
     // 命令获取器
-    CommandFetcher fetcher(config.server_url, config.client_id, controlCenter);
+    CommandFetcher fetcher(config.server_url, config.client_id, dispatcher);
     // 启动命令轮询线程
     std::thread command_thread([&fetcher]() {
         while (true) {
@@ -76,6 +99,7 @@ int main() {
         // 检查配置文件是否有更新
         if (config.try_reload_config("config.json")) {
             config.list();
+            uploadConfig(config);
         }
 
         // 捕获屏幕图像并上传
