@@ -2,7 +2,9 @@
 #define CONFIG_H
 
 #include <filesystem>
+#include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
 
 class Config {
 public:
@@ -24,7 +26,7 @@ public:
     static void list_default();
 
     // 服务端口地址
-    std::string server_url = default_server_url;
+    std::string server_url = std::string{default_server_url};
     // 上传间隔时间（秒）
     int interval_seconds = default_interval_seconds;
     // 最大重试次数
@@ -34,17 +36,21 @@ public:
     // 是否加入开机启动项
     bool add_to_startup = default_add_to_startup;
     // 客户端ID
-    std::string client_id = default_client_id;
+    std::string client_id = std::string{default_client_id};
 
 private:
+    // 配置文件路径
+    std::string getConfigPath(const std::string& configName) const;
+    bool parseApi(const nlohmann::json& api);
+
     // 默认配置文件内容
-    static inline const std::string default_server_url =
+    static constexpr std::string_view default_server_url =
         "http://127.0.0.1:4000";
     static constexpr int default_interval_seconds = 60;
     static constexpr int default_max_retries = 3;
     static constexpr int default_retry_delay_ms = 1000;
     static constexpr bool default_add_to_startup = false;
-    static inline const std::string default_client_id = "";
+    static constexpr std::string_view default_client_id = "";
 
     // 上次读取配置文件的时间
     std::filesystem::file_time_type last_config_time;

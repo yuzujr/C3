@@ -1,20 +1,25 @@
 #include "core/Config.h"
 
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <nlohmann/json.hpp>
 
+#include "core/Config.h"
 #include "core/IDGenerator.h"
 #include "core/Logger.h"
+#include "core/SystemUtils.h"
 
 using json = nlohmann::json;
+namespace fs = std::filesystem;
 
-bool Config::load(const std::string& path) {
+bool Config::load(const std::string& configName) {
     try {
-        std::ifstream file(path);
+        std::string configPath = getConfigPath(configName);
+        std::ifstream file(configPath);
         if (!file.is_open()) {
-            Logger::error(
-                std::format("Error: Could not open config file: {}", path));
+            Logger::error(std::format("Error: Could not open config file: {}",
+                                      configName));
             return false;
         }
 
@@ -36,7 +41,7 @@ bool Config::load(const std::string& path) {
         if (client_id.empty()) {
             client_id = IDGenerator::generateUUID();
             Logger::info(std::format("Generated new client ID: {}", client_id));
-            save(path);
+            save(configName);
         }
         if (api.contains("add_to_startup") &&
             api["add_to_startup"].is_boolean()) {
@@ -64,7 +69,7 @@ bool Config::load(const std::string& path) {
 
         // 将last_config_time初始化为当前文件的最后修改时间
         // 确保在try_reload_config()中可以正确比较
-        last_config_time = std::filesystem::last_write_time(path);
+        last_config_time = std::filesystem::last_write_time(configPath);
         return true;
     } catch (const std::exception& e) {
         Logger::error(std::format("Error loading config: {}", e.what()));
@@ -72,7 +77,7 @@ bool Config::load(const std::string& path) {
     }
 }
 
-bool Config::save(const std::string& path) const {
+bool Config::save(const std::string& configName) const {
     try {
         // 使用 ordered_json 确保输出顺序
         nlohmann::ordered_json json_data;
@@ -83,10 +88,12 @@ bool Config::save(const std::string& path) const {
         json_data["api"]["add_to_startup"] = add_to_startup;
         json_data["api"]["client_id"] = client_id;
 
-        std::ofstream file(path);
+        std::string configPath = getConfigPath(configName);
+        std::ofstream file(configPath);
         if (!file.is_open()) {
-            Logger::error(std::format(
-                "Error: Could not open config file for writing: {}", path));
+            Logger::error(
+                std::format("Error: Could not open config file for writing: {}",
+                            configName));
             return false;
         }
         file << json_data.dump(2);  // 以格式化的 JSON 存储
@@ -97,11 +104,12 @@ bool Config::save(const std::string& path) const {
     }
 }
 
-bool Config::try_reload_config(const std::string& path) {
-    auto current_time = std::filesystem::last_write_time(path);
+bool Config::try_reload_config(const std::string& configName) {
+    std::string configPath = getConfigPath(configName);
+    auto current_time = std::filesystem::last_write_time(configPath);
     // 如果文件时间没有变化，则不重新加载
     if (current_time != last_config_time) {
-        if (load(path)) {
+        if (load(configName)) {
             last_config_time = current_time;
             Logger::info("Config reloaded successfully");
             return true;
@@ -113,23 +121,48 @@ bool Config::try_reload_config(const std::string& path) {
 }
 
 void Config::list() const {
-    Logger::debug(std::format("\tUpload URL: {}", server_url));
-    Logger::debug(std::format("\tInterval_seconds: {}s", interval_seconds));
-    Logger::debug(std::format("\tMax retries: {}", max_retries));
-    Logger::debug(std::format("\tRetry delay: {}ms", retry_delay_ms));
-    Logger::debug(
+    Logger::info(std::format("\tUpload URL: {}", server_url));
+    Logger::info(std::format("\tInterval_seconds: {}s", interval_seconds));
+    Logger::info(std::format("\tMax retries: {}", max_retries));
+    Logger::info(std::format("\tRetry delay: {}ms", retry_delay_ms));
+    Logger::info(
         std::format("\tAdd to startup: {}", add_to_startup ? "true" : "false"));
 }
 
 void Config::list_default() {
-    Logger::debug(std::format("\tUpload URL: {}", Config::default_server_url));
-    Logger::debug(std::format("\tInterval_seconds: {}s",
-                              Config::default_interval_seconds));
-    Logger::debug(
-        std::format("\tMax retries: {}", Config::default_max_retries));
-    Logger::debug(
+    Logger::info(std::format("\tUpload URL: {}", Config::default_server_url));
+    Logger::info(std::format("\tInterval_seconds: {}s",
+                             Config::default_interval_seconds));
+    Logger::info(std::format("\tMax retries: {}", Config::default_max_retries));
+    Logger::info(
         std::format("\tRetry delay: {}ms", Config::default_retry_delay_ms));
-    Logger::debug(
+    Logger::info(
         std::format("\tAdd to startup: {}",
                     Config::default_add_to_startup ? "true" : "false"));
+}
+
+std::string Config::getConfigPath(const std::string& configName) const {
+    return (fs::path(SystemUtils::getExecutableDir()) / configName).string();
+}
+
+bool Config::parseApi(const nlohmann::json& api) {
+    server_url = api.value("server_url", default_server_url);
+    interval_seconds = api.value("interval_seconds", default_interval_seconds);
+    max_retries = api.value("max_retries", default_max_retries);
+    retry_delay_ms = api.value("retry_delay_ms", default_retry_delay_ms);
+    client_id = api.value("client_id", default_client_id);
+    add_to_startup = api.value("add_to_startup", default_add_to_startup);
+
+    if (client_id.empty()) {
+        client_id = IDGenerator::generateUUID();
+        Logger::info(std::format("Generated new client ID: {}", client_id));
+    }
+
+    if (server_url.empty() || interval_seconds <= 0 || max_retries < 0 ||
+        retry_delay_ms < 0) {
+        Logger::error("Error: One or more config values are invalid.");
+        return false;
+    }
+
+    return true;
 }
