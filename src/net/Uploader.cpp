@@ -48,6 +48,7 @@ bool Uploader::uploadConfig(const nlohmann::json& config,
         cpr::Body{config.dump()});
     return handleUploadResponse(r, "Config upload");
 }
+
 std::vector<uchar> Uploader::encodeImageToJPEG(const cv::Mat& frame) {
     std::vector<uchar> imgData;
     std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,

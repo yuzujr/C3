@@ -3,13 +3,11 @@
 #include <cpr/cpr.h>
 
 #include <format>
-#include <nlohmann/json.hpp>
-#include <string_view>
 
 #include "core/Logger.h"
 
-void CommandFetcher::fetchAndHandleCommands() {
-    std::string_view url =
+std::optional<nlohmann::json> CommandFetcher::fetchCommands() {
+    std::string url =
         std::format("{}/commands?client_id={}", serverUrl_, clientId_);
     cpr::Response r =
         cpr::Get(cpr::Url{url},
@@ -18,7 +16,7 @@ void CommandFetcher::fetchAndHandleCommands() {
     if (r.status_code == 200) {
         try {
             nlohmann::json commands = nlohmann::json::parse(r.text);
-            dispatcher_.dispatch(commands);
+            return commands;
         } catch (const std::exception& e) {
             Logger::error(std::format("Error parsing commands: {}", e.what()));
         }
@@ -26,4 +24,6 @@ void CommandFetcher::fetchAndHandleCommands() {
         Logger::error(std::format("Failed to fetch commands, status code: {}",
                                   r.status_code));
     }
+
+    return std::nullopt;  // 明确表示“失败”
 }

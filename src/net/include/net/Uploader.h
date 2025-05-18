@@ -6,8 +6,11 @@
 #include <vector>
 
 #include "core/Logger.h"
-#include "cpr/cpr.h"
 #include "nlohmann/json.hpp"
+
+namespace cpr {
+class Response;
+}
 
 class Uploader {
 public:

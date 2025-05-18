@@ -16,6 +16,7 @@ add_subdirectory(net)
 # common source files
 target_sources(ScreenUploader PRIVATE
     main.cpp
+    platform.cpp
 )
 
 

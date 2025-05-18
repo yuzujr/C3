@@ -5,7 +5,7 @@
 
 #include "core/Logger.h"
 
-void CommandDispatcher::dispatch(const nlohmann::json& commands) {
+void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
     for (const auto& cmd : commands["commands"]) {
         std::string_view command = cmd.value("type", "");
         if (command == "pause") {
