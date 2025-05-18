@@ -7,7 +7,7 @@
 
 void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
     for (const auto& cmd : commands["commands"]) {
-        std::string_view command = cmd.value("type", "");
+        std::string command = cmd.value("type", "");
         if (command == "pause") {
             Logger::info("[command] pause");
             controlCenter_.pause();
