@@ -80,22 +80,22 @@ Example `commandQueue.json`:
     {
       "type": "update_config",
       "data": {
-         "api":{
-            "interval_seconds": 5,
-            "max_retries": 5,
-            "retry_delay_ms": 1500,
-            "add_to_startup": true
-         }
+        "api": {
+          "interval_seconds": 5,
+          "max_retries": 5,
+          "retry_delay_ms": 1500,
+          "add_to_startup": true
+        }
       }
     },
     {
-        "type": "pause"
+      "type": "pause"
     },
     {
-        "type": "screenshot_now"
+      "type": "screenshot_now"
     },
     {
-        "type": "resume"
+      "type": "resume"
     }
   ]
 }
