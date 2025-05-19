@@ -33,20 +33,19 @@ Primarily built for practicing client/server architecture and remote device coor
 - `add_to_startup` determines whether to add the application to system startup. (false by default)
 - `client_id` is the unique identifier for the client. (automatically filled on first run)
 
-
-Example `config.json`:
-```json
-{
-  "api": {
-    "server_url": "http://127.0.0.1:4000",
-    "interval_seconds": 60,
-    "max_retries": 3,
-    "retry_delay_ms": 1000,
-    "add_to_startup": false,
-    "client_id": ""
-  }
-}
-```
+   Example `config.json`:
+   ```json
+   {
+     "api": {
+       "server_url": "http://127.0.0.1:4000",
+       "interval_seconds": 60,
+       "max_retries": 3,
+       "retry_delay_ms": 1000,
+       "add_to_startup": false,
+       "client_id": ""
+     }
+   }
+   ```
 
 3. Place this `config.json` next to the executable.
 
@@ -72,39 +71,39 @@ Example `config.json`:
    - `pause`: Pause the client.
    - `resume`: Resume the client.
 
-
-Example `commandQueue.json`:
-```json
-{
-  "client-ozy": [
-    {
-      "type": "update_config",
-      "data": {
-        "api": {
-          "interval_seconds": 5,
-          "max_retries": 5,
-          "retry_delay_ms": 1500,
-          "add_to_startup": true
-        }
-      }
-    },
-    {
-      "type": "pause"
-    },
-    {
-      "type": "screenshot_now"
-    },
-    {
-      "type": "resume"
-    }
-  ]
-}
-```
-
-Client polls for instructions, and the server returns all instructions for that client.
-In this example, "client-ozy" is the client ID (or alias name defined in `clients.json`), and the instructions are in the form of a list.
-The client will execute the instructions in the order they are received. For example, it will first update the configuration, then pause, take a screenshot, and finally resume.
-Be careful with changing `server_url` and `client_id` in the config, as it may cause the client to lose connection with the server.
+   Example `commandQueue.json`:
+   ```json
+   {
+     "client-ozy": [
+       {
+         "type": "update_config",
+         "data": {
+           "api": {
+             "interval_seconds": 5,
+             "max_retries": 5,
+             "retry_delay_ms": 1500,
+             "add_to_startup": true
+           }
+         }
+       },
+       {
+         "type": "pause"
+       },
+       {
+         "type": "screenshot_now"
+       },
+       {
+         "type": "resume"
+       }
+     ]
+   }
+   ```
+   
+   Client polls for instructions, and the server returns all instructions for that client.
+   In this example,
+   "client-ozy" is the client ID (or alias name defined in `clients.json`), and the instructions are in the form of a list.
+   The client will execute the instructions in the order they are received. For example, it will first update the configuration, then    pause, take a screenshot, and finally resume.
+   Be careful with changing `server_url` and `client_id` in the config, as it may cause the client to lose connection with the server.
 
 
 
