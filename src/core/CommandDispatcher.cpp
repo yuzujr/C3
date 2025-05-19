@@ -21,8 +21,11 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
                     "update_config command received without config data");
                 continue;
             }
-            config_.parseConfig(cmd["data"]);
-            config_.save("config.json");
+            if (config_.parseConfig(cmd["data"])) {
+                config_.save("config.json");
+            } else {
+                Logger::warn("Failed to parse config data, ignoring command");
+            }
         } else if (command == "screenshot_now") {
             Logger::info("[command] screenshot now");
             controlCenter_.requestScreenshot();
