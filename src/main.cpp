@@ -1,6 +1,3 @@
-#include <atomic>
-#include <thread>
-
 #include "app/ScreenUploaderApp.h"
 
 int main() {
