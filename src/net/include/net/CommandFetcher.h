@@ -4,12 +4,9 @@
 
 class CommandFetcher {
 public:
-    CommandFetcher(std::string_view serverUrl, std::string_view clientId)
-        : serverUrl_(serverUrl), clientId_(clientId) {}
+    // 禁止创建实例
+    CommandFetcher() = delete;
 
-    std::optional<nlohmann::json> fetchCommands();
-
-private:
-    std::string_view serverUrl_;
-    std::string_view clientId_;
+    static std::optional<nlohmann::json> fetchCommands(
+        const std::string& serverUrl, const std::string& clientId);
 };

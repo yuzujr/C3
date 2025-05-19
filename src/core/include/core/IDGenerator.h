@@ -6,7 +6,6 @@ class IDGenerator {
 public:
     // 禁止创建实例
     IDGenerator() = delete;
-    ~IDGenerator() = delete;
 
     // 生成一个唯一的UUID
     static std::string generateUUID();

@@ -1,16 +1,15 @@
-# module: net
-add_library(net STATIC)
+# module: app
+add_library(app STATIC)
 
 
-# common source files
-target_sources(net PRIVATE
-    Uploader.cpp
-    CommandFetcher.cpp
+# source files
+target_sources(app PRIVATE
+    ScreenUploaderApp.cpp
 )
 
 
 # enable strict compiler warnings
-target_compile_options(net PRIVATE
+target_compile_options(app PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
     $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -pedantic>
     $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -pedantic>
@@ -21,19 +20,13 @@ target_compile_options(net PRIVATE
 
 
 # include directories PUBLIC
-target_include_directories(net PUBLIC 
+target_include_directories(app PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 
-# link module core
-target_link_libraries(net PRIVATE
+# link other modules PUBLIC
+target_link_libraries(app PUBLIC
     core
-)
-
-# link cpr opencv nlohmann_json publicly
-target_link_libraries(net PUBLIC
-    cpr::cpr
-    thirdparty::OpenCV_wrapper
-    nlohmann_json::nlohmann_json
+    net
 )

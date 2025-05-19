@@ -11,6 +11,9 @@ enum class LogTarget { Client, Server };
 
 class Logger {
 public:
+    // 禁止创建实例
+    Logger() = delete;
+
     // 初始化日志记录器，设置日志模式和日志级别
     static void init(
         spdlog::level::level_enum client_level = spdlog::level::info,

@@ -11,12 +11,13 @@ endif()
 # add modules: core net
 add_subdirectory(core)
 add_subdirectory(net)
+add_subdirectory(app)
 
 
 # common source files
 target_sources(ScreenUploader PRIVATE
     main.cpp
-    platform.cpp
+    WinMain.cpp
 )
 
 
@@ -31,8 +32,7 @@ target_compile_options(ScreenUploader PRIVATE
 )
 
 
-# link modules: core net
+# link modules: app
 target_link_libraries(ScreenUploader PRIVATE 
-    core 
-    net
+    app
 )

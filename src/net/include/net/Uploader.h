@@ -16,7 +16,6 @@ class Uploader {
 public:
     // 禁止创建实例
     Uploader() = delete;
-    ~Uploader() = delete;
 
     // 尝试上传图像
     static bool uploadImage(const cv::Mat& frame, const std::string& url);

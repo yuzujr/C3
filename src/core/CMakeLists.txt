@@ -26,7 +26,7 @@ endif()
 
 
 # enable strict compiler warnings
-target_compile_options(ScreenUploader PRIVATE
+target_compile_options(core PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
     $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -pedantic>
     $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -pedantic>

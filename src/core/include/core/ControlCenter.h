@@ -12,6 +12,9 @@
 class ControlCenter {
 public:
     ControlCenter();
+    ~ControlCenter() = default;
+    ControlCenter(const ControlCenter&) = delete;
+    ControlCenter& operator=(const ControlCenter&) = delete;
 
     // 暂停上传
     void pause();

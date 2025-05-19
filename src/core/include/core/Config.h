@@ -8,6 +8,11 @@
 
 class Config {
 public:
+    Config() = default;
+    ~Config() = default;
+    Config(const Config&) = delete;
+    Config& operator=(const Config&) = delete;
+
     // 读取配置文件
     bool load(const std::string& path);
 
@@ -32,6 +37,7 @@ public:
     // 展示默认配置文件内容
     static void list_default();
 
+public:
     // 服务端口地址
     std::string server_url = std::string{default_server_url};
     // 上传间隔时间（秒）
@@ -49,6 +55,7 @@ private:
     // 配置文件路径
     std::string getConfigPath(const std::string& configName) const;
 
+private:
     // 默认配置文件内容
     static constexpr std::string_view default_server_url =
         "http://127.0.0.1:4000";

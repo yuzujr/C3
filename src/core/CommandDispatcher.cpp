@@ -10,10 +10,10 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
         std::string command = cmd.value("type", "");
         if (command == "pause") {
             Logger::info("[command] pause");
-            controlCenter_.pause();
+            controller_.pause();
         } else if (command == "resume") {
             Logger::info("[command] resume");
-            controlCenter_.resume();
+            controller_.resume();
         } else if (command == "update_config") {
             Logger::info("[command] update config");
             if (!cmd.contains("data")) {
@@ -28,7 +28,7 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
             }
         } else if (command == "screenshot_now") {
             Logger::info("[command] screenshot now");
-            controlCenter_.requestScreenshot();
+            controller_.requestScreenshot();
         } else if (command.empty()) {
             Logger::warn("[command] empty command");
         } else {

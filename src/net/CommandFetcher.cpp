@@ -6,9 +6,10 @@
 
 #include "core/Logger.h"
 
-std::optional<nlohmann::json> CommandFetcher::fetchCommands() {
+std::optional<nlohmann::json> CommandFetcher::fetchCommands(
+    const std::string& serverUrl, const std::string& clientId) {
     std::string url =
-        std::format("{}/commands?client_id={}", serverUrl_, clientId_);
+        std::format("{}/commands?client_id={}", serverUrl, clientId);
     cpr::Response r =
         cpr::Get(cpr::Url{url},
                  cpr::Header{{"User-Agent", "cpr/1.11.0"}, {"Accept", "*/*"}});

@@ -7,7 +7,6 @@ class ScreenCapturer {
 public:
     // 禁止创建实例
     ScreenCapturer() = delete;
-    ~ScreenCapturer() = delete;
 
     // 截取屏幕并返回 OpenCV Mat 对象
     static cv::Mat captureScreen();
