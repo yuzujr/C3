@@ -87,6 +87,7 @@ bool Config::parseConfig(const nlohmann::json& data) {
     if (client_id.empty()) {
         client_id = IDGenerator::generateUUID();
         Logger::info(std::format("Generated new client ID: {}", client_id));
+        save("config.json");
     }
 
     if (server_url.empty() || interval_seconds <= 0 || max_retries < 0 ||
