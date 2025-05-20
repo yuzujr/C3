@@ -60,12 +60,19 @@ std::vector<uchar> Uploader::encodeImageToJPEG(const cv::Mat& frame) {
 }
 
 std::string Uploader::generateTimestampFilename() {
-    std::ostringstream filename;
+    std::ostringstream fileName;
     auto now = std::chrono::system_clock::now();
-    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
-    std::tm* localTime = std::localtime(&now_time);
-    filename << "screen_" << std::put_time(localTime, "%Y%m%d_%H%M%S");
-    return filename.str();
+    std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
+    std::tm localTime{};
+
+#if defined(_MSC_VER)
+    localtime_s(&localTime, &nowTime);  // MSVC
+#else
+    localtime_r(&now_time, &localTime);  // POSIX
+#endif
+
+    fileName << "screen_" << std::put_time(&localTime, "%Y%m%d_%H%M%S");
+    return fileName.str();
 }
 
 bool Uploader::handleUploadResponse(const cpr::Response& r,

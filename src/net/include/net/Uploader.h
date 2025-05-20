@@ -26,6 +26,7 @@ public:
     // 有重试机制的上传
     // 要求Func是一个可调用对象，函数签名为bool()
     template <typename Func>
+        requires std::is_invocable_r_v<bool, Func>
     static bool uploadWithRetry(Func&& uploadFunc, int max_retries,
                                 int retry_delay_ms) {
         if (uploadFunc()) {
