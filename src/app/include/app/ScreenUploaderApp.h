@@ -19,7 +19,7 @@ private:
     // 初始化日志、读取配置、启用高 DPI 感知
     void init();
     // 启动命令轮询线程
-    void startCommandThread();
+    void startCommandPollingThread();
     // 主循环
     void mainLoop();
     // 上传图像和配置文件

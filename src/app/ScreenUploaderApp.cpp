@@ -36,7 +36,7 @@ void ScreenUploaderApp::init() {
 
 int ScreenUploaderApp::run() {
     // 启动命令轮询线程
-    startCommandThread();
+    startCommandPollingThread();
 
     // 进入主循环
     mainLoop();
@@ -44,7 +44,7 @@ int ScreenUploaderApp::run() {
     return 0;
 }
 
-void ScreenUploaderApp::startCommandThread() {
+void ScreenUploaderApp::startCommandPollingThread() {
     // 启动命令轮询线程
     m_commandPollingThread = std::jthread([this]() {
         while (m_running) {
