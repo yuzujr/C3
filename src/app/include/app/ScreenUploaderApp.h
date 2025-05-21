@@ -35,6 +35,7 @@ private:
     ControlCenter m_controller;
     CommandDispatcher m_dispatcher;
     std::jthread m_commandPollingThread;
+    static constexpr int kCommandPollingInterval = 3;  // 秒
 };
 
 #endif  // SCREEN_UPLOADER_APP_H

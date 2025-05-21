@@ -33,7 +33,7 @@ bool Config::load(const std::string& configName) {
 
         // 将last_config_time初始化为当前文件的最后修改时间
         // 确保在try_reload_config()中可以正确比较
-        last_config_time = std::filesystem::last_write_time(configPath);
+        last_write_time = std::filesystem::last_write_time(configPath);
         return true;
     } catch (const std::exception& e) {
         Logger::error(std::format("Error loading config: {}", e.what()));
@@ -103,10 +103,11 @@ bool Config::try_reload_config(const std::string& configName) {
     std::string configPath = getConfigPath(configName);
     auto current_time = std::filesystem::last_write_time(configPath);
     // 如果文件时间没有变化，则不重新加载
-    if (current_time != last_config_time) {
+    if (current_time != last_write_time) {
         if (load(configName)) {
-            last_config_time = current_time;
+            last_write_time = current_time;
             Logger::info("Config reloaded successfully");
+            list();
             return true;
         } else {
             Logger::error("Failed to reload config");
@@ -124,6 +125,11 @@ nlohmann::json Config::toJson() const {
     json_data["api"]["add_to_startup"] = add_to_startup;
     json_data["api"]["client_id"] = client_id;
     return json_data;
+}
+
+void Config::updateLastWriteTime(const std::string& configName) {
+    std::string configPath = getConfigPath(configName);
+    last_write_time = std::filesystem::last_write_time(configPath);
 }
 
 void Config::list() const {

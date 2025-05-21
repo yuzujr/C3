@@ -31,6 +31,8 @@ public:
     // 转换为 JSON 格式
     nlohmann::json toJson() const;
 
+    void updateLastWriteTime(const std::string& path);
+
     // 展示配置文件内容
     void list() const;
 
@@ -51,6 +53,9 @@ public:
     // 客户端ID
     std::string client_id = std::string{default_client_id};
 
+    // 是否远程修改了配置文件
+    bool remote_changed = false;
+
 private:
     // 配置文件路径
     std::string getConfigPath(const std::string& configName) const;
@@ -66,7 +71,7 @@ private:
     static constexpr std::string_view default_client_id = "";
 
     // 上次读取配置文件的时间
-    std::filesystem::file_time_type last_config_time;
+    std::filesystem::file_time_type last_write_time;
 };
 
 #endif  // CONFIG_H

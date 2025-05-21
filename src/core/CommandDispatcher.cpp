@@ -1,5 +1,6 @@
 #include "core/CommandDispatcher.h"
 
+#include <filesystem>
 #include <format>
 #include <string_view>
 
@@ -23,6 +24,10 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
             }
             if (config_.parseConfig(cmd["data"])) {
                 config_.save("config.json");
+                config_.updateLastWriteTime("config.json");
+                config_.remote_changed = true;
+                Logger::info("Config reloaded successfully");
+                config_.list();
             } else {
                 Logger::warn("Failed to parse config data, ignoring command");
             }

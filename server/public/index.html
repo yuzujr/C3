@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>ScreenUploader 控制台</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        #clientsList {
+            margin-bottom: 20px;
+        }
+
+        .client-item {
+            cursor: pointer;
+            padding: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .client-item:hover {
+            background-color: #eee;
+        }
+
+        .client-item.selected {
+            background-color: #cce5ff;
+        }
+
+        button {
+            margin: 5px;
+        }
+
+        #screenshots img {
+            max-width: 200px;
+            margin: 5px;
+            border: 1px solid #ddd;
+        }
+
+        #commands button {
+            margin-right: 10px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ScreenUploader 控制台</h1>
+
+    <h2>客户端列表</h2>
+    <div id="clientsList">加载中...</div>
+
+    <h2>发送命令</h2>
+    <div id="commands">
+        <div id="cmdButtons" style="display:none;">
+            <button data-cmd='{"type":"pause"}'>暂停</button>
+            <button data-cmd='{"type":"resume"}'>继续</button>
+            <button data-cmd='{"type":"screenshot_now"}'>立即截图</button>
+            <button id="clearCommandsBtn">清除命令队列</button>
+
+            <h3>更新配置</h3>
+            <label>服务器 URL: <input id="serverUrl" type="text"></label>
+            <label>截图间隔 (秒): <input id="intervalSeconds" type="number"></label>
+            <label>最大重试次数: <input id="maxRetries" type="number"></label>
+            <label>重试间隔 (毫秒): <input id="retryDelayMs" type="number"></label>
+            <label><input id="addToStartup" type="checkbox"> 开机自启</label>
+            <button id="updateConfigBtn">更新配置</button>
+        </div>
+    </div>
+
+
+    <h2>客户端截图</h2>
+    <div id="screenshots" style="color:#888; margin-bottom:10px;">请选择客户端</div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

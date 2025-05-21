@@ -48,13 +48,16 @@ void ScreenUploaderApp::startCommandPollingThread() {
     // 启动命令轮询线程
     m_commandPollingThread = std::jthread([this]() {
         while (m_running) {
+            std::string fetch_url =
+                std::format("{}/client/commands?client_id={}",
+                            m_config.server_url, m_config.client_id);
             std::optional<nlohmann::json> commands =
-                CommandFetcher::fetchCommands(m_config.server_url,
-                                              m_config.client_id);
+                CommandFetcher::fetchCommands(fetch_url);
             if (commands) {
                 m_dispatcher.dispatchCommands(*commands);
             }
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+            std::this_thread::sleep_for(std::chrono::seconds(
+                ScreenUploaderApp::kCommandPollingInterval));
         }
     });
 }
@@ -69,10 +72,16 @@ void ScreenUploaderApp::mainLoop() {
         auto start = std::chrono::steady_clock::now();
 
         // 检查配置文件是否有更新
-        if (m_config.try_reload_config("config.json")) {
-            m_config.list();
+        bool config_changed = m_config.try_reload_config("config.json");
+        // 本地新修改覆盖远程修改，可能导致服务端没有达到预期效果
+        if (config_changed && m_config.remote_changed) {
+            Logger::warn("Local edits override remote changes");
+        }
+        if (config_changed || m_config.remote_changed) {
+            m_config.remote_changed = false;
             applyConfigSettings(m_config);
         }
+        // warning: 无法感知本地修改被远程修改覆盖的情况
 
         // 截取屏幕
         cv::Mat frame = ScreenCapturer::captureScreen();
@@ -95,8 +104,9 @@ void ScreenUploaderApp::mainLoop() {
 
 void ScreenUploaderApp::uploadImageWithRetry(const cv::Mat& frame,
                                              const Config& config) {
-    std::string upload_url = std::format("{}/upload?client_id={}",
-                                         config.server_url, config.client_id);
+    std::string upload_url =
+        std::format("{}/client/upload_screenshot?client_id={}",
+                    config.server_url, config.client_id);
     Logger::info(std::format("Uploading screenshot to: {}", upload_url));
     bool success = Uploader::uploadWithRetry(
         [&]() {
@@ -110,8 +120,9 @@ void ScreenUploaderApp::uploadImageWithRetry(const cv::Mat& frame,
 }
 
 void ScreenUploaderApp::uploadConfigWithRetry(const Config& config) {
-    std::string upload_url = std::format("{}/client_config?client_id={}",
-                                         config.server_url, config.client_id);
+    std::string upload_url =
+        std::format("{}/client/upload_client_config?client_id={}",
+                    config.server_url, config.client_id);
     Logger::info(std::format("Uploading config to: {}", upload_url));
     bool success = Uploader::uploadWithRetry(
         [&]() {
