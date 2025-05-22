@@ -18,7 +18,7 @@ bool Config::load(const std::string& configName) {
         std::string configPath = getConfigPath(configName);
         std::ifstream file(configPath);
         if (!file.is_open()) {
-            Logger::error(std::format("Error: Could not open config file: {}",
+            Logger::error(std::format("Could not open config file: {}",
                                       configName));
             return false;
         }
@@ -56,7 +56,7 @@ bool Config::save(const std::string& configName) const {
         std::ofstream file(configPath);
         if (!file.is_open()) {
             Logger::error(
-                std::format("Error: Could not open config file for writing: {}",
+                std::format("Could not open config file for writing: {}",
                             configName));
             return false;
         }
@@ -70,7 +70,7 @@ bool Config::save(const std::string& configName) const {
 
 bool Config::parseConfig(const nlohmann::json& data) {
     if (!data.contains("api") || !data["api"].is_object()) {
-        Logger::error("Error: Missing or invalid 'api' section in config.");
+        Logger::error("Missing or invalid 'api' section in config.");
         return false;
     }
 
@@ -92,7 +92,7 @@ bool Config::parseConfig(const nlohmann::json& data) {
 
     if (server_url.empty() || interval_seconds <= 0 || max_retries < 0 ||
         retry_delay_ms < 0) {
-        Logger::error("Error: One or more config values are invalid.");
+        Logger::error("One or more config values are invalid.");
         return false;
     }
 

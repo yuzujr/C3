@@ -6,7 +6,6 @@
 
 #include "core/core.h"
 #include "net/net.h"
-#include "opencv2/opencv.hpp"
 
 class ScreenUploaderApp {
 public:
@@ -23,7 +22,8 @@ private:
     // 主循环
     void mainLoop();
     // 上传图像和配置文件
-    void uploadImageWithRetry(const cv::Mat& frame, const Config& config);
+    void uploadImageWithRetry(const std::vector<uint8_t>& frame,
+                              const Config& config);
     void uploadConfigWithRetry(const Config& config);
     // 应用配置设置
     // 包括上传配置文件和设置开机自启

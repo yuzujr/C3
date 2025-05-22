@@ -3,14 +3,13 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#include <chrono>
-#include <ctime>
+#include <cstring>
+#include <vector>
 
 #include "core/Logger.h"
 
-// 屏幕截图为 cv::Mat
-cv::Mat ScreenCapturer::captureScreen() {
-    // X11 截图
+
+RawImage ScreenCapturer::captureScreen() {
     Display* display = XOpenDisplay(nullptr);
     if (!display) {
         Logger::error("Cannot open X11 display");
@@ -32,12 +31,29 @@ cv::Mat ScreenCapturer::captureScreen() {
         return {};
     }
 
-    cv::Mat mat(height, width, CV_8UC4, img->data);
-    mat = mat.clone();  // 拷贝数据，因为 img->data 是 X11 的内部数据
+    // 输出 RGB 格式
+    RawImage result;
+    result.width = width;
+    result.height = height;
+    result.pixels.resize(width * height * 3);  // 3 channels: R, G, B
+
+    // 解析 BGRA 或 BGRX 数据（通常为32位）
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            unsigned long pixel = XGetPixel(img, x, y);
+            uint8_t blue = pixel & 0xff;
+            uint8_t green = (pixel >> 8) & 0xff;
+            uint8_t red = (pixel >> 16) & 0xff;
+
+            int index = (y * width + x) * 3;
+            result.pixels[index] = red;
+            result.pixels[index + 1] = green;
+            result.pixels[index + 2] = blue;
+        }
+    }
 
     XDestroyImage(img);
     XCloseDisplay(display);
 
-    cv::cvtColor(mat, mat, cv::COLOR_BGRA2BGR);
-    return mat;
+    return result;
 }

@@ -84,11 +84,11 @@ void ScreenUploaderApp::mainLoop() {
         // warning: 无法感知本地修改被远程修改覆盖的情况
 
         // 截取屏幕
-        cv::Mat frame = ScreenCapturer::captureScreen();
+        RawImage frame = ScreenCapturer::captureScreen();
         if (frame.empty()) {
-            Logger::error("Error: Failed to capture screen");
+            Logger::error("Failed to capture screen");
         } else {
-            uploadImageWithRetry(frame, m_config);
+            uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame), m_config);
         }
 
         if (m_controller.consumeScreenshotRequest()) {
@@ -102,7 +102,7 @@ void ScreenUploaderApp::mainLoop() {
     }
 }
 
-void ScreenUploaderApp::uploadImageWithRetry(const cv::Mat& frame,
+void ScreenUploaderApp::uploadImageWithRetry(const std::vector<uint8_t>& frame,
                                              const Config& config) {
     std::string upload_url =
         std::format("{}/client/upload_screenshot?client_id={}",

@@ -9,6 +9,5 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/libcpr/cpr.git
   GIT_TAG 1.11.2
   GIT_SHALLOW TRUE
-  GIT_PROGRESS TRUE
 )
 FetchContent_MakeAvailable(cpr)

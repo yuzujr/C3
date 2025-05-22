@@ -1,7 +1,7 @@
 #ifndef UPLOADER_H
 #define UPLOADER_H
 
-#include <opencv2/opencv.hpp>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -18,7 +18,8 @@ public:
     Uploader() = delete;
 
     // 尝试上传图像
-    static bool uploadImage(const cv::Mat& frame, const std::string& url);
+    static bool uploadImage(const std::vector<uint8_t>& frame,
+                            const std::string& url);
     // 尝试上传配置文件
     static bool uploadConfig(const nlohmann::json& config,
                              const std::string& url);
@@ -51,9 +52,6 @@ public:
 private:
     // 生成时间戳文件名
     static std::string generateTimestampFilename();
-
-    // 将图像编码为 JPEG 格式
-    static std::vector<uchar> encodeImageToJPEG(const cv::Mat& frame);
 
     // 处理上传响应
     static bool handleUploadResponse(const cpr::Response& r,

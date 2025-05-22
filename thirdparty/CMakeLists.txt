@@ -1,5 +1,5 @@
 include(FetchContent)
-
+include(ExternalProject)
 
 # Use cached content if available
 option(FETCHCONTENT_TRY_DISCONNECTED "Use cached content if available" ON)
@@ -15,8 +15,8 @@ add_subdirectory(nlohmann_json)
 # spdlog: https://github.com/gabime/spdlog
 add_subdirectory(spdlog)
 
-# OpenCV: https://opencv.org/releases/
-add_subdirectory(OpenCV)
+# libjpeg-turbo: https://github.com/libjpeg-turbo/libjpeg-turbo
+add_subdirectory(libjpeg-turbo)
 
 # Linux: install with package manager
 if(UNIX)

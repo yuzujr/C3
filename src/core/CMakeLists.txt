@@ -10,6 +10,8 @@ target_sources(core PRIVATE
     ControlCenter.cpp
     SystemUtils.cpp
     CommandDispatcher.cpp
+    ImageEncoder.cpp
+    RawImage.cpp
 )
 # platform-specific source files
 if(WIN32)
@@ -46,7 +48,7 @@ target_include_directories(core PUBLIC
 target_link_libraries(core PUBLIC
     nlohmann_json::nlohmann_json
     spdlog::spdlog
-    thirdparty::OpenCV_wrapper
+    jpeg
 )
 # link system dependent libraries PRIVATE
 if(WIN32)

@@ -3,22 +3,15 @@
 #include <cpr/cpr.h>
 
 #include <format>
-#include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
 
 #include "core/Logger.h"
 
-bool Uploader::uploadImage(const cv::Mat& frame, const std::string& url) {
+bool Uploader::uploadImage(const std::vector<uint8_t>& frame,
+                           const std::string& url) {
     if (frame.empty()) {
         Logger::error("frame is empty!");
-        return false;
-    }
-
-    // 图像转换为 JPEG 格式
-    std::vector<uchar> imgData = encodeImageToJPEG(frame);
-    if (imgData.empty()) {
-        Logger::error("Failed to encode image to JPEG");
         return false;
     }
 
@@ -27,9 +20,9 @@ bool Uploader::uploadImage(const cv::Mat& frame, const std::string& url) {
 
     // 构造 POST 请求
     cpr::Buffer buffer{
-        imgData.begin(),  // 首地址
-        imgData.end(),    // 尾地址
-        filename          // 文件名
+        frame.begin(),  // 首地址
+        frame.end(),    // 尾地址
+        filename        // 文件名
     };
 
     cpr::Multipart form = {cpr::Part{"file", buffer}};
@@ -47,16 +40,6 @@ bool Uploader::uploadConfig(const nlohmann::json& config,
         cpr::Url{url}, cpr::Header{{"Content-Type", "application/json"}},
         cpr::Body{config.dump()});
     return handleUploadResponse(r, "Config upload");
-}
-
-std::vector<uchar> Uploader::encodeImageToJPEG(const cv::Mat& frame) {
-    std::vector<uchar> imgData;
-    std::vector<int> compression_params = {cv::IMWRITE_JPEG_QUALITY,
-                                           85};  // 85是画质参数
-    if (cv::imencode(".jpg", frame, imgData, compression_params)) {
-        return imgData;
-    }
-    return {};
 }
 
 std::string Uploader::generateTimestampFilename() {
