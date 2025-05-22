@@ -17,9 +17,14 @@ add_library(jpeg STATIC IMPORTED GLOBAL)
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/include)
 
+if(MSVC)
+  set(TURBOJPEG_LIB_NAME "turbojpeg-static")
+else()
+  set(TURBOJPEG_LIB_NAME "turbojpeg")
+endif()
+
 set_target_properties(jpeg PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/lib/jpeg-static.lib"
-  IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/lib/turbojpeg-static.lib"
+  IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/lib/${CMAKE_STATIC_LIBRARY_PREFIX}${TURBOJPEG_LIB_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}"
   INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/include"
 )
 

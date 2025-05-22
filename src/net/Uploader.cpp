@@ -51,7 +51,7 @@ std::string Uploader::generateTimestampFilename() {
 #if defined(_MSC_VER)
     localtime_s(&localTime, &nowTime);  // MSVC
 #else
-    localtime_r(&now_time, &localTime);  // POSIX
+    localtime_r(&nowTime, &localTime);  // POSIX
 #endif
 
     fileName << "screen_" << std::put_time(&localTime, "%Y%m%d_%H%M%S");
