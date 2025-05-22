@@ -52,10 +52,15 @@ Primarily built for practicing client/server architecture and remote device coor
 4. Run `ScreenUploader` executable.
 
 5. Check the server terminal, you will see the upload logs.
-   Screenshots is saved in `uploads` folder, and logs are saved in `logs` folder.
-   Client's config is saved in `clients_config.json`.
+   - Screenshots is saved in `uploads` folder
+   - Logs are saved in `logs` folder.
+   - Client's config is saved in `uploads/'client_id'or'alias'/config.json`.
 
-6. (Optional) Edit `clients.json` to alias the client ID to a name. This is useful for identifying clients in the server logs.
+6. Access the server on port 4000 to enter the control panel，you can send commands to clients and view their screenshots.
+   ![image](https://github.com/user-attachments/assets/f273fe8f-3650-4c3a-b564-bc78b01b77ca)
+
+
+8. (Optional) Edit `clients.json` to alias the client ID to a name. This is useful for identifying clients in the server logs.
 
    Example `clients.json`:
    ```json
@@ -63,47 +68,6 @@ Primarily built for practicing client/server architecture and remote device coor
      "client_id": "client_name"
    }
    ```
-
-7. (Optional) Edit `commandQueue.json` to send commands for the client.
-   Commands available:
-   - `screenshot_now`: Take a screenshot and upload it to the server.
-   - `update_config`: Update the client's configuration file.
-   - `pause`: Pause the client.
-   - `resume`: Resume the client.
-
-   Example `commandQueue.json`:
-   ```json
-   {
-     "client-ozy": [
-       {
-         "type": "update_config",
-         "data": {
-           "api": {
-             "interval_seconds": 5,
-             "max_retries": 5,
-             "retry_delay_ms": 1500,
-             "add_to_startup": true
-           }
-         }
-       },
-       {
-         "type": "pause"
-       },
-       {
-         "type": "screenshot_now"
-       },
-       {
-         "type": "resume"
-       }
-     ]
-   }
-   ```
-   
-   Client polls for instructions, and the server returns all instructions for that client.
-   In this example,
-   "client-ozy" is the client ID (or alias name defined in `clients.json`), and the instructions are in the form of a list.
-   The client will execute the instructions in the order they are received. For example, it will first update the configuration, then    pause, take a screenshot, and finally resume.
-   Be careful with changing `server_url` and `client_id` in the config, as it may cause the client to lose connection with the server.
 
 
 
