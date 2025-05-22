@@ -83,15 +83,19 @@ For Linux, gcc compiler is recommended.
 
 1. Install [cmake](https://cmake.org/download/) (version `3.16` minimum required).
 
-2. For windows, install [OpenCV](https://opencv.org/releases/).
-
-3. For linux, install `libopencv`, `libx11`, `libssl`, `libcurl`.
+2. For linux, install `libx11`, `libssl`, `libcurl`.
 
    Ubuntu:
 
-   `sudo apt install libopencv-dev libx11-dev libssl-dev libcurl4-openssl-dev`
+   `sudo apt install libx11-dev libssl-dev libcurl4-openssl-dev`
 
 **Build**
+
+In this step, a proper network connection to github is required.
+
+Set http_proxy and https_proxy if possible.
+
+Thirdparty libraries `cpr`, `libjpeg-turbo`, `nlohmann_json`, `spdlog` depend on this.
 
 1. `mkdir build && cd build`
 
