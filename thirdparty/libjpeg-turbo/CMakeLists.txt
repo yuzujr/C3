@@ -5,21 +5,21 @@ ExternalProject_Add(
   PREFIX ${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo
   CMAKE_ARGS 
     -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install
-    -DENABLE_SHARED=ON           # 生成动态库
-    -DENABLE_STATIC=OFF          # 静态库
-    -DENABLE_TEST=OFF
-    -DENABLE_DOC=OFF
+    -DENABLE_SHARED=OFF
+    -DENABLE_STATIC=ON
+    -DCMAKE_BUILD_TYPE=Release
   UPDATE_COMMAND ""
   PATCH_COMMAND ""
   INSTALL_COMMAND cmake --build . --target install
 )
 
-add_library(jpeg SHARED IMPORTED GLOBAL)
+add_library(jpeg STATIC IMPORTED GLOBAL)
+
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/include)
 
 set_target_properties(jpeg PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/bin/turbojpeg.dll"
-  IMPORTED_IMPLIB "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/lib/jpeg.lib"
-  IMPORTED_IMPLIB "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/lib/turbojpeg.lib"
+  IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/lib/jpeg-static.lib"
+  IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/lib/turbojpeg-static.lib"
   INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/include"
 )
 

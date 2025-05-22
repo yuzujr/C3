@@ -1,5 +1,7 @@
 include(FetchContent)
 include(ExternalProject)
+# make cache variables for install destinations
+include(GNUInstallDirs)
 
 # Use cached content if available
 option(FETCHCONTENT_TRY_DISCONNECTED "Use cached content if available" ON)
