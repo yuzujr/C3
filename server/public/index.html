@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>ScreenUploader 控制台</title>
+    <link rel="stylesheet" href="toast/toast.css">  <!-- 引入外部 CSS -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -73,11 +74,13 @@
         </div>
     </div>
 
-
     <h2>客户端截图</h2>
     <div id="screenshots" style="color:#888; margin-bottom:10px;">请选择客户端</div>
 
+    <div id="toast" class="toast"></div> <!-- Toast 提示框 -->
+
     <script src="app.js"></script>
+    <script src="toast/toast.js"></script> <!-- 引入外部 JavaScript -->
 </body>
 
 </html>

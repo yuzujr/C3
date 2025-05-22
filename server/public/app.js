@@ -105,7 +105,7 @@ async function fetchNewScreenshots(clientId, lastTimestamp) {
 
 async function sendCommand(command) {
   if (!selectedClient) {
-    alert('请先选择客户端');
+    showToast('请先选择客户端');
     return;
   }
   const res = await fetch('/web/send_commands', {
@@ -116,12 +116,12 @@ async function sendCommand(command) {
       command: command
     })
   });
-  alert(res.ok ? '命令发送成功' : '命令发送失败');
+  showToast(res.ok ? '命令发送成功' : '命令发送失败');
 }
 
 async function clearCommands() {
     if (!selectedClient) {
-      alert('请先选择客户端');
+      showToast('请先选择客户端');
       return;
     }
     
@@ -133,7 +133,7 @@ async function clearCommands() {
       })
     });
     
-    alert(res.ok ? '命令队列已清空' : '清除命令队列失败');
+    showToast(res.ok ? '命令队列已清空' : '清除命令队列失败');
   }
 
 document.getElementById('commands').addEventListener('click', e => {
@@ -146,7 +146,7 @@ document.getElementById('clearCommandsBtn').addEventListener('click', clearComma
 
 document.getElementById('updateConfigBtn').onclick = async () => {
   if (!selectedClient) {
-    alert('请先选择客户端');
+    showToast('请先选择客户端');
     return;
   }
 
@@ -157,7 +157,7 @@ document.getElementById('updateConfigBtn').onclick = async () => {
   const addToStartup = document.getElementById('addToStartup').checked;
 
   if (!serverUrl || isNaN(intervalSeconds) || isNaN(maxRetries) || isNaN(retryDelayMs)) {
-    alert('请填写正确的配置参数');
+    showToast('请填写正确的配置参数');
     return;
   }
 
