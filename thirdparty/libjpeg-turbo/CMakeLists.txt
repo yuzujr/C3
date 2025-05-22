@@ -7,10 +7,7 @@ ExternalProject_Add(
     -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install
     -DENABLE_SHARED=OFF
     -DENABLE_STATIC=ON
-    -DCMAKE_BUILD_TYPE=Release
-  UPDATE_COMMAND ""
-  PATCH_COMMAND ""
-  INSTALL_COMMAND cmake --build . --target install
+  INSTALL_COMMAND cmake --build . --target install --config Release
 )
 
 add_library(jpeg STATIC IMPORTED GLOBAL)
