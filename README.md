@@ -54,7 +54,7 @@ Primarily built for practicing client/server architecture and remote device coor
 5. Check the server terminal, you will see the upload logs.
    - Screenshots is saved in `uploads` folder
    - Logs are saved in `logs` folder.
-   - Client's config is saved in `uploads/'client_id'or'alias'/config.json`.
+   - Client's config is saved as `uploads/client_id or alias(alias first)/config.json`.
 
 6. Access the server on port 4000 to enter the control panel，you can send commands to clients and view their screenshots.
    ![image](https://github.com/user-attachments/assets/f273fe8f-3650-4c3a-b564-bc78b01b77ca)
@@ -93,7 +93,7 @@ For Linux, gcc compiler is recommended.
 
 In this step, a proper network connection to github is required.
 
-Set http_proxy and https_proxy if possible.
+Set `http_proxy` and `https_proxy` if possible.
 
 Thirdparty libraries `cpr`, `libjpeg-turbo`, `nlohmann_json`, `spdlog` depend on this.
 
