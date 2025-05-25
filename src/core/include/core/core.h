@@ -11,5 +11,8 @@
 #include "core/ScreenCapturer.h"
 #include "core/SystemUtils.h"
 
+#ifdef _WIN32
+#include "core/GDIRAIIClasses.h"
+#endif // _WIN32
 
 #endif  // CORE_H

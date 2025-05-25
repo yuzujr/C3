@@ -84,11 +84,11 @@ void ScreenUploaderApp::mainLoop() {
         // warning: 无法感知本地修改被远程修改覆盖的情况
 
         // 截取屏幕
-        RawImage frame = ScreenCapturer::captureScreen();
-        if (frame.empty()) {
+        auto frame = ScreenCapturer::captureScreen();
+        if (!frame.has_value()) {
             Logger::error("Failed to capture screen");
         } else {
-            uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame), m_config);
+            uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame.value()), m_config);
         }
 
         if (m_controller.consumeScreenshotRequest()) {

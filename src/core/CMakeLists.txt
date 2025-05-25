@@ -18,6 +18,7 @@ if(WIN32)
     target_sources(core PRIVATE
         platform/windows/ScreenCapturer.cpp
         platform/windows/SystemUtils.cpp
+        platform/windows/GDIRAIIClasses.cpp
     )
 elseif(UNIX)
     target_sources(core PRIVATE

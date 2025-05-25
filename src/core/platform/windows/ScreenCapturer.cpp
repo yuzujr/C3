@@ -1,43 +1,67 @@
 #include "core/ScreenCapturer.h"
+#include "core/GDIRAIIClasses.h"
 
 #include <windows.h>
 
 #include "core/Logger.h"
 
-RawImage ScreenCapturer::captureScreen() {
+
+std::optional<RawImage> ScreenCapturer::captureScreen() {
+    // 获取屏幕DC
     HDC hScreenDC = GetDC(nullptr);
-    HDC hMemoryDC = CreateCompatibleDC(hScreenDC);
+    if (!hScreenDC) {
+        Logger::error("GetDC failed");
+        return std::nullopt;
+    }
+    auto screenDcGuard = std::shared_ptr<void>(nullptr, [hScreenDC](void*) { ReleaseDC(nullptr, hScreenDC); });
 
-    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-
-    HBITMAP hBitmap =
-        CreateCompatibleBitmap(hScreenDC, screenWidth, screenHeight);
-    HGDIOBJ oldBitmap = SelectObject(hMemoryDC, hBitmap);
-
-    if (!BitBlt(hMemoryDC, 0, 0, screenWidth, screenHeight, hScreenDC, 0, 0,
-                SRCCOPY)) {
-        Logger::error("BitBlt failed");
-        SelectObject(hMemoryDC, oldBitmap);
-        DeleteObject(hBitmap);
-        DeleteDC(hMemoryDC);
-        ReleaseDC(nullptr, hScreenDC);
-        return {};
+    // 创建内存DC
+    GDIContext memoryDC(CreateCompatibleDC(hScreenDC));
+    if (!memoryDC) {
+        Logger::error("CreateCompatibleDC failed");
+        return std::nullopt;
     }
 
+    // 创建兼容位图 (RAII自动管理DeleteObject)
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    
+    GDIBitmap bitmap(CreateCompatibleBitmap(hScreenDC, screenWidth, screenHeight));
+    if (!bitmap) {
+        Logger::error("CreateCompatibleBitmap failed");
+        return std::nullopt;
+    }
+
+    // 选择位图到DC (RAII自动恢复原对象)
+    SelectObjectGuard selectGuard(memoryDC, bitmap);
+
+    // 执行位块传输
+    if (!BitBlt(memoryDC, 0, 0, screenWidth, screenHeight, hScreenDC, 0, 0, SRCCOPY)) {
+        Logger::error("BitBlt failed");
+        return std::nullopt;
+    }
+
+    // 获取位图信息
     BITMAP bmp;
-    GetObject(hBitmap, sizeof(BITMAP), &bmp);
+    if (!GetObject(bitmap, sizeof(BITMAP), &bmp)) {
+        Logger::error("GetObject failed");
+        return std::nullopt;
+    }
 
-    int bytesPerPixel = 4;  // Usually 32-bit BGRA
+    // 读取位图数据
+    int bytesPerPixel = 4;  // 通常为32位BGRA
     int imageSize = bmp.bmWidth * bmp.bmHeight * bytesPerPixel;
-
     std::vector<uint8_t> buffer(imageSize);
-    GetBitmapBits(hBitmap, imageSize, buffer.data());
+    if (!GetBitmapBits(bitmap, imageSize, buffer.data())) {
+        Logger::error("GetBitmapBits failed");
+        return std::nullopt;
+    }
 
+    // 转换到RGB格式
     RawImage result;
     result.width = bmp.bmWidth;
     result.height = bmp.bmHeight;
-    result.pixels.resize(result.width * result.height * 3);  // RGB output
+    result.pixels.resize(result.width * result.height * 3);  // RGB输出
 
     for (int y = 0; y < result.height; ++y) {
         for (int x = 0; x < result.width; ++x) {
@@ -53,11 +77,6 @@ RawImage ScreenCapturer::captureScreen() {
             result.pixels[dstIndex + 2] = blue;
         }
     }
-
-    SelectObject(hMemoryDC, oldBitmap);
-    DeleteObject(hBitmap);
-    DeleteDC(hMemoryDC);
-    ReleaseDC(nullptr, hScreenDC);
 
     return result;
 }

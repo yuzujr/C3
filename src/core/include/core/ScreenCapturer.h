@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <optional>
 
 #include "core/RawImage.h"
 
@@ -12,7 +13,7 @@ public:
     ScreenCapturer() = delete;
 
     // 截取屏幕并返回图像
-    static RawImage captureScreen();
+    static std::optional<RawImage> captureScreen();
 };
 
 #endif  // SCREEN_CAPTURER_H
