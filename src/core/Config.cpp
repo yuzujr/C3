@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
-#include <nlohmann/json.hpp>
 
 #include "core/IDGenerator.h"
 #include "core/Logger.h"
@@ -18,8 +17,8 @@ bool Config::load(const std::string& configName) {
         std::string configPath = getConfigPath(configName);
         std::ifstream file(configPath);
         if (!file.is_open()) {
-            Logger::error(std::format("Could not open config file: {}",
-                                      configName));
+            Logger::error(
+                std::format("Could not open config file: {}", configName));
             return false;
         }
 
@@ -55,9 +54,8 @@ bool Config::save(const std::string& configName) const {
         std::string configPath = getConfigPath(configName);
         std::ofstream file(configPath);
         if (!file.is_open()) {
-            Logger::error(
-                std::format("Could not open config file for writing: {}",
-                            configName));
+            Logger::error(std::format(
+                "Could not open config file for writing: {}", configName));
             return false;
         }
         file << json_data.dump(2);  // 以格式化的 JSON 存储
