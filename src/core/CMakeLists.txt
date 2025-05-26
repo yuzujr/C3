@@ -24,6 +24,7 @@ elseif(UNIX)
     target_sources(core PRIVATE
         platform/linux/ScreenCapturer.cpp
         platform/linux/SystemUtils.cpp
+        platform/linux/X11RAIIClasses.cpp
     )
 endif()
 

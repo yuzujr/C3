@@ -11,8 +11,10 @@
 #include "core/ScreenCapturer.h"
 #include "core/SystemUtils.h"
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #include "core/GDIRAIIClasses.h"
-#endif // _WIN32
+#elif defined(__linux__)
+#include "core/X11RAIIClasses.h"
+#endif
 
 #endif  // CORE_H

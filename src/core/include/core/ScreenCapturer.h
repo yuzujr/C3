@@ -1,8 +1,6 @@
 #ifndef SCREEN_CAPTURER_H
 #define SCREEN_CAPTURER_H
 
-#include <cstdint>
-#include <vector>
 #include <optional>
 
 #include "core/RawImage.h"
