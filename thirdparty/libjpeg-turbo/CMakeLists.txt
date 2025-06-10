@@ -1,10 +1,22 @@
+set(TURBOJPEG_DIR "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo")
+set(TURBOJPEG_INSTALL_DIR "${TURBOJPEG_DIR}/install")
+set(TURBOJPEG_INCLUDE_DIR "${TURBOJPEG_INSTALL_DIR}/include")
+if(MSVC)
+  set(TURBOJPEG_LIBRARY_DIR "${TURBOJPEG_INSTALL_DIR}/lib")
+  set(TURBOJPEG_LIBRARY_NAME "${CMAKE_STATIC_LIBRARY_PREFIX}turbojpeg-static${CMAKE_STATIC_LIBRARY_SUFFIX}")
+else()
+  set(TURBOJPEG_LIBRARY_DIR "${TURBOJPEG_INSTALL_DIR}/lib64")
+  set(TURBOJPEG_LIBRARY_NAME "${CMAKE_STATIC_LIBRARY_PREFIX}turbojpeg${CMAKE_STATIC_LIBRARY_SUFFIX}")
+endif()
+
 ExternalProject_Add(
   libjpeg_turbo
   GIT_REPOSITORY https://github.com/libjpeg-turbo/libjpeg-turbo.git
   GIT_TAG 3.1.0
-  PREFIX ${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo
+  PREFIX ${TURBOJPEG_DIR}
   CMAKE_ARGS 
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install
+    -DCMAKE_INSTALL_PREFIX=${TURBOJPEG_INSTALL_DIR}
+    -DCMAKE_BUILD_TYPE=Release
     -DENABLE_SHARED=OFF
     -DENABLE_STATIC=ON
   INSTALL_COMMAND cmake --build . --target install --config Release
@@ -12,17 +24,11 @@ ExternalProject_Add(
 
 add_library(jpeg STATIC IMPORTED GLOBAL)
 
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/include)
-
-if(MSVC)
-  set(TURBOJPEG_LIB_NAME "turbojpeg-static")
-else()
-  set(TURBOJPEG_LIB_NAME "turbojpeg")
-endif()
+file(MAKE_DIRECTORY ${TURBOJPEG_INCLUDE_DIR})
 
 set_target_properties(jpeg PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/lib/${CMAKE_STATIC_LIBRARY_PREFIX}${TURBOJPEG_LIB_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/_deps/libjpeg_turbo/install/include"
+  IMPORTED_LOCATION "${TURBOJPEG_LIBRARY_DIR}/${TURBOJPEG_LIBRARY_NAME}"
+  INTERFACE_INCLUDE_DIRECTORIES "${TURBOJPEG_INCLUDE_DIR}"
 )
 
 add_dependencies(jpeg libjpeg_turbo)
