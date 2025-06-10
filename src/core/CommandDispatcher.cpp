@@ -10,10 +10,10 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
         std::string command = cmd.value("type", "");
         if (command == "pause") {
             Logger::info("[command] pause");
-            controller_.pause();
+            m_controller.pause();
         } else if (command == "resume") {
             Logger::info("[command] resume");
-            controller_.resume();
+            m_controller.resume();
         } else if (command == "update_config") {
             Logger::info("[command] update config");
             if (!cmd.contains("data")) {
@@ -21,18 +21,18 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
                     "update_config command received without config data");
                 continue;
             }
-            if (config_.parseConfig(cmd["data"])) {
-                config_.save("config.json");
-                config_.updateLastWriteTime("config.json");
-                config_.remote_changed = true;
+            if (m_config.parseConfig(cmd["data"])) {
+                m_config.save("config.json");
+                m_config.updateLastWriteTime("config.json");
+                m_config.remote_changed = true;
                 Logger::info("Config reloaded successfully");
-                config_.list();
+                m_config.list();
             } else {
                 Logger::warn("Failed to parse config data, ignoring command");
             }
         } else if (command == "screenshot_now") {
             Logger::info("[command] screenshot now");
-            controller_.requestScreenshot();
+            m_controller.requestScreenshot();
         } else if (command.empty()) {
             Logger::warn("[command] empty command");
         } else {

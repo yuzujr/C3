@@ -1,0 +1,60 @@
+// 中间件模块
+// 集中管理Express中间件配置
+
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const config = require('./config');
+
+/**
+ * 配置基础中间件
+ * @param {Express} app - Express应用实例
+ */
+function setupBasicMiddleware(app) {
+    // JSON解析中间件
+    app.use(express.json());
+
+    // CORS中间件
+    app.use(cors());
+
+    // 静态文件服务
+    app.use(express.static(config.PUBLIC_DIR));
+    app.use('/uploads', express.static(config.UPLOADS_DIR));
+}
+
+/**
+ * 客户端ID解析中间件
+ * 从URL参数中提取client_id并添加到req对象
+ */
+function clientIdMiddleware(req, res, next) {
+    try {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const clientId = url.searchParams.get('client_id');
+
+        if (clientId) {
+            req.clientId = clientId;
+        } else {
+            req.clientId = null;
+        }
+
+        next();
+    } catch (e) {
+        req.clientId = null;
+        next(); // 保证不中断流程
+    }
+}
+
+/**
+ * 设置所有中间件
+ * @param {Express} app - Express应用实例
+ */
+function setupAllMiddleware(app) {
+    setupBasicMiddleware(app);
+    app.use(clientIdMiddleware);
+}
+
+module.exports = {
+    setupAllMiddleware,
+    setupBasicMiddleware,
+    clientIdMiddleware
+};

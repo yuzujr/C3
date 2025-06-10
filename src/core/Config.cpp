@@ -43,13 +43,7 @@ bool Config::load(const std::string& configName) {
 bool Config::save(const std::string& configName) const {
     try {
         // 使用 ordered_json 确保输出顺序
-        nlohmann::ordered_json json_data;
-        json_data["api"]["server_url"] = server_url;
-        json_data["api"]["interval_seconds"] = interval_seconds;
-        json_data["api"]["max_retries"] = max_retries;
-        json_data["api"]["retry_delay_ms"] = retry_delay_ms;
-        json_data["api"]["add_to_startup"] = add_to_startup;
-        json_data["api"]["client_id"] = client_id;
+        nlohmann::ordered_json json_data = toJson();
 
         std::string configPath = getConfigPath(configName);
         std::ofstream file(configPath);
@@ -76,6 +70,7 @@ bool Config::parseConfig(const nlohmann::json& data) {
 
     // 如果没有对应配置项，则使用现有值
     server_url = api.value("server_url", server_url);
+    ws_url = api.value("ws_url", ws_url);
     interval_seconds = api.value("interval_seconds", interval_seconds);
     max_retries = api.value("max_retries", max_retries);
     retry_delay_ms = api.value("retry_delay_ms", retry_delay_ms);
@@ -88,8 +83,8 @@ bool Config::parseConfig(const nlohmann::json& data) {
         save("config.json");
     }
 
-    if (server_url.empty() || interval_seconds <= 0 || max_retries < 0 ||
-        retry_delay_ms < 0) {
+    if (server_url.empty() || ws_url.empty() || interval_seconds <= 0 ||
+        max_retries < 0 || retry_delay_ms < 0) {
         Logger::error("One or more config values are invalid.");
         return false;
     }
@@ -114,9 +109,10 @@ bool Config::try_reload_config(const std::string& configName) {
     return false;
 }
 
-nlohmann::json Config::toJson() const {
+nlohmann::ordered_json Config::toJson() const {
     nlohmann::ordered_json json_data;
     json_data["api"]["server_url"] = server_url;
+    json_data["api"]["ws_url"] = ws_url;
     json_data["api"]["interval_seconds"] = interval_seconds;
     json_data["api"]["max_retries"] = max_retries;
     json_data["api"]["retry_delay_ms"] = retry_delay_ms;
@@ -132,6 +128,7 @@ void Config::updateLastWriteTime(const std::string& configName) {
 
 void Config::list() const {
     Logger::info(std::format("\tUpload URL: {}", server_url));
+    Logger::info(std::format("\tWebSocket URL: {}", ws_url));
     Logger::info(std::format("\tInterval_seconds: {}s", interval_seconds));
     Logger::info(std::format("\tMax retries: {}", max_retries));
     Logger::info(std::format("\tRetry delay: {}ms", retry_delay_ms));
@@ -141,6 +138,7 @@ void Config::list() const {
 
 void Config::list_default() {
     Logger::info(std::format("\tUpload URL: {}", Config::default_server_url));
+    Logger::info(std::format("\tWebSocket URL: {}", Config::default_ws_url));
     Logger::info(std::format("\tInterval_seconds: {}s",
                              Config::default_interval_seconds));
     Logger::info(std::format("\tMax retries: {}", Config::default_max_retries));

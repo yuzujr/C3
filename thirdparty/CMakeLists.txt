@@ -20,6 +20,9 @@ add_subdirectory(spdlog)
 # libjpeg-turbo: https://github.com/libjpeg-turbo/libjpeg-turbo
 add_subdirectory(libjpeg-turbo)
 
+# ixwebsocket: https://github.com/machinezone/IXWebSocket/
+add_subdirectory(ixwebsocket)
+
 # Linux: install with package manager
 if(UNIX)
 add_subdirectory(X11)

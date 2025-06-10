@@ -5,7 +5,7 @@ add_library(net STATIC)
 # common source files
 target_sources(net PRIVATE
     Uploader.cpp
-    CommandFetcher.cpp
+    WebSocketClient.cpp
 )
 
 
@@ -35,4 +35,5 @@ target_link_libraries(net PRIVATE
 target_link_libraries(net PUBLIC
     cpr::cpr
     nlohmann_json::nlohmann_json
+    ixwebsocket::ixwebsocket
 )

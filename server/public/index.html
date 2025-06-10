@@ -1,14 +1,72 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark-theme">
 
 <head>
     <meta charset="UTF-8" />
     <title>ScreenUploader 控制台</title>
-    <link rel="stylesheet" href="toast/toast.css">  <!-- 引入外部 CSS -->
+    <link rel="stylesheet" href="toast/toast.css">
     <style>
+        /* 全局变量定义 */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #cccccc;
+            --hover-color: #eeeeee;
+            --selected-color: #cce5ff;
+            --button-bg: #f0f0f0;
+            --button-text: #333333;
+            --modal-bg: rgba(0, 0, 0, 0.8);
+            --modal-content-bg: #ffffff;
+            --input-bg: #ffffff;
+            --input-border: #cccccc;
+        }
+
+        .dark-theme {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --border-color: #444444;
+            --hover-color: #333333;
+            --selected-color: #2d5aa0;
+            --button-bg: #333333;
+            --button-text: #e0e0e0;
+            --modal-bg: rgba(0, 0, 0, 0.9);
+            --modal-content-bg: #2a2a2a;
+            --input-bg: #333333;
+            --input-border: #555555;
+        }
+
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* 主题切换按钮 */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+
+        .theme-toggle:hover {
+            background: var(--hover-color);
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: var(--text-color);
         }
 
         #clientsList {
@@ -18,25 +76,173 @@
         .client-item {
             cursor: pointer;
             padding: 5px;
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s ease;
         }
 
         .client-item:hover {
-            background-color: #eee;
+            background-color: var(--hover-color);
         }
 
         .client-item.selected {
-            background-color: #cce5ff;
+            background-color: var(--selected-color);
         }
 
         button {
             margin: 5px;
+            background: var(--button-bg);
+            color: var(--button-text);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--hover-color);
+        }
+
+        input,
+        textarea {
+            background: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            padding: 6px 8px;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--selected-color);
+        }
+
+        label {
+            color: var(--text-color);
+        }
+
+        /* 删除对话框样式 */
+        .delete-dialog {
+            background: var(--modal-content-bg);
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 80%;
+        }
+
+        .delete-dialog h3 {
+            margin-top: 0;
+            color: var(--text-color);
+        }
+
+        .delete-dialog p {
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .cancel-btn {
+            padding: 8px 16px;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
         }
 
         #screenshots img {
             max-width: 200px;
             margin: 5px;
             border: 1px solid #ddd;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        #screenshots img:hover {
+            opacity: 0.8;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            padding-top: 50px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: var(--modal-bg);
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #bbb;
+        }
+
+        /* 导航箭头样式 */
+        .prev,
+        .next {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            width: auto;
+            margin-top: -22px;
+            padding: 16px;
+            color: white;
+            font-weight: bold;
+            font-size: 50px;
+            transition: 0.3s ease;
+            border-radius: 0 3px 3px 0;
+            user-select: none;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .next {
+            right: 20px;
+            border-radius: 3px 0 0 3px;
+        }
+
+        .prev {
+            left: 20px;
+        }
+
+        .prev:hover,
+        .next:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        #caption {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 700px;
+            text-align: center;
+            color: #ccc;
+            padding: 10px 0;
+            height: 150px;
         }
 
         #commands button {
@@ -51,6 +257,8 @@
 </head>
 
 <body>
+    <button class="theme-toggle" id="themeToggle">🌙 暗色模式</button>
+
     <h1>ScreenUploader 控制台</h1>
 
     <h2>客户端列表</h2>
@@ -62,10 +270,10 @@
             <button data-cmd='{"type":"pause"}'>暂停</button>
             <button data-cmd='{"type":"resume"}'>继续</button>
             <button data-cmd='{"type":"screenshot_now"}'>立即截图</button>
-            <button id="clearCommandsBtn">清除命令队列</button>
 
             <h3>更新配置</h3>
-            <label>服务器 URL: <input id="serverUrl" type="text"></label>
+            <label>HTTP URL: <input id="serverUrl" type="text"></label>
+            <label>WebSocket URL: <input id="wsUrl" type="text"> </label>
             <label>截图间隔 (秒): <input id="intervalSeconds" type="number"></label>
             <label>最大重试次数: <input id="maxRetries" type="number"></label>
             <label>重试间隔 (毫秒): <input id="retryDelayMs" type="number"></label>
@@ -73,14 +281,42 @@
             <button id="updateConfigBtn">更新配置</button>
         </div>
     </div>
-
     <h2>客户端截图</h2>
+    <div>
+        <button id="deleteScreenshotsBtn"
+            style="margin-bottom: 10px; background-color: #ff6b6b; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 12px;">删除截图...</button>
+    </div>
     <div id="screenshots" style="color:#888; margin-bottom:10px;">请选择客户端</div>
+    <div id="toast" class="toast"></div> <!-- Toast 提示框 --> <!-- 删除截图确认对话框 -->
+    <div id="deleteModal" class="modal" style="display: none;">
+        <div class="delete-dialog">
+            <h3>删除截图</h3>
+            <p>选择要删除的截图时间范围：</p>
+            <div style="margin-bottom: 20px;">
+                <button id="delete1Hour"
+                    style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #ff9999; color: white; border: none; border-radius: 4px; cursor: pointer;">删除1小时前的截图</button>
+                <button id="delete1Day"
+                    style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #ff6666; color: white; border: none; border-radius: 4px; cursor: pointer;">删除1天前的截图</button>
+                <button id="delete1Week"
+                    style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #ff3333; color: white; border: none; border-radius: 4px; cursor: pointer;">删除1周前的截图</button>
+                <button id="deleteAll"
+                    style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #990000; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">删除所有截图</button>
+            </div>
+            <div style="text-align: right;">
+                <button id="cancelDelete" class="cancel-btn">取消</button>
+            </div>
+        </div>
+    </div>
 
-    <div id="toast" class="toast"></div> <!-- Toast 提示框 -->
-
-    <script src="app.js"></script>
-    <script src="toast/toast.js"></script> <!-- 引入外部 JavaScript -->
+    <!-- 图片放大预览模态框 -->
+    <div id="imageModal" class="modal" style="display: none;">
+        <span class="close">&times;</span>
+        <a class="prev" id="prevBtn">&#10094;</a>
+        <a class="next" id="nextBtn">&#10095;</a>
+        <img class="modal-content" id="modalImage">
+        <div id="caption"></div>
+    </div>
+    <script type="module" src="js/app.js"></script> <!-- 新的模块化应用入口 -->
 </body>
 
 </html>

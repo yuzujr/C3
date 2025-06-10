@@ -8,7 +8,7 @@
 class CommandDispatcher {
 public:
     CommandDispatcher(ControlCenter& controller, Config& config)
-        : controller_(controller), config_(config) {}
+        : m_controller(controller), m_config(config) {}
     ~CommandDispatcher() = default;
     CommandDispatcher(const CommandDispatcher&) = delete;
     CommandDispatcher& operator=(const CommandDispatcher&) = delete;
@@ -16,8 +16,8 @@ public:
     void dispatchCommands(const nlohmann::json& commands);
 
 private:
-    ControlCenter& controller_;
-    Config& config_;
+    ControlCenter& m_controller;
+    Config& m_config;
 };
 
 #endif  // COMMAND_DISPATCHER_H

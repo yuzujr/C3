@@ -4,15 +4,15 @@ ScreenUploaderApp::ScreenUploaderApp()
     : m_running(true),
       m_config(),
       m_controller(),
-      m_dispatcher(m_controller, m_config) {
+      m_dispatcher(m_controller, m_config),
+      m_wsClient() {
     init();
 }
 
 ScreenUploaderApp::~ScreenUploaderApp() {
     m_running = false;
-    if (m_commandPollingThread.joinable()) {
-        m_commandPollingThread.join();
-    }
+    // 关闭 WebSocket 客户端
+    m_wsClient.stop();
 }
 
 void ScreenUploaderApp::init() {
@@ -35,31 +35,19 @@ void ScreenUploaderApp::init() {
 }
 
 int ScreenUploaderApp::run() {
-    // 启动命令轮询线程
-    startCommandPollingThread();
-
-    // 进入主循环
+    startWebSocketCommandListener();
     mainLoop();
-
     return 0;
 }
 
-void ScreenUploaderApp::startCommandPollingThread() {
-    // 启动命令轮询线程
-    m_commandPollingThread = std::jthread([this]() {
-        while (m_running) {
-            std::string fetch_url =
-                std::format("{}/client/commands?client_id={}",
-                            m_config.server_url, m_config.client_id);
-            std::optional<nlohmann::json> commands =
-                CommandFetcher::fetchCommands(fetch_url);
-            if (commands) {
-                m_dispatcher.dispatchCommands(*commands);
-            }
-            std::this_thread::sleep_for(std::chrono::seconds(
-                ScreenUploaderApp::kCommandPollingInterval));
-        }
+void ScreenUploaderApp::startWebSocketCommandListener() {
+    // 设置接收到命令时的回调
+    m_wsClient.setOnCommandCallback([this](const nlohmann::json& commands) {
+        m_dispatcher.dispatchCommands(commands);
     });
+
+    // 启动 WebSocket 客户端
+    m_wsClient.start();
 }
 
 void ScreenUploaderApp::mainLoop() {
@@ -73,22 +61,23 @@ void ScreenUploaderApp::mainLoop() {
 
         // 检查配置文件是否有更新
         bool config_changed = m_config.try_reload_config("config.json");
-        // 本地新修改覆盖远程修改，可能导致服务端没有达到预期效果
         if (config_changed && m_config.remote_changed) {
+            // 本地新修改覆盖远程修改，可能导致服务端没有达到预期效果
             Logger::warn("Local edits override remote changes");
         }
         if (config_changed || m_config.remote_changed) {
+            // 本地或远程进行了修改
             m_config.remote_changed = false;
             applyConfigSettings(m_config);
         }
-        // warning: 无法感知本地修改被远程修改覆盖的情况
 
         // 截取屏幕
         auto frame = ScreenCapturer::captureScreen();
         if (!frame.has_value()) {
             Logger::error("Failed to capture screen");
         } else {
-            uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame.value()), m_config);
+            uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame.value()),
+                                 m_config);
         }
 
         if (m_controller.consumeScreenshotRequest()) {
@@ -146,5 +135,20 @@ void ScreenUploaderApp::applyConfigSettings(const Config& config) {
     } else {
         SystemUtils::removeFromStartup("ScreenUploader");
         Logger::info("Removed from startup successfully");
+    }
+
+    // 设置websocket地址
+    if (!m_wsClient.getClientId().empty() && !m_wsClient.getWsUrl().empty()) {
+        // 非首次调用
+        if (m_wsClient.getClientId() != config.client_id ||
+            m_wsClient.getWsUrl() != config.ws_url) {
+            // ws_url或client_id改变，重连ws
+            m_wsClient.reconnect(config.ws_url, config.client_id);
+        }
+    } else {
+        // 首次调用
+        // 设置ws url，client_id
+        m_wsClient.setWsUrl(config.ws_url);
+        m_wsClient.setClientId(config.client_id);
     }
 }

@@ -18,7 +18,6 @@ function loadClientsFromDisk() {
     if (fs.existsSync(clientsJsonPath)) {
       const data = fs.readFileSync(clientsJsonPath, 'utf-8').trim();
       clientsCache = data ? JSON.parse(data) : {};
-      logWithTime('[CLIENTS] Reloaded clients.json');
       
       // 检查是否有变化，并执行重命名操作
       handleClientNameChanges(oldClientsMapping, clientsCache);
