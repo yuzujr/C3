@@ -6,16 +6,6 @@ ScreenUploaderApp::ScreenUploaderApp()
       m_controller(),
       m_dispatcher(m_controller, m_config),
       m_wsClient() {
-    init();
-}
-
-ScreenUploaderApp::~ScreenUploaderApp() {
-    m_running = false;
-    // 关闭 WebSocket 客户端
-    m_wsClient.stop();
-}
-
-void ScreenUploaderApp::init() {
     // 初始化日志
     Logger::init(spdlog::level::info, spdlog::level::info);
 
@@ -45,6 +35,17 @@ void ScreenUploaderApp::init() {
 
     // 启用高 DPI 感知
     SystemUtils::enableHighDPI();
+
+    // 设置截图回调函数
+    m_dispatcher.setScreenshotCallback([this]() {
+        takeScreenshotNow();
+    });
+}
+
+ScreenUploaderApp::~ScreenUploaderApp() {
+    m_running = false;
+    // 关闭 WebSocket 客户端
+    m_wsClient.stop();
 }
 
 int ScreenUploaderApp::run() {
@@ -67,7 +68,9 @@ void ScreenUploaderApp::mainLoop() {
     // 进入主循环
     while (m_running) {
         // 如果接收到 pause 命令，暂停，等待服务器的 resume 命令
-        m_controller.waitIfPaused();  // 开始计时
+        m_controller.waitIfPaused();
+
+        // 开始计时
         auto start = std::chrono::steady_clock::now();
 
         // 检查配置文件是否有更新（仅在配置文件模式下）
@@ -92,23 +95,29 @@ void ScreenUploaderApp::mainLoop() {
             }
         }
 
-        // 截取屏幕
-        auto frame = ScreenCapturer::captureScreen();
-        if (!frame.has_value()) {
-            Logger::error("Failed to capture screen");
-        } else {
-            uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame.value()),
-                                 m_config);
-        }
-
-        if (m_controller.consumeScreenshotRequest()) {
-            Logger::info("Screenshot triggered by remote command!");
-        }
+        // 执行定时截图
+        performScreenshotUpload();
 
         // 等待下一次上传
         Logger::info("Waiting for next capture...\n");
-        m_controller.interruptibleSleepUntil(
+        std::this_thread::sleep_until(
             start + std::chrono::seconds(m_config.interval_seconds));
+    }
+}
+
+void ScreenUploaderApp::takeScreenshotNow() {
+    Logger::info("Taking immediate screenshot as requested");
+    performScreenshotUpload();
+}
+
+void ScreenUploaderApp::performScreenshotUpload() {
+    // 截取屏幕
+    auto frame = ScreenCapturer::captureScreen();
+    if (!frame.has_value()) {
+        Logger::error("Failed to capture screen");
+    } else {
+        uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame.value()),
+                             m_config);
     }
 }
 

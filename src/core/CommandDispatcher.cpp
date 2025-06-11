@@ -5,6 +5,10 @@
 
 #include "core/Logger.h"
 
+void CommandDispatcher::setScreenshotCallback(ScreenshotCallback callback) {
+    m_screenshotCallback = callback;
+}
+
 void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
     for (const auto& cmd : commands["commands"]) {
         std::string command = cmd.value("type", "");
@@ -32,7 +36,11 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& commands) {
             }
         } else if (command == "screenshot_now") {
             Logger::info("[command] screenshot now");
-            m_controller.requestScreenshot();
+            if (m_screenshotCallback) {
+                m_screenshotCallback();
+            } else {
+                Logger::warn("Screenshot callback not set");
+            }
         } else if (command.empty()) {
             Logger::warn("[command] empty command");
         } else {

@@ -14,13 +14,16 @@ public:
     // 启动应用程序
     int run();
 
+    // 立即截图并上传（远程命令回调函数）
+    void takeScreenshotNow();
+
 private:
-    // 初始化日志、读取配置、启用高 DPI 感知
-    void init();
     // 连接命令接收websocket
     void startWebSocketCommandListener();
     // 主循环
     void mainLoop();
+    // 执行一次截图和上传
+    void performScreenshotUpload();
     // 上传图像和配置文件
     void uploadImageWithRetry(const std::vector<uint8_t>& frame,
                               const Config& config);

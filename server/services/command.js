@@ -46,15 +46,30 @@ function saveClientConfig(clientId, configData) {
 
         const configPath = path.join(clientDir, 'config.json');
 
+        // 检查是否有嵌套的 'api' 对象
+        let apiConfig;
+        if (configData.api && typeof configData.api === 'object') {
+            // 如果配置数据包含 api 对象，使用它
+            apiConfig = configData.api;
+        } else {
+            // 如果配置数据在根级别，包装在 api 对象中
+            apiConfig = configData;
+        }
+
         const fullConfig = {
-            ...configData,
+            api: {
+                ...apiConfig,
+                client_id: clientId  // 确保 client_id 正确设置
+            },
             lastUpload: getBeijingTime(),
             clientId: clientId,
-            alias: alias
+            alias: alias,
+            // 如果原始数据包含构建信息，保留它
+            ...(configData.build_info && { build_info: configData.build_info })
         };
 
         fs.writeFileSync(configPath, JSON.stringify(fullConfig, null, 2));
-        logWithTime(`[CONFIG] Saved config to ${configPath}`);
+        logWithTime(`[CONFIG] Saved client config to ${configPath}`);
 
         return true;
     } catch (error) {
@@ -76,10 +91,18 @@ function validateConfigData(configData) {
         return { valid: false, errors };
     }
 
+    // 严格要求必须包含 'api' 字段
+    if (!configData.api || typeof configData.api !== 'object') {
+        errors.push('Config data must contain an "api" object');
+        return { valid: false, errors };
+    }
+
+    const config = configData.api;
+
     // 检查必需字段
     const requiredFields = ['server_url', 'ws_url'];
     for (const field of requiredFields) {
-        if (!configData[field]) {
+        if (!config[field]) {
             errors.push(`Missing required field: ${field}`);
         }
     }
@@ -87,8 +110,8 @@ function validateConfigData(configData) {
     // 检查数值字段
     const numericFields = ['interval_seconds', 'max_retries', 'retry_delay_ms'];
     for (const field of numericFields) {
-        if (configData[field] !== undefined) {
-            const value = Number(configData[field]);
+        if (config[field] !== undefined) {
+            const value = Number(config[field]);
             if (isNaN(value) || value < 0) {
                 errors.push(`${field} must be a positive number`);
             }
@@ -96,7 +119,7 @@ function validateConfigData(configData) {
     }
 
     // 检查布尔字段
-    if (configData.add_to_startup !== undefined && typeof configData.add_to_startup !== 'boolean') {
+    if (config.add_to_startup !== undefined && typeof config.add_to_startup !== 'boolean') {
         errors.push('add_to_startup must be a boolean');
     }
 
