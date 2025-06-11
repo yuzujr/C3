@@ -1,18 +1,24 @@
+# development files
 .cache/
 build/
+build-hardcoded/
 build-lsp/
 .vscode/
 release/
-image/
-scripts/
+cicd/
+
+# auto-generated files
+src/core/include/core/HardcodedConfig.h
+
+# lsp files
+compile_commands.json
+
+# server files
 server/node_modules/
 server/logs/
 server/uploads/
 server/server.config.json
-compile_commands.json
-config.json
-
-# 环境变量文件
+# server environment files
 .env
 .env.local
 .env.production

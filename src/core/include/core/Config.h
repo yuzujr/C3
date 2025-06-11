@@ -6,6 +6,12 @@
 #include <string>
 #include <string_view>
 
+// 配置模式编译选项
+// 定义 USE_HARDCODED_CONFIG 宏来启用硬编码配置模式
+#ifdef USE_HARDCODED_CONFIG
+#include "core/HardcodedConfig.h"
+#endif
+
 class Config {
 public:
     Config() = default;
@@ -13,7 +19,7 @@ public:
     Config(const Config&) = delete;
     Config& operator=(const Config&) = delete;
 
-    // 读取配置文件
+    // 配置文件模式
     bool load(const std::string& path);
 
     // 保存配置文件
@@ -33,11 +39,36 @@ public:
 
     void updateLastWriteTime(const std::string& path);
 
-    // 展示配置文件内容
+    // 因为HardcodedConfig.h在配置文件模式中不存在，因此以下函数只在硬编码配置模式下声明
+#ifdef USE_HARDCODED_CONFIG
+    // 硬编码配置模式：初始化方法
+    bool initHardcoded();
+
+    // 硬编码配置模式：获取配置信息
+    HardcodedConfig::ConfigInfo getHardcodedInfo() const;
+
+    // 硬编码配置模式：显示硬编码配置
+    void listHardcoded() const;
+
+    // 硬编码配置模式：转换为 JSON 格式
+    // 已经在配置文件模式中声明，因此不再重复声明
+    // nlohmann::ordered_json toJson() const;
+#endif
+
+    // 通用方法：展示配置文件内容
     void list() const;
 
-    // 展示默认配置文件内容
+    // 通用方法：展示默认配置文件内容
     static void list_default();
+
+    // 通用方法：判断是否使用硬编码配置
+    static constexpr bool isHardcodedMode() {
+#ifdef USE_HARDCODED_CONFIG
+        return true;
+#else
+        return false;
+#endif
+    }
 
 public:
     // http地址
@@ -59,8 +90,11 @@ public:
     bool remote_changed = false;
 
 private:
-    // 配置文件路径
+    // 配置文件模式：配置文件路径
     std::string getConfigPath(const std::string& configName) const;
+
+    // 配置文件模式：上次读取配置文件的时间
+    std::filesystem::file_time_type last_write_time;
 
 private:
     // 默认配置文件内容
@@ -72,9 +106,6 @@ private:
     static constexpr int default_retry_delay_ms = 1000;
     static constexpr bool default_add_to_startup = false;
     static constexpr std::string_view default_client_id = "";
-
-    // 上次读取配置文件的时间
-    std::filesystem::file_time_type last_write_time;
 };
 
 #endif  // CONFIG_H

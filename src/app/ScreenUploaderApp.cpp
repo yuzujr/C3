@@ -19,13 +19,26 @@ void ScreenUploaderApp::init() {
     // 初始化日志
     Logger::init(spdlog::level::info, spdlog::level::info);
 
-    // 读取配置文件
+    // 根据编译配置选择配置模式
+#ifdef USE_HARDCODED_CONFIG
+    // 硬编码配置模式
+    Logger::info("=== Initializing Hardcoded Configuration ===");
+    if (!m_config.initHardcoded()) {
+        Logger::error("Failed to initialize hardcoded config");
+        throw std::runtime_error("Failed to initialize hardcoded config");
+    }
+    Logger::info("Hardcoded config initialized successfully");
+    m_config.listHardcoded();
+#else
+    // 配置文件模式
+    Logger::info("=== Starting with Config File Mode ===");
     if (!m_config.load("config.json")) {
         Logger::error("Failed to load config.json");
         throw std::runtime_error("Failed to load config.json");
     }
     Logger::info("Config loaded successfully");
     m_config.list();
+#endif
 
     // 应用配置设置
     applyConfigSettings(m_config);
@@ -54,21 +67,29 @@ void ScreenUploaderApp::mainLoop() {
     // 进入主循环
     while (m_running) {
         // 如果接收到 pause 命令，暂停，等待服务器的 resume 命令
-        m_controller.waitIfPaused();
-
-        // 开始计时
+        m_controller.waitIfPaused();  // 开始计时
         auto start = std::chrono::steady_clock::now();
 
-        // 检查配置文件是否有更新
-        bool config_changed = m_config.try_reload_config("config.json");
-        if (config_changed && m_config.remote_changed) {
-            // 本地新修改覆盖远程修改，可能导致服务端没有达到预期效果
-            Logger::warn("Local edits override remote changes");
-        }
-        if (config_changed || m_config.remote_changed) {
-            // 本地或远程进行了修改
-            m_config.remote_changed = false;
-            applyConfigSettings(m_config);
+        // 检查配置文件是否有更新（仅在配置文件模式下）
+        if (!Config::isHardcodedMode()) {
+            bool config_changed = m_config.try_reload_config("config.json");
+            if (config_changed && m_config.remote_changed) {
+                // 本地新修改覆盖远程修改，可能导致服务端没有达到预期效果
+                Logger::warn("Local edits override remote changes");
+            }
+            if (config_changed || m_config.remote_changed) {
+                // 本地或远程进行了修改
+                m_config.remote_changed = false;
+                applyConfigSettings(m_config);
+            }
+        } else {
+            // 硬编码配置模式：处理远程配置更改
+            if (m_config.remote_changed) {
+                Logger::warn(
+                    "Remote config change detected, but using hardcoded config "
+                    "- ignoring");
+                m_config.remote_changed = false;
+            }
         }
 
         // 截取屏幕

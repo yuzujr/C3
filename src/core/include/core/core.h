@@ -11,6 +11,10 @@
 #include "core/ScreenCapturer.h"
 #include "core/SystemUtils.h"
 
+#ifdef USE_HARDCODED_CONFIG
+#include "core/HardcodedConfig.h"
+#endif
+
 #if defined(_WIN32)
 #include "core/GDIRAIIClasses.h"
 #elif defined(__linux__)

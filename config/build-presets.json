@@ -1,0 +1,31 @@
+{
+    "presets": {
+        "development": {
+            "name": "开发环境",
+            "description": "本地开发测试配置",
+            "config": {
+                "server_url": "http://127.0.0.1:4000",
+                "ws_url": "ws://127.0.0.1:8080",
+                "interval_seconds": 60,
+                "max_retries": 3,
+                "retry_delay_ms": 1000,
+                "add_to_startup": false,
+                "client_id": ""
+            }
+        },
+        "production": {
+            "name": "生产环境",
+            "description": "正式部署的生产服务器配置",
+            "config": {
+                "server_url": "https://prod-server.example.com:4000",
+                "ws_url": "wss://prod-server.example.com:8080",
+                "interval_seconds": 120,
+                "max_retries": 3,
+                "retry_delay_ms": 5000,
+                "add_to_startup": true,
+                "client_id": ""
+            }
+        }
+    },
+    "default_preset": "development"
+}
