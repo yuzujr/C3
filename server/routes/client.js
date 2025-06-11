@@ -92,7 +92,7 @@ router.get('/heartbeat', (req, res) => {
 router.get('/status', (req, res) => {
     res.json({
         status: 'running',
-        version: '1.0.0',
+        version: '1.6.0',
         uptime: process.uptime(),
         memory: process.memoryUsage(),
         timestamp: Date.now()
