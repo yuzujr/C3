@@ -8,5 +8,11 @@ scripts/
 server/node_modules/
 server/logs/
 server/uploads/
+server/server.config.json
 compile_commands.json
 config.json
+
+# 环境变量文件
+.env
+.env.local
+.env.production

@@ -63,6 +63,26 @@
             background: var(--hover-color);
         }
 
+        /* 登出按钮 */
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            right: 150px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+
+        .logout-btn:hover {
+            background: #ff3838;
+        }
+
         h1,
         h2,
         h3 {
@@ -258,6 +278,7 @@
 
 <body>
     <button class="theme-toggle" id="themeToggle">🌙 暗色模式</button>
+    <button class="logout-btn" id="logoutBtn">🚪 登出</button>
 
     <h1>ScreenUploader 控制台</h1>
 

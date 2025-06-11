@@ -8,11 +8,15 @@ import { initDeleteScreenshots } from './modules/delete.js';
 import { initThemeToggle } from './modules/theme.js';
 import { initWebSocket } from './modules/websocket.js';
 import { initAllEventListeners } from './modules/events.js';
+import { initAuth } from './modules/auth.js';
 
 /**
  * 应用程序初始化函数
  */
 function initApp() {
+    // 首先初始化认证
+    initAuth();
+
     // 初始化 WebSocket 连接
     initWebSocket();
 

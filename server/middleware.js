@@ -3,6 +3,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const config = require('./config');
 
@@ -14,8 +15,17 @@ function setupBasicMiddleware(app) {
     // JSON解析中间件
     app.use(express.json());
 
+    // URL编码解析中间件
+    app.use(express.urlencoded({ extended: true }));
+
+    // Cookie解析中间件
+    app.use(cookieParser());
+
     // CORS中间件
-    app.use(cors());
+    app.use(cors({
+        credentials: true, // 允许携带cookie
+        origin: true
+    }));
 
     // 静态文件服务
     app.use(express.static(config.PUBLIC_DIR));

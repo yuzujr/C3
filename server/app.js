@@ -2,27 +2,43 @@
 // 整合所有模块并启动服务器
 
 const express = require('express');
+const path = require('path');
 const config = require('./config');
 const { logWithTime, errorWithTime } = require('./logger');
 const { setupAllMiddleware } = require('./middleware');
 const { initWebSocketServer, closeWebSocketServer } = require('./websocket');
 const { initUploadModule } = require('./upload');
+const { requireAuth } = require('./auth');
 
 // 路由模块
 const webRoutes = require('./routes/web');
 const clientRoutes = require('./routes/client');
+const authRoutes = require('./routes/auth');
 
 /**
  * 创建Express应用
  */
 function createApp() {
-    const app = express();
-
-    // 设置中间件
+    const app = express();    // 设置中间件
     setupAllMiddleware(app);
 
-    // 设置路由
-    app.use('/web', webRoutes);
+    // 认证路由 (不需要认证)
+    app.use('/auth', authRoutes);
+
+    // 登录页面路由 (不需要认证)
+    app.get('/login', (req, res) => {
+        res.sendFile(path.join(config.PUBLIC_DIR, 'login.html'));
+    });
+
+    // 主页重定向到登录检查
+    app.get('/', requireAuth, (req, res) => {
+        res.sendFile(path.join(config.PUBLIC_DIR, 'index.html'));
+    });
+
+    // Web API路由 (需要认证)
+    app.use('/web', requireAuth, webRoutes);
+
+    // 客户端API路由 (不需要认证，客户端直接访问)
     app.use('/client', clientRoutes);
 
     // 错误处理中间件
@@ -57,7 +73,7 @@ function startServer() {
 
         // 关闭处理
         process.on('SIGINT', () => {
-            logWithTime('[SHUTDOWN] Received SIGINT, shutting down gracefully...');
+            logWithTime('[SHUTDOWN] Received SIGINT, shutting down...');
 
             server.close(() => {
                 logWithTime('[SHUTDOWN] HTTP server closed');
@@ -67,7 +83,7 @@ function startServer() {
         });
 
         process.on('SIGTERM', () => {
-            logWithTime('[SHUTDOWN] Received SIGTERM, shutting down gracefully...');
+            logWithTime('[SHUTDOWN] Received SIGTERM, shutting down...');
 
             server.close(() => {
                 logWithTime('[SHUTDOWN] HTTP server closed');
