@@ -306,9 +306,6 @@ if [[ -z "$PRESET" ]]; then
     PRESET="development"
 fi
 
-echo -e "${BLUE}🔧 生成硬编码配置...${NC}"
-echo -e "${YELLOW}预设: $PRESET${NC}"
-
 if generate_hardcoded_config "$PRESET"; then
     echo ""
     echo -e "${GREEN}🎯 下一步:${NC}"
