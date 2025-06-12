@@ -436,93 +436,93 @@ nlohmann::json executeShellCommand(const std::string& command,
         ssize_t bytesRead;
         bool foundEnd = false;
         auto startTime = std::chrono::steady_clock::now();
-        const auto timeout =
-            std::chrono::seconds(30);  // 30秒超时        while (!foundEnd) {
-        // 检查超时
-        if (std::chrono::steady_clock::now() - startTime > timeout) {
-            result["success"] = false;
-            result["error"] = "Command execution timeout";
-            result["reused_session"] = true;
-            result["command"] = command;
-            result["session_id"] = session_id;
-            result["finished"] = true;
-            result["timestamp"] =
-                std::chrono::duration_cast<std::chrono::milliseconds>(
-                    std::chrono::system_clock::now().time_since_epoch())
-                    .count();
-            return result;
-        }  // 检查输出长度限制
-        if (output.length() > g_maxOutputLength) {
-            Logger::info(std::format(
-                "Output length exceeded limit for session: {}", session_id));
-            foundEnd = true;
-            output += "\n\n[输出过长，已提前终止读取]";
-            break;
-        }
+        const auto timeout = std::chrono::seconds(30);  // 30秒超时
+        while (!foundEnd) {
+            // 检查超时
+            if (std::chrono::steady_clock::now() - startTime > timeout) {
+                result["success"] = false;
+                result["error"] = "Command execution timeout";
+                result["reused_session"] = true;
+                result["command"] = command;
+                result["session_id"] = session_id;
+                result["finished"] = true;
+                result["timestamp"] =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::system_clock::now().time_since_epoch())
+                        .count();
+                return result;
+            }  // 检查输出长度限制
+            if (output.length() > g_maxOutputLength) {
+                Logger::info(
+                    std::format("Output length exceeded limit for session: {}",
+                                session_id));
+                foundEnd = true;
+                output += "\n\n[输出过长，已提前终止读取]";
+                break;
+            }
 
-        // 使用select实现超时读取
-        fd_set readfds;
-        struct timeval tv;
-        FD_ZERO(&readfds);
-        FD_SET(session.outputFd, &readfds);
-        tv.tv_sec = 0;
-        tv.tv_usec = 100000;  // 100ms
+            // 使用select实现超时读取
+            fd_set readfds;
+            struct timeval tv;
+            FD_ZERO(&readfds);
+            FD_SET(session.outputFd, &readfds);
+            tv.tv_sec = 0;
+            tv.tv_usec = 100000;  // 100ms
 
-        int selectResult =
-            select(session.outputFd + 1, &readfds, nullptr, nullptr, &tv);
-        if (selectResult > 0 && FD_ISSET(session.outputFd, &readfds)) {
-            bytesRead = read(session.outputFd, buffer, sizeof(buffer) - 1);
-            if (bytesRead > 0) {
-                buffer[bytesRead] = '\0';
-                output += buffer;
+            int selectResult =
+                select(session.outputFd + 1, &readfds, nullptr, nullptr, &tv);
+            if (selectResult > 0 && FD_ISSET(session.outputFd, &readfds)) {
+                bytesRead = read(session.outputFd, buffer, sizeof(buffer) - 1);
+                if (bytesRead > 0) {
+                    buffer[bytesRead] = '\0';
+                    output += buffer;
 
-                // 检查是否找到结束标记
-                if (output.find("<<<COMMAND_END>>>") != std::string::npos) {
-                    foundEnd = true;
-                    // 移除结束标记及其后的内容
-                    size_t endPos = output.find("<<<COMMAND_END>>>");
-                    if (endPos != std::string::npos) {
-                        output = output.substr(0, endPos);
+                    // 检查是否找到结束标记
+                    if (output.find("<<<COMMAND_END>>>") != std::string::npos) {
+                        foundEnd = true;
+                        // 移除结束标记及其后的内容
+                        size_t endPos = output.find("<<<COMMAND_END>>>");
+                        if (endPos != std::string::npos) {
+                            output = output.substr(0, endPos);
+                        }
                     }
                 }
             }
-        }
-    }  // 构建结果
-    result["success"] = true;
-    result["command"] = command;
-    result["session_id"] = session_id;
-    result["stdout"] = cleanOutput(output);
-    result["stderr"] = "";
-    result["exit_code"] = 0;
-    result["finished"] = true;
-    result["reused_session"] = true;
-    result["timestamp"] =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch())
-            .count();
+        }  // 构建结果
+        result["success"] = true;
+        result["command"] = command;
+        result["session_id"] = session_id;
+        result["stdout"] = cleanOutput(output);
+        result["stderr"] = "";
+        result["exit_code"] = 0;
+        result["finished"] = true;
+        result["reused_session"] = true;
+        result["timestamp"] =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch())
+                .count();
 
-    Logger::info(std::format("Command executed successfully in session: {}",
-                             session_id));
-}
-catch (const std::exception& e) {
-    Logger::error(
-        std::format("Exception while executing command: {}", e.what()));
-    result["success"] = false;
-    result["error"] = e.what();
-    result["command"] = command;
-    result["session_id"] = session_id;
-    result["stdout"] = "";
-    result["stderr"] = e.what();
-    result["exit_code"] = -1;
-    result["finished"] = true;
-    result["reused_session"] = false;
-    result["timestamp"] =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch())
-            .count();
-}
+        Logger::info(std::format("Command executed successfully in session: {}",
+                                 session_id));
+    } catch (const std::exception& e) {
+        Logger::error(
+            std::format("Exception while executing command: {}", e.what()));
+        result["success"] = false;
+        result["error"] = e.what();
+        result["command"] = command;
+        result["session_id"] = session_id;
+        result["stdout"] = "";
+        result["stderr"] = e.what();
+        result["exit_code"] = -1;
+        result["finished"] = true;
+        result["reused_session"] = false;
+        result["timestamp"] =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch())
+                .count();
+    }
 
-return result;
+    return result;
 }
 
 void setOutputLengthLimit(size_t limit) {
