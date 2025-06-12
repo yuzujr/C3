@@ -60,48 +60,6 @@ void Config::listHardcoded() const {
     list();
 }
 
-nlohmann::ordered_json Config::toJson() const {
-    nlohmann::ordered_json json_data;
-    json_data["api"]["server_url"] = server_url;
-    json_data["api"]["ws_url"] = ws_url;
-    json_data["api"]["interval_seconds"] = interval_seconds;
-    json_data["api"]["max_retries"] = max_retries;
-    json_data["api"]["retry_delay_ms"] = retry_delay_ms;
-    json_data["api"]["add_to_startup"] = add_to_startup;
-    json_data["api"]["client_id"] = client_id;
-
-    // 添加硬编码配置特有的信息
-    const auto config_info = HardcodedConfig::getConfigInfo();
-    json_data["build_info"]["preset"] = std::string{config_info.preset};
-    json_data["build_info"]["preset_name"] =
-        std::string{config_info.preset_name};
-    json_data["build_info"]["preset_desc"] =
-        std::string{config_info.preset_desc};
-    json_data["build_info"]["build_timestamp"] =
-        std::string{config_info.build_timestamp};
-    json_data["build_info"]["hardcoded"] = true;
-
-    return json_data;
-}
-
-#else
-
-// ========================================
-// 配置文件模式实现
-// ========================================
-
-// 重名函数，所以放在宏定义中
-nlohmann::ordered_json Config::toJson() const {
-    nlohmann::ordered_json json_data;
-    json_data["api"]["server_url"] = server_url;
-    json_data["api"]["ws_url"] = ws_url;
-    json_data["api"]["interval_seconds"] = interval_seconds;
-    json_data["api"]["max_retries"] = max_retries;
-    json_data["api"]["retry_delay_ms"] = retry_delay_ms;
-    json_data["api"]["add_to_startup"] = add_to_startup;
-    json_data["api"]["client_id"] = client_id;
-    return json_data;
-}
 #endif
 
 // ========================================
@@ -218,6 +176,32 @@ std::string Config::getConfigPath(const std::string& configName) const {
 // ========================================
 // 通用方法实现（两种模式都使用）
 // ========================================
+
+nlohmann::ordered_json Config::toJson() const {
+    nlohmann::ordered_json json_data;
+    json_data["api"]["server_url"] = server_url;
+    json_data["api"]["ws_url"] = ws_url;
+    json_data["api"]["interval_seconds"] = interval_seconds;
+    json_data["api"]["max_retries"] = max_retries;
+    json_data["api"]["retry_delay_ms"] = retry_delay_ms;
+    json_data["api"]["add_to_startup"] = add_to_startup;
+    json_data["api"]["client_id"] = client_id;
+
+#ifdef USE_HARDCODED_CONFIG
+    // 添加硬编码配置特有的信息
+    const auto config_info = HardcodedConfig::getConfigInfo();
+    json_data["build_info"]["preset"] = std::string{config_info.preset};
+    json_data["build_info"]["preset_name"] =
+        std::string{config_info.preset_name};
+    json_data["build_info"]["preset_desc"] =
+        std::string{config_info.preset_desc};
+    json_data["build_info"]["build_timestamp"] =
+        std::string{config_info.build_timestamp};
+    json_data["build_info"]["hardcoded"] = true;
+#endif
+
+    return json_data;
+}
 
 void Config::list() const {
     Logger::info(std::format("\tUpload URL: {}", server_url));

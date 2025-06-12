@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 const { logWithTime, errorWithTime } = require('./logger');
-const { getClients } = require('./clients');
+const clientManager = require('./client-manager');
 
 /**
  * 创建上传目录（如果不存在）
@@ -26,11 +26,8 @@ const storage = multer.diskStorage({
         const clientId = req.clientId;
         if (!clientId) {
             return cb(new Error("Missing or invalid client_id"));
-        }
-
-        const clients = getClients();
-        const alias = clients[clientId];
-        let folderName = alias ? alias : clientId;
+        } const alias = clientManager.getAlias(clientId);
+        let folderName = alias;
 
         // 时间子目录
         const now = new Date();

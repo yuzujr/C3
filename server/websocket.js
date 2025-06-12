@@ -88,17 +88,46 @@ function handleWebConnection(ws) {
  * @param {string} client_id - 客户端ID
  */
 function handleClientConnection(ws, client_id) {
-    const alias = clientManager.getAliasByClientId(client_id);
+    const alias = clientManager.getAlias(client_id);
+
+    // 如果客户端没有设置别名，将其添加到映射中（使用client_id作为别名）
+    if (!clientManager.clientsMapping[client_id]) {
+        clientManager.setClient(client_id, client_id);
+        logWithTime(`[WEBSOCKET] Added new client to mapping: ${client_id}`);
+    }
 
     activeConnections.set(alias, ws);
     logWithTime(`[WEBSOCKET] Client connected: ${alias} (${client_id})`);
 
+    // 广播客户端上线状态
+    broadcastToWebClients({
+        type: 'client_status_change',
+        client: alias,
+        online: true
+    });
+
     ws.on('close', () => {
         activeConnections.delete(alias);
         logWithTime(`[WEBSOCKET] Client disconnected: ${alias} (${client_id})`);
-    }); ws.on('error', (error) => {
+
+        // 广播客户端下线状态
+        broadcastToWebClients({
+            type: 'client_status_change',
+            client: alias,
+            online: false
+        });
+    });
+
+    ws.on('error', (error) => {
         errorWithTime(`[WEBSOCKET] Client error for ${alias}:`, error);
         activeConnections.delete(alias);
+
+        // 广播客户端下线状态
+        broadcastToWebClients({
+            type: 'client_status_change',
+            client: alias,
+            online: false
+        });
     });
 
     // 处理客户端发送的消息（如shell命令输出）
@@ -230,6 +259,62 @@ function closeWebSocketServer() {
     }
 }
 
+/**
+ * 更新客户端别名映射
+ * 当ClientManager中的别名发生变化时调用此函数
+ * @param {string} oldAlias - 旧别名
+ * @param {string} newAlias - 新别名
+ */
+function updateClientAlias(oldAlias, newAlias) {
+    // 检查旧别名是否有活跃连接
+    const ws = activeConnections.get(oldAlias);
+    if (ws) {
+        // 移除旧的映射
+        activeConnections.delete(oldAlias);
+        // 添加新的映射
+        activeConnections.set(newAlias, ws);
+
+        logWithTime(`[WEBSOCKET] Updated client alias mapping: ${oldAlias} -> ${newAlias}`);
+
+        // 广播客户端状态变化（旧别名下线，新别名上线）
+        broadcastToWebClients({
+            type: 'client_status_change',
+            client: oldAlias,
+            online: false
+        });
+
+        broadcastToWebClients({
+            type: 'client_status_change',
+            client: newAlias,
+            online: true
+        });
+    }
+}
+
+/**
+ * 删除客户端连接
+ * 当ClientManager中的客户端被删除时调用此函数
+ * @param {string} alias - 客户端别名
+ */
+function removeClientConnection(alias) {
+    const ws = activeConnections.get(alias);
+    if (ws) {
+        // 关闭WebSocket连接
+        ws.close();
+        // 移除映射
+        activeConnections.delete(alias);
+
+        logWithTime(`[WEBSOCKET] Removed client connection: ${alias}`);
+
+        // 广播客户端下线状态
+        broadcastToWebClients({
+            type: 'client_status_change',
+            client: alias,
+            online: false
+        });
+    }
+}
+
 module.exports = {
     initWebSocketServer,
     broadcastToWebClients,
@@ -237,6 +322,8 @@ module.exports = {
     isClientOnline,
     getOnlineClients,
     closeWebSocketServer,
+    updateClientAlias,
+    removeClientConnection,
     activeConnections,
     webConnections
 };

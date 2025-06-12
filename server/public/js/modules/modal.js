@@ -31,12 +31,13 @@ export function closeImageModal() {
 }
 
 /**
- * 显示上一张图片
+ * 更新当前显示的图片
+ * @param {number} newIndex - 新的图片索引
  */
-export function showPreviousImage() {
-    if (imageUrls.length === 0 || currentImageIndex <= 0) return;
+function updateCurrentImage(newIndex) {
+    if (imageUrls.length === 0 || newIndex < 0 || newIndex >= imageUrls.length) return;
 
-    setCurrentImageIndex(currentImageIndex - 1);
+    setCurrentImageIndex(newIndex);
     const imageUrl = imageUrls[currentImageIndex];
 
     const modalImg = document.getElementById('modalImage');
@@ -49,21 +50,19 @@ export function showPreviousImage() {
 }
 
 /**
+ * 显示上一张图片
+ */
+export function showPreviousImage() {
+    if (imageUrls.length === 0 || currentImageIndex <= 0) return;
+    updateCurrentImage(currentImageIndex - 1);
+}
+
+/**
  * 显示下一张图片
  */
 export function showNextImage() {
     if (imageUrls.length === 0 || currentImageIndex >= imageUrls.length - 1) return;
-
-    setCurrentImageIndex(currentImageIndex + 1);
-    const imageUrl = imageUrls[currentImageIndex];
-
-    const modalImg = document.getElementById('modalImage');
-    const caption = document.getElementById('caption');
-
-    modalImg.src = imageUrl;
-    caption.innerHTML = parseImageDate(imageUrl);
-
-    updateNavigationButtons();
+    updateCurrentImage(currentImageIndex + 1);
 }
 
 /**
@@ -84,27 +83,22 @@ function updateNavigationButtons() {
     prevBtn.style.display = 'block';
     nextBtn.style.display = 'block';
 
-    // 在第一张图片时禁用上一张按钮
-    if (currentImageIndex <= 0) {
-        prevBtn.style.opacity = '0.3';
-        prevBtn.style.cursor = 'not-allowed';
-        prevBtn.style.pointerEvents = 'none';
-    } else {
-        prevBtn.style.opacity = '1';
-        prevBtn.style.cursor = 'pointer';
-        prevBtn.style.pointerEvents = 'auto';
+    // 设置按钮状态的通用函数
+    function setButtonState(button, enabled) {
+        if (enabled) {
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
+            button.style.pointerEvents = 'auto';
+        } else {
+            button.style.opacity = '0.3';
+            button.style.cursor = 'not-allowed';
+            button.style.pointerEvents = 'none';
+        }
     }
 
-    // 在最后一张图片时禁用下一张按钮
-    if (currentImageIndex >= imageUrls.length - 1) {
-        nextBtn.style.opacity = '0.3';
-        nextBtn.style.cursor = 'not-allowed';
-        nextBtn.style.pointerEvents = 'none';
-    } else {
-        nextBtn.style.opacity = '1';
-        nextBtn.style.cursor = 'pointer';
-        nextBtn.style.pointerEvents = 'auto';
-    }
+    // 设置按钮启用/禁用状态
+    setButtonState(prevBtn, currentImageIndex > 0);
+    setButtonState(nextBtn, currentImageIndex < imageUrls.length - 1);
 }
 
 /**

@@ -55,5 +55,12 @@ function handleWebSocketMessage(data) {
                 console.error('导入terminal模块失败:', error);
             });
         }
+    } else if (data.type === 'client_status_change') {
+        // 处理客户端状态变化
+        import('./clients.js').then(({ handleClientStatusChange }) => {
+            handleClientStatusChange(data.client, data.online);
+        }).catch(error => {
+            console.error('导入clients模块失败:', error);
+        });
     }
 }

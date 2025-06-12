@@ -6,25 +6,30 @@ import { fetchScreenshots } from './screenshots.js';
 import { showToast } from '../../toast/toast.js';
 
 /**
- * 删除指定时间范围内的截图
- * @param {number} hours - 删除多少小时前的截图
+ * 通用的删除函数
+ * @param {string} endpoint - API端点
+ * @param {Object} body - 请求体
+ * @param {string} errorPrefix - 错误日志前缀
  */
-export async function deleteScreenshots(hours) {
+async function performDelete(endpoint, body = null, errorPrefix = '删除') {
     if (!selectedClient) {
         showToast('请先选择客户端');
         return;
     }
 
     try {
-        const response = await fetch(`/web/delete-screenshots/${selectedClient}`, {
+        const requestOptions = {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                hours: hours
-            })
-        });
+            }
+        };
+
+        if (body) {
+            requestOptions.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(endpoint, requestOptions);
 
         if (response.ok) {
             const result = await response.json();
@@ -40,45 +45,24 @@ export async function deleteScreenshots(hours) {
             showToast(`删除失败：${error}`);
         }
     } catch (error) {
-        console.error('删除截图时出错:', error);
+        console.error(`${errorPrefix}时出错:`, error);
         showToast('删除失败：网络错误');
     }
+}
+
+/**
+ * 删除指定时间范围内的截图
+ * @param {number} hours - 删除多少小时前的截图
+ */
+export async function deleteScreenshots(hours) {
+    await performDelete(`/web/delete-screenshots/${selectedClient}`, { hours }, '删除截图');
 }
 
 /**
  * 删除所有截图
  */
 export async function deleteAllScreenshots() {
-    if (!selectedClient) {
-        showToast('请先选择客户端');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/web/delete-all-screenshots/${selectedClient}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            showToast(`删除成功：已删除 ${result.deletedCount || 0} 个文件`);
-
-            // 关闭对话框
-            document.getElementById('deleteModal').style.display = 'none';
-
-            // 重新加载截图
-            await fetchScreenshots(selectedClient);
-        } else {
-            const error = await response.text();
-            showToast(`删除失败：${error}`);
-        }
-    } catch (error) {
-        console.error('删除所有截图时出错:', error);
-        showToast('删除失败：网络错误');
-    }
+    await performDelete(`/web/delete-all-screenshots/${selectedClient}`, null, '删除所有截图');
 }
 
 /**

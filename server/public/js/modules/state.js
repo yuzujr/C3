@@ -5,6 +5,7 @@ export let selectedClient = null;
 export let currentImageIndex = 0;
 export let imageUrls = [];
 export let webSocket = null;
+export let cachedClientList = []; // 缓存的客户端列表
 
 // 常量配置
 export const CLIENT_POLL_INTERVAL = 1000; // 1秒 - 客户端列表更新频率
@@ -34,4 +35,8 @@ export function addNewImageUrl(url) {
 
 export function clearImageUrls() {
     imageUrls = [];
+}
+
+export function setCachedClientList(clients) {
+    cachedClientList = clients;
 }

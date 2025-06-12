@@ -312,9 +312,8 @@ if generate_hardcoded_config "$PRESET"; then
     echo ""
     echo -e "${YELLOW}使用 CMake 构建${NC}"
     echo -e "   ${CYAN}mkdir build-hardcoded${NC}"
-    echo -e "   ${CYAN}cd build-hardcoded${NC}"
-    echo -e "   ${CYAN}cmake .. -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release${NC}"
-    echo -e "   ${CYAN}cmake --build . --config Release${NC}"
+    echo -e "   ${CYAN}cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release${NC}"
+    echo -e "   ${CYAN}cmake --build . --config Release -j${NC}"
     exit 0
 else
     exit 1

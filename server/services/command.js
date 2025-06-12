@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config');
 const { logWithTime, errorWithTime, getBeijingTime } = require('../logger');
-const { getClients } = require('../clients');
+const clientManager = require('../client-manager');
 
 /**
  * 获取客户端配置
@@ -37,8 +37,7 @@ function getClientConfig(clientId) {
  */
 function saveClientConfig(clientId, configData) {
     try {
-        const clients = getClients();
-        const alias = clients[clientId] || clientId;
+        const alias = clientManager.getAlias(clientId);
         const clientDir = path.join(config.UPLOADS_DIR, alias);
 
         // 确保目录存在

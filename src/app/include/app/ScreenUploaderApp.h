@@ -12,12 +12,8 @@ public:
     ScreenUploaderApp();
     ~ScreenUploaderApp();
     // 启动应用程序
-    int run();  // 立即截图并上传（远程命令回调函数）
-    void takeScreenshotNow();
-
-    // 执行 Shell 命令（远程命令回调函数）
-    nlohmann::json executeShellCommand(const std::string& command,
-                                       const std::string& session_id);
+    int run();                 // 立即截图并上传（远程命令回调函数）
+    void takeScreenshotNow();  // 执行 Shell 命令（远程命令回调函数）
 
 private:
     // 连接命令接收websocket
@@ -25,11 +21,16 @@ private:
     // 主循环
     void mainLoop();
     // 执行一次截图和上传
-    void performScreenshotUpload();
-    // 上传图像和配置文件
+    void performScreenshotUpload();  // 上传图像和配置文件
     void uploadImageWithRetry(const std::vector<uint8_t>& frame,
                               const Config& config);
     void uploadConfigWithRetry(const Config& config);
+
+    // 通用上传方法
+    template <typename UploadFunc>
+    void performUploadWithRetry(const std::string& endpoint,
+                                const std::string& description,
+                                UploadFunc uploadFunc, const Config& config);
     // 应用配置设置
     // 包括上传配置文件和设置开机自启
     void applyConfigSettings(const Config& config);

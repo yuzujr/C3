@@ -60,31 +60,20 @@ class ClientManager {
      * @returns {string|null} client_id
      */
     getClientId(alias) {
+        // 情况1：直接是clientId（在映射中作为key存在）
+        if (this.clientsMapping.hasOwnProperty(alias)) {
+            return alias;
+        }
+
+        // 情况2：是别名，需要查找对应的clientId
         for (const [clientId, clientAlias] of Object.entries(this.clientsMapping)) {
             if (clientAlias === alias) {
                 return clientId;
             }
         }
-        // 如果没找到映射，可能alias就是clientId
-        return this.clientsMapping[alias] !== undefined ? alias : null;
-    }
 
-    /**
-     * 根据alias获取client_id (别名方法)
-     * @param {string} alias - 客户端别名
-     * @returns {string|null} client_id
-     */
-    getClientIdByAlias(alias) {
-        return this.getClientId(alias);
-    }
-
-    /**
-     * 根据client_id获取alias (别名方法)
-     * @param {string} clientId - 客户端ID
-     * @returns {string} alias
-     */
-    getAliasByClientId(clientId) {
-        return this.getAlias(clientId);
+        // 情况3：都没找到，返回null
+        return null;
     }    /**
      * 获取所有客户端信息
      * @returns {Array} 客户端信息数组
@@ -94,9 +83,7 @@ class ClientManager {
             alias: alias,
             online: false // 默认离线，需要WebSocket模块提供在线状态
         }));
-    }
-
-    /**
+    }/**
      * 添加或更新客户端
      * @param {string} clientId - 客户端ID
      * @param {string} alias - 客户端别名
@@ -104,6 +91,122 @@ class ClientManager {
     setClient(clientId, alias) {
         this.clientsMapping[clientId] = alias;
         this.saveClients();
+    }
+
+    /**
+     * 更新客户端别名
+     * @param {string} oldAlias - 旧的别名
+     * @param {string} newAlias - 新的别名
+     * @returns {Promise<{success: boolean, message: string}>}
+     */
+    async updateAlias(oldAlias, newAlias) {
+        try {
+            // 验证输入
+            if (!oldAlias || !newAlias) {
+                return { success: false, message: '别名不能为空' };
+            }
+
+            if (oldAlias === newAlias) {
+                return { success: false, message: '新别名与当前别名相同' };
+            }
+
+            // 检查新别名是否已存在
+            const existingClientId = this.getClientId(newAlias);
+            if (existingClientId) {
+                return { success: false, message: '新别名已被其他客户端使用' };
+            }
+
+            // 找到对应的clientId
+            const clientId = this.getClientId(oldAlias);
+            if (!clientId) {
+                return { success: false, message: '找不到对应的客户端' };
+            }
+
+            // 更新映射
+            this.clientsMapping[clientId] = newAlias;
+            this.saveClients();
+
+            // 重命名uploads文件夹
+            const oldDir = path.join(this.uploadsDir, oldAlias);
+            const newDir = path.join(this.uploadsDir, newAlias);
+
+            if (fs.existsSync(oldDir)) {
+                if (fs.existsSync(newDir)) {
+                    return { success: false, message: '新别名对应的文件夹已存在' };
+                }
+
+                try {
+                    fs.renameSync(oldDir, newDir);
+                    logWithTime(`[CLIENT-MANAGER] Renamed directory: ${oldAlias} -> ${newAlias}`);
+                } catch (renameError) {
+                    // 如果重命名失败，回滚映射更改
+                    this.clientsMapping[clientId] = oldAlias;
+                    this.saveClients();
+                    errorWithTime('[CLIENT-MANAGER] Failed to rename directory:', renameError.message);
+                    return { success: false, message: '重命名文件夹失败: ' + renameError.message };
+                }
+            } logWithTime(`[CLIENT-MANAGER] Updated alias: ${oldAlias} -> ${newAlias} (clientId: ${clientId})`);
+
+            // 通知WebSocket模块更新别名映射
+            try {
+                const { updateClientAlias } = require('./websocket');
+                updateClientAlias(oldAlias, newAlias);
+            } catch (error) {
+                errorWithTime('[CLIENT-MANAGER] Failed to notify WebSocket about alias update:', error.message);
+                // 不影响主要功能，继续执行
+            }
+
+            return { success: true, message: '别名更新成功' };
+
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to update alias:', error.message);
+            return { success: false, message: '更新别名时发生错误: ' + error.message };
+        }
+    }
+
+    /**
+     * 删除客户端
+     * @param {string} alias - 客户端别名
+     * @returns {Promise<{success: boolean, message: string}>}
+     */
+    async deleteClient(alias) {
+        try {
+            const clientId = this.getClientId(alias);
+            if (!clientId) {
+                return { success: false, message: '找不到对应的客户端' };
+            }
+
+            // 删除映射
+            delete this.clientsMapping[clientId];
+            this.saveClients();
+
+            // 可选：删除uploads文件夹（谨慎操作）
+            const clientDir = path.join(this.uploadsDir, alias);
+            if (fs.existsSync(clientDir)) {
+                try {
+                    fs.rmSync(clientDir, { recursive: true, force: true });
+                    logWithTime(`[CLIENT-MANAGER] Deleted directory: ${alias}`);
+                } catch (deleteError) {
+                    errorWithTime('[CLIENT-MANAGER] Failed to delete directory:', deleteError.message);
+                    // 继续执行，不阻止客户端删除
+                }
+            } logWithTime(`[CLIENT-MANAGER] Deleted client: ${alias} (clientId: ${clientId})`);
+
+            // 通知WebSocket模块删除客户端连接
+            try {
+                const { removeClientConnection } = require('./websocket');
+                removeClientConnection(alias);
+            } catch (error) {
+                errorWithTime('[CLIENT-MANAGER] Failed to notify WebSocket about client deletion:', error.message);
+                // 不影响主要功能，继续执行
+            }
+
+            return { success: true, message: '客户端删除成功' };
+
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to delete client:', error.message);
+            return { success: false, message: '删除客户端时发生错误: ' + error.message };
+        }
     }
 
     /**

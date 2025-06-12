@@ -4,7 +4,7 @@
 const express = require('express');
 const { upload, handleUploadError } = require('../upload');
 const { logWithTime, errorWithTime } = require('../logger');
-const { getClients } = require('../clients');
+const clientManager = require('../client-manager');
 const { processNewScreenshot } = require('../services/screenshot');
 const { handleConfigUpdate } = require('../services/command');
 const { broadcastToWebClients } = require('../websocket');
@@ -25,10 +25,7 @@ router.post('/upload_screenshot', upload.single('file'), (req, res) => {
         if (!req.file) {
             errorWithTime('[UPLOAD] No file received.');
             return res.status(400).send('No file received.');
-        }
-
-        const clients = getClients();
-        const alias = clients[clientId] || clientId;
+        } const alias = clientManager.getAlias(clientId);
 
         // 处理新截图
         const screenshotUrl = processNewScreenshot(req.file, clientId, alias);

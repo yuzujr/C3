@@ -8,7 +8,6 @@ target_sources(core PRIVATE
     Logger.cpp
     IDGenerator.cpp
     ControlCenter.cpp
-    SystemUtils.cpp
     CommandDispatcher.cpp
     ImageEncoder.cpp
     RawImage.cpp

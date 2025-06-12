@@ -186,4 +186,70 @@ router.post('/command/:client_alias', (req, res) => {
     }
 });
 
+/**
+ * 更新客户端别名
+ * PUT /web/clients/:currentAlias/alias
+ */
+router.put('/clients/:currentAlias/alias', async (req, res) => {
+    try {
+        const { currentAlias } = req.params;
+        const { newAlias } = req.body;
+
+        if (!newAlias || typeof newAlias !== 'string') {
+            return res.status(400).json({
+                success: false,
+                message: '新别名不能为空'
+            });
+        }
+
+        // 验证新别名格式（可以包含字母、数字、下划线、连字符）
+        if (!/^[a-zA-Z0-9_-]+$/.test(newAlias)) {
+            return res.status(400).json({
+                success: false,
+                message: '别名只能包含字母、数字、下划线和连字符'
+            });
+        }
+
+        const result = await clientManager.updateAlias(currentAlias, newAlias);
+
+        if (result.success) {
+            logWithTime(`[WEB] Alias updated: ${currentAlias} -> ${newAlias}`);
+            res.json(result);
+        } else {
+            res.status(400).json(result);
+        }
+    } catch (error) {
+        errorWithTime('[WEB] Error updating alias:', error);
+        res.status(500).json({
+            success: false,
+            message: '更新别名时发生服务器错误'
+        });
+    }
+});
+
+/**
+ * 删除客户端
+ * DELETE /web/clients/:alias
+ */
+router.delete('/clients/:alias', async (req, res) => {
+    try {
+        const { alias } = req.params;
+
+        const result = await clientManager.deleteClient(alias);
+
+        if (result.success) {
+            logWithTime(`[WEB] Client deleted: ${alias}`);
+            res.json(result);
+        } else {
+            res.status(400).json(result);
+        }
+    } catch (error) {
+        errorWithTime('[WEB] Error deleting client:', error);
+        res.status(500).json({
+            success: false,
+            message: '删除客户端时发生服务器错误'
+        });
+    }
+});
+
 module.exports = router;

@@ -10,12 +10,9 @@ let terminalOutput = null;
  * 初始化终端功能
  */
 export function initTerminal() {
-    terminalOutput = document.getElementById('terminalOutput');
-
-    // 绑定终端按钮事件
+    terminalOutput = document.getElementById('terminalOutput');    // 绑定终端按钮事件
     document.getElementById('cmdPwd')?.addEventListener('click', () => executeCommand('pwd'));
     document.getElementById('cmdLs')?.addEventListener('click', () => executeCommand('ls'));
-    document.getElementById('cmdDir')?.addEventListener('click', () => executeCommand('dir'));
     document.getElementById('cmdClear')?.addEventListener('click', clearTerminal);
 
     // 绑定自定义命令执行
@@ -35,7 +32,7 @@ export function initTerminal() {
  * @param {boolean} enabled - 是否启用
  */
 export function updateTerminalState(enabled) {
-    const buttons = ['cmdPwd', 'cmdLs', 'cmdDir', 'executeCustom'];
+    const buttons = ['cmdPwd', 'cmdLs', 'executeCustom'];
     const customInput = document.getElementById('customCommand');
     const terminalMessage = document.getElementById('terminalMessage');
 
@@ -51,11 +48,13 @@ export function updateTerminalState(enabled) {
     }
 
     if (terminalMessage) {
-        terminalMessage.style.display = enabled ? 'none' : 'block';
-    }
-
-    if (!enabled && terminalOutput) {
-        terminalOutput.textContent = '[Terminal Ready]\n等待选择客户端...';
+        if (enabled) {
+            terminalMessage.textContent = '终端已就绪';
+            terminalMessage.style.display = 'none';
+        } else {
+            terminalMessage.textContent = '请选择一个在线客户端';
+            terminalMessage.style.display = 'block';
+        }
     }
 }
 
@@ -74,7 +73,7 @@ async function executeCommand(command) {
         return;
     }
 
-    addToTerminal(`> ${command}`);
+    addToTerminal(`${selectedClient} > ${command}`);
 
     try {
         const response = await fetch(`/web/command/${selectedClient}`, {
@@ -124,7 +123,7 @@ function executeCustomCommand() {
  */
 function clearTerminal() {
     if (terminalOutput) {
-        terminalOutput.textContent = '[Terminal Ready]\n';
+        terminalOutput.textContent = '';
     }
 }
 
@@ -135,6 +134,11 @@ function clearTerminal() {
 function addToTerminal(text) {
     if (!terminalOutput) {
         return;
+    }
+
+    // 如果终端内容为空或只包含空白字符，先清空它
+    if (terminalOutput.textContent.trim() === '') {
+        terminalOutput.textContent = '';
     }
 
     terminalOutput.textContent += text + '\n';

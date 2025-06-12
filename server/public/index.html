@@ -98,14 +98,36 @@
             padding: 5px;
             border-bottom: 1px solid var(--border-color);
             transition: background-color 0.2s ease;
+            position: relative;
         }
 
-        .client-item:hover {
+        /* 在线客户端样式 */
+        .client-item.online {
+            border-left: 4px solid #28a745;
+        }
+
+        .client-item.online:hover {
             background-color: var(--hover-color);
         }
 
+        /* 离线客户端样式 */
+        .client-item.offline {
+            border-left: 4px solid #dc3545;
+            opacity: 0.6;
+            cursor: pointer;
+        }
+
+        .client-item.offline:hover {
+            background-color: var(--hover-color);
+        }
+
+        /* 选中状态样式 - 更高优先级 */
         .client-item.selected {
-            background-color: var(--selected-color);
+            background-color: var(--selected-color) !important;
+        }
+
+        .client-item.selected:hover {
+            background-color: var(--selected-color) !important;
         }
 
         button {
@@ -265,110 +287,393 @@
             height: 150px;
         }
 
+        #commands {
+            margin-bottom: 30px;
+        }
+
         #commands button {
             margin-right: 10px;
+        }
+
+        #commands h3 {
+            margin-bottom: 15px;
         }
 
         label {
             display: block;
             margin-top: 10px;
         }
+
+        /* 加载遮罩样式 */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--text-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--text-color);
+            font-size: 16px;
+        }
+
+        /* 主内容默认隐藏 */
+        #mainContent {
+            display: none;
+        }
+
+        /* 在加载期间隐藏固定按钮 */
+        .loading .theme-toggle,
+        .loading .logout-btn {
+            display: none;
+        }
+
+        /* 标签页样式 */
+        .tab-navigation {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin: 20px 0 10px 0;
+        }
+
+        .tab-button {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-color);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            margin: 0;
+        }
+
+        .tab-button:hover {
+            background: var(--hover-color);
+        }
+
+        .tab-button.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background: var(--hover-color);
+        }
+
+        .tab-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            color: var(--border-color);
+        }
+
+        .tab-button:disabled:hover {
+            background: transparent;
+        }
+
+        .tab-content {
+            margin-top: 20px;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .tab-panel h3,
+        .tab-panel h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--text-color);
+        }
+
+        /* 客户端管理样式 */
+        .client-manage-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: var(--bg-color);
+        }
+
+        .client-info {
+            flex: 1;
+        }
+
+        .client-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .edit-alias-btn,
+        .delete-client-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .edit-alias-btn {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .edit-alias-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .delete-client-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .delete-client-btn:hover {
+            background-color: #c82333;
+        }
+
+        /* 别名编辑对话框样式 */
+        .alias-dialog {
+            background: var(--modal-content-bg);
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 80%;
+        }
+
+        .alias-dialog h3 {
+            margin-top: 0;
+            color: var(--text-color);
+        }
+
+        .alias-dialog label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        .alias-dialog input {
+            width: 100%;
+            margin-top: 5px;
+            padding: 8px;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+
+        .alias-dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .save-alias-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .save-alias-btn:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 
-<body>
+<body class="loading">
+    <div id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">加载中，请稍候...</div>
+    </div>
+
     <button class="theme-toggle" id="themeToggle">🌙 暗色模式</button>
     <button class="logout-btn" id="logoutBtn">🚪 登出</button>
     <h1>ScreenUploader 控制台</h1>
+    <div id="mainContent">
+        <h2>客户端列表</h2>
+        <div id="clientsList">加载中...</div> <!-- 标签页导航 -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">截图与基础命令</button>
+            <button class="tab-button" data-tab="manage">客户端管理</button>
+            <button class="tab-button" data-tab="config">配置管理</button>
+            <button class="tab-button" data-tab="shell">Shell 终端</button>
+        </div> <!-- 标签页内容 -->
+        <div class="tab-content">
+            <!-- 截图与基础命令标签页 -->
+            <div id="tab-overview" class="tab-panel active">
+                <h3>发送命令</h3>
+                <div id="commands">
+                    <div id="cmdButtons" style="display:none;">
+                        <button data-cmd='{"type":"pause"}'>暂停</button>
+                        <button data-cmd='{"type":"resume"}'>继续</button>
+                        <button data-cmd='{"type":"screenshot_now"}'>立即截图</button>
+                    </div>
+                    <div id="commandMessage" style="color:#888; margin-top:10px;">请选择一个在线客户端</div>
+                </div>
 
-    <h2>客户端列表</h2>
-    <div id="clientsList">加载中...</div>
-
-    <h2>发送命令</h2>
-    <div id="commands">
-        <div id="cmdButtons" style="display:none;">
-            <button data-cmd='{"type":"pause"}'>暂停</button>
-            <button data-cmd='{"type":"resume"}'>继续</button>
-            <button data-cmd='{"type":"screenshot_now"}'>立即截图</button>
-        </div>
-    </div>
-
-    <h2>Shell 终端</h2>
-    <div id="terminal-section">
-        <div id="terminal-controls">
-            <button id="cmdPwd" disabled>显示当前目录 (pwd)</button>
-            <button id="cmdLs" disabled>列出文件 (ls)</button>
-            <button id="cmdDir" disabled>列出文件 (dir)</button>
-            <button id="cmdClear">清空输出</button>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin: 10px 0;">
-            <input type="text" id="customCommand" placeholder="输入自定义命令..." disabled style="flex: 1; padding: 8px;">
-            <button id="executeCustom" disabled>执行</button>
-        </div>
-
-        <div id="terminalOutput"
-            style="background-color: #000; color: #00ff00; padding: 15px; border-radius: 4px; min-height: 300px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre-wrap; border: 1px solid var(--border-color);">
-            [Terminal Ready]
-            等待选择客户端...
-        </div>
-
-        <div id="terminalMessage" style="color:#888; margin-top:10px;">请选择一个在线客户端</div>
-    </div>
-
-    <h2>配置管理</h2>
-    <div id="config-section">
-        <div id="configSection" style="display:none;">
-            <h3>更新配置</h3>
-            <label>HTTP URL: <input id="serverUrl" type="text"></label>
-            <label>WebSocket URL: <input id="wsUrl" type="text"> </label>
-            <label>截图间隔 (秒): <input id="intervalSeconds" type="number"></label>
-            <label>最大重试次数: <input id="maxRetries" type="number"></label>
-            <label>重试间隔 (毫秒): <input id="retryDelayMs" type="number"></label>
-            <label><input id="addToStartup" type="checkbox"> 开机自启</label>
-            <button id="updateConfigBtn">更新配置</button>
-        </div>
-        <div id="configMessage" style="color:#888; margin-top:10px;">请选择客户端</div>
-    </div>
-
-    <h2>客户端截图</h2>
-    <div>
-        <button id="deleteScreenshotsBtn"
-            style="margin-bottom: 10px; background-color: #ff6b6b; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 12px;">删除截图...</button>
-    </div>
-    <div id="screenshots" style="color:#888; margin-bottom:10px;">请选择客户端</div>
-
-    <!-- Toast 提示框 -->
-    <div id="toast" class="toast"></div>
-
-    <!-- 删除截图确认对话框 -->
-    <div id="deleteModal" class="modal" style="display: none;">
-        <div class="delete-dialog">
-            <h3>删除截图</h3>
-            <p>选择要删除的截图时间范围：</p>
-            <div style="margin-bottom: 20px;">
-                <button id="delete1Hour"
-                    style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #ff9999; color: white; border: none; border-radius: 4px; cursor: pointer;">删除1小时前的截图</button>
-                <button id="delete1Day"
-                    style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #ff6666; color: white; border: none; border-radius: 4px; cursor: pointer;">删除1天前的截图</button>
-                <button id="delete1Week"
-                    style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #ff3333; color: white; border: none; border-radius: 4px; cursor: pointer;">删除1周前的截图</button>
-                <button id="deleteAll"
-                    style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #990000; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">删除所有截图</button>
+                <h3>客户端截图</h3>
+                <div>
+                    <button id="deleteScreenshotsBtn"
+                        style="margin-bottom: 10px; background-color: #ff6b6b; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 12px;">删除截图...</button>
+                </div>
+                <div id="screenshots" style="color:#888; margin-bottom:10px;">请选择客户端</div>
             </div>
-            <div style="text-align: right;">
-                <button id="cancelDelete" class="cancel-btn">取消</button>
+
+            <!-- 客户端管理标签页 -->
+            <div id="tab-manage" class="tab-panel">
+                <h3>客户端管理</h3>
+                <div id="client-management">
+                    <p style="color:#888; margin-bottom:20px;">管理客户端别名，重命名或删除客户端</p>
+
+                    <div id="clientManagementList">
+                        <!-- 客户端管理列表将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 配置管理标签页 -->
+            <div id="tab-config" class="tab-panel">
+                <h3>配置管理</h3>
+                <div id="config-section">
+                    <div id="configSection" style="display:none;">
+                        <h4>更新配置</h4>
+                        <label>HTTP URL: <input id="serverUrl" type="text"></label>
+                        <label>WebSocket URL: <input id="wsUrl" type="text"> </label>
+                        <label>截图间隔 (秒): <input id="intervalSeconds" type="number"></label>
+                        <label>最大重试次数: <input id="maxRetries" type="number"></label>
+                        <label>重试间隔 (毫秒): <input id="retryDelayMs" type="number"></label>
+                        <label><input id="addToStartup" type="checkbox"> 开机自启</label>
+                        <button id="updateConfigBtn">更新配置</button>
+                    </div>
+                    <div id="configMessage" style="color:#888; margin-top:10px;">请选择一个在线客户端</div>
+                </div>
+            </div>
+
+            <!-- Shell 终端标签页 -->
+            <div id="tab-shell" class="tab-panel">
+                <h3>Shell 终端</h3>
+                <div id="terminal-section">
+                    <div id="terminal-controls">
+                        <button id="cmdPwd" disabled>显示当前目录 (pwd)</button>
+                        <button id="cmdLs" disabled>列出文件 (ls)</button>
+                        <button id="cmdClear">清空输出</button>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin: 10px 0;">
+                        <input type="text" id="customCommand" placeholder="输入自定义命令..." disabled
+                            style="flex: 1; padding: 8px;">
+                        <button id="executeCustom" disabled>执行</button>
+                    </div>
+                    <div id="terminalOutput"
+                        style="background-color: #000; color: #00ff00; padding: 15px; border-radius: 4px; min-height: 300px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre-wrap; border: 1px solid var(--border-color);">
+                    </div>
+
+                    <div id="terminalMessage" style="color:#888; margin-top:10px;">请选择一个在线客户端</div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- 图片放大预览模态框 -->
-    <div id="imageModal" class="modal" style="display: none;">
-        <span class="close">&times;</span>
-        <a class="prev" id="prevBtn">&#10094;</a>
-        <a class="next" id="nextBtn">&#10095;</a>
-        <img class="modal-content" id="modalImage">
-        <div id="caption"></div>
+        <!-- Toast 提示框 -->
+        <div id="toast" class="toast"></div>
+
+        <!-- 删除截图确认对话框 -->
+        <div id="deleteModal" class="modal" style="display: none;">
+            <div class="delete-dialog">
+                <h3>删除截图</h3>
+                <p>选择要删除的截图时间范围：</p>
+                <div style="margin-bottom: 20px;">
+                    <button id="delete1Hour"
+                        style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #ff9999; color: white; border: none; border-radius: 4px; cursor: pointer;">删除1小时前的截图</button>
+                    <button id="delete1Day"
+                        style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #ff6666; color: white; border: none; border-radius: 4px; cursor: pointer;">删除1天前的截图</button>
+                    <button id="delete1Week"
+                        style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #ff3333; color: white; border: none; border-radius: 4px; cursor: pointer;">删除1周前的截图</button>
+                    <button id="deleteAll"
+                        style="display: block; width: 100%; margin-bottom: 10px; padding: 10px; background-color: #990000; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">删除所有截图</button>
+                </div>
+                <div style="text-align: right;">
+                    <button id="cancelDelete" class="cancel-btn">取消</button>
+                </div>
+            </div>
+        </div> <!-- 图片放大预览模态框 -->
+        <div id="imageModal" class="modal" style="display: none;">
+            <span class="close">&times;</span>
+            <a class="prev" id="prevBtn">&#10094;</a>
+            <a class="next" id="nextBtn">&#10095;</a>
+            <img class="modal-content" id="modalImage">
+            <div id="caption"></div>
+        </div>
+
+        <!-- 别名编辑对话框 -->
+        <div id="aliasModal" class="modal" style="display: none;">
+            <div class="alias-dialog">
+                <h3>编辑客户端别名</h3>
+                <label>
+                    当前别名: <span id="currentAliasDisplay" style="font-weight: bold;"></span>
+                </label>
+                <label>
+                    新别名:
+                    <input type="text" id="newAliasInput" placeholder="输入新的别名..." maxlength="50">
+                </label>
+                <p style="color:#888; font-size:12px; margin-top:5px;">
+                    别名只能包含字母、数字、下划线和连字符
+                </p>
+                <div class="alias-dialog-buttons">
+                    <button id="cancelAliasEdit" class="cancel-btn">取消</button>
+                    <button id="saveAliasEdit" class="save-alias-btn">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 删除客户端确认对话框 -->
+        <div id="deleteClientModal" class="modal" style="display: none;">
+            <div class="delete-dialog">
+                <h3>删除客户端</h3>
+                <p>确定要删除客户端 "<span id="deleteClientName" style="font-weight: bold;"></span>" 吗？</p>
+                <p style="color:#dc3545; font-size:12px;">
+                    ⚠️ 此操作将删除客户端配置和所有相关文件，且无法恢复！
+                </p>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button id="cancelClientDelete" class="cancel-btn">取消</button>
+                    <button id="confirmClientDelete"
+                        style="background-color: #dc3545; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">确认删除</button>
+                </div>
+            </div>
+        </div>
     </div>
     <script type="module" src="js/app.js"></script> <!-- 新的模块化应用入口 -->
 </body>

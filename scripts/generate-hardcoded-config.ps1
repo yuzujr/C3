@@ -243,9 +243,8 @@ if (Generate-HardcodedConfig -PresetName $Preset) {
     Write-Host ""
     Write-Host "使用 CMake 构建" -ForegroundColor Yellow
     Write-Host "   mkdir build-hardcoded" -ForegroundColor Cyan
-    Write-Host "   cd build-hardcoded" -ForegroundColor Cyan
-    Write-Host "   cmake .. -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release" -ForegroundColor Cyan
-    Write-Host "   cmake --build . --config Release" -ForegroundColor Cyan
+    Write-Host "   cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release" -ForegroundColor Cyan
+    Write-Host "   cmake --build . --config Release -j" -ForegroundColor Cyan
     exit 0
 } else {
     exit 1
