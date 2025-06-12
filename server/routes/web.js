@@ -9,25 +9,38 @@ const { logWithTime, errorWithTime } = require('../logger');
 const { getClientScreenshots, deleteScreenshotsByTime, deleteAllScreenshots } = require('../services/screenshot');
 const { getClientConfig } = require('../services/command');
 const { sendToClient, isClientOnline } = require('../websocket');
-const { getClients } = require('../clients');
+const clientManager = require('../client-manager');
 
 const router = express.Router();
 
 /**
  * 获取客户端列表
+ * 返回格式: [{ alias: "test", online: true }]
  */
 router.get('/clients', (req, res) => {
     try {
-        if (!fs.existsSync(config.UPLOADS_DIR)) {
-            return res.json([]);
-        }
+        const { getOnlineClients } = require('../websocket');
+        const allClients = clientManager.getAllClients();
+        const onlineAliases = getOnlineClients();
 
-        const clients = fs.readdirSync(config.UPLOADS_DIR).filter(item => {
-            const fullPath = path.join(config.UPLOADS_DIR, item);
-            return fs.statSync(fullPath).isDirectory();
+        // 构建简化的客户端列表 - 只使用alias作为标识符
+        const clientsList = allClients.map(client => ({
+            alias: client.alias,
+            online: onlineAliases.includes(client.alias)
+        }));
+
+        // 添加在线但可能不在clients.json中的客户端
+        onlineAliases.forEach(alias => {
+            const existingClient = clientsList.find(c => c.alias === alias);
+            if (!existingClient) {
+                clientsList.push({
+                    alias: alias,
+                    online: true
+                });
+            }
         });
 
-        res.json(clients);
+        res.json(clientsList);
     } catch (error) {
         errorWithTime('[WEB] Error getting clients:', error);
         res.status(500).send('Failed to get clients');
@@ -37,16 +50,17 @@ router.get('/clients', (req, res) => {
 /**
  * 获取客户端截图列表
  */
-router.get('/screenshots/:client_id', (req, res) => {
+router.get('/screenshots/:client_alias', (req, res) => {
     try {
-        const clientId = req.params.client_id;
+        const clientAlias = req.params.client_alias;
         const sinceTimestamp = req.query.since ? parseInt(req.query.since) : 0;
 
-        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
-            return res.status(400).send('Missing or invalid client_id');
+        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
+            return res.status(400).send('Missing or invalid client_alias');
         }
 
-        const screenshots = getClientScreenshots(clientId, sinceTimestamp);
+        // 使用alias直接获取截图
+        const screenshots = getClientScreenshots(clientAlias, sinceTimestamp);
         res.json(screenshots);
     } catch (error) {
         errorWithTime('[WEB] Error getting screenshots:', error);
@@ -59,13 +73,13 @@ router.get('/screenshots/:client_id', (req, res) => {
  */
 router.get('/config/:clientId', (req, res) => {
     try {
-        const clientId = req.params.clientId;
+        const clientAlias = req.params.clientId; // 现在参数实际上是alias
 
-        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
-            return res.status(400).send('Missing or invalid clientId');
+        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
+            return res.status(400).send('Missing or invalid client alias');
         }
 
-        const config = getClientConfig(clientId);
+        const config = getClientConfig(clientAlias);
         if (!config) {
             return res.status(404).send('Client config not found');
         }
@@ -78,54 +92,22 @@ router.get('/config/:clientId', (req, res) => {
 });
 
 /**
- * 向客户端发送命令
- */
-router.post('/send_commands', (req, res) => {
-    try {
-        const { client_id, command } = req.body;
-
-        if (!client_id || !command) {
-            return res.status(400).send('Missing client_id or command');
-        }
-
-        const clients = getClients();
-        const alias = clients[client_id] || client_id;
-
-        // 如果客户端在线，直接推送命令
-        if (isClientOnline(alias)) {
-            const success = sendToClient(alias, { commands: [command] });
-            if (success) {
-                logWithTime(`[WEB] Command sent to "${alias}":`, command.type || 'unknown');
-                res.sendStatus(200);
-            } else {
-                res.status(503).send(`Failed to send command to "${alias}"`);
-            }
-        } else {
-            res.status(503).send(`Client "${alias}" is not online`);
-        }
-    } catch (error) {
-        errorWithTime('[WEB] Error sending command:', error);
-        res.status(500).send('Failed to send command');
-    }
-});
-
-/**
  * 删除指定时间范围内的截图
  */
-router.delete('/delete-screenshots/:client_id', (req, res) => {
+router.delete('/delete-screenshots/:client_alias', (req, res) => {
     try {
-        const clientId = req.params.client_id;
+        const clientAlias = req.params.client_alias;
         const { hours } = req.body;
 
-        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
-            return res.status(400).send('Missing or invalid client_id');
+        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
+            return res.status(400).send('Missing or invalid client_alias');
         }
 
         if (!hours || typeof hours !== 'number' || hours <= 0) {
             return res.status(400).send('Missing or invalid hours parameter');
         }
 
-        const result = deleteScreenshotsByTime(clientId, hours);
+        const result = deleteScreenshotsByTime(clientAlias, hours);
         res.json(result);
     } catch (error) {
         if (error.message === 'Client not found') {
@@ -140,15 +122,15 @@ router.delete('/delete-screenshots/:client_id', (req, res) => {
 /**
  * 删除客户端所有截图
  */
-router.delete('/delete-all-screenshots/:client_id', (req, res) => {
+router.delete('/delete-all-screenshots/:client_alias', (req, res) => {
     try {
-        const clientId = req.params.client_id;
+        const clientAlias = req.params.client_alias;
 
-        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
-            return res.status(400).send('Missing or invalid client_id');
+        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
+            return res.status(400).send('Missing or invalid client_alias');
         }
 
-        const result = deleteAllScreenshots(clientId);
+        const result = deleteAllScreenshots(clientAlias);
         res.json(result);
     } catch (error) {
         if (error.message === 'Client not found') {
@@ -157,6 +139,50 @@ router.delete('/delete-all-screenshots/:client_id', (req, res) => {
             errorWithTime('[WEB] Error deleting all screenshots:', error);
             res.status(500).send('Failed to delete all screenshots: ' + error.message);
         }
+    }
+});
+
+/**
+ * 发送命令到指定客户端 (新的API路由)
+ */
+router.post('/command/:client_alias', (req, res) => {
+    try {
+        const clientAlias = req.params.client_alias;
+        const command = req.body;
+
+        if (!clientAlias || !command) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing client_alias or command'
+            });
+        }
+
+        // 检查客户端是否在线
+        if (!isClientOnline(clientAlias)) {
+            return res.status(503).json({
+                success: false,
+                message: `Client "${clientAlias}" is not online`
+            });
+        }        // 发送命令 - 包装为commands数组格式以保持与客户端的兼容性
+        const success = sendToClient(clientAlias, { commands: [command] });
+        if (success) {
+            logWithTime(`[WEB] Command sent to "${clientAlias}":`, command.type || 'unknown');
+            res.json({
+                success: true,
+                message: 'Command sent successfully'
+            });
+        } else {
+            res.status(503).json({
+                success: false,
+                message: `Failed to send command to "${clientAlias}"`
+            });
+        }
+    } catch (error) {
+        errorWithTime('[WEB] Error sending command:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
     }
 });
 

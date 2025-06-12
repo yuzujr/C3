@@ -7,7 +7,6 @@
 
 #include "core/Logger.h"
 
-
 WebSocketClient::WebSocketClient(const std::string& ws_url,
                                  const std::string& client_id)
     : m_ws_url(ws_url), m_client_id(client_id) {
@@ -53,6 +52,21 @@ void WebSocketClient::reconnect(const std::string& server_url,
     // 重新连接
     stop();
     connectToServer();
+}
+
+void WebSocketClient::sendMessage(const nlohmann::json& message) {
+    if (m_ws.getReadyState() == ix::ReadyState::Open) {
+        std::string message_str = message.dump();
+        ix::WebSocketSendInfo result = m_ws.send(message_str);
+        if (result.success) {
+            Logger::info(
+                std::format("Sent message to server: {}", message_str));
+        } else {
+            Logger::error("Failed to send message to server");
+        }
+    } else {
+        Logger::warn("WebSocket not connected, cannot send message");
+    }
 }
 
 void WebSocketClient::connectToServer() {

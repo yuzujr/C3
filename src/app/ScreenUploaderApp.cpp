@@ -1,5 +1,8 @@
 #include "app/ScreenUploaderApp.h"
 
+#include <regex>
+
+
 ScreenUploaderApp::ScreenUploaderApp()
     : m_running(true),
       m_config(),
@@ -34,11 +37,21 @@ ScreenUploaderApp::ScreenUploaderApp()
     applyConfigSettings(m_config);
 
     // 启用高 DPI 感知
-    SystemUtils::enableHighDPI();
-
-    // 设置截图回调函数
+    SystemUtils::enableHighDPI();  // 设置截图回调函数
     m_dispatcher.setScreenshotCallback([this]() {
         takeScreenshotNow();
+    });
+
+    // 设置 Shell 命令执行回调函数
+    m_dispatcher.setShellExecuteCallback(
+        [this](const std::string& command, const std::string& session_id) {
+            return executeShellCommand(command, session_id);
+        });
+
+    // 设置响应回调函数
+    m_dispatcher.setResponseCallback([this](const nlohmann::json& response) {
+        // 通过 WebSocket 发送响应回服务器
+        m_wsClient.sendMessage(response);
     });
 }
 
@@ -181,4 +194,95 @@ void ScreenUploaderApp::applyConfigSettings(const Config& config) {
         m_wsClient.setWsUrl(config.ws_url);
         m_wsClient.setClientId(config.client_id);
     }
+}
+
+nlohmann::json ScreenUploaderApp::executeShellCommand(
+    const std::string& command, const std::string& session_id) {
+    nlohmann::json result;
+
+    try {
+        Logger::info(std::format("Executing shell command: {} (session: {})",
+                                 command, session_id));
+
+        // 在 Windows 上使用 PowerShell 执行命令
+        std::string full_command;
+
+        if (command == "pwd" || command == "Get-Location") {
+            // 显示当前工作目录
+            full_command =
+                "pwsh.exe -Command \"Get-Location | Select-Object "
+                "-ExpandProperty Path\"";
+        } else if (command.starts_with("ls") || command.starts_with("dir") ||
+                   command.starts_with("Get-ChildItem")) {
+            // 列出目录内容，使用更简洁的格式
+            full_command =
+                "pwsh.exe -Command \"Get-ChildItem | Format-Table Name, "
+                "Length, LastWriteTime -AutoSize\"";
+        } else {
+            // 其他命令直接通过 PowerShell 执行
+            full_command = std::format("pwsh.exe -Command \"{}\"", command);
+        }
+
+        // 执行命令并捕获输出
+        FILE* pipe = _popen(full_command.c_str(), "r");
+        if (!pipe) {
+            result["success"] = false;
+            result["error"] = "Failed to execute command";
+            result["stderr"] = "Could not create process";
+            result["exit_code"] = -1;
+            return result;
+        }
+
+        // 读取输出
+        std::string output;
+        char buffer[4096];
+        while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            output += buffer;
+        }
+        int exit_code = _pclose(pipe);
+
+        // 清理ANSI转义序列
+        auto cleanAnsiEscapes = [](const std::string& input) -> std::string {
+            std::string result = input;
+            std::regex ansiRegex(R"(\x1b\[[0-9;]*[mGKH])");
+            result = std::regex_replace(result, ansiRegex, "");
+            return result;
+        };
+
+        std::string cleanOutput = cleanAnsiEscapes(output);
+
+        // 构建结果
+        result["success"] = (exit_code == 0);
+        result["command"] = command;
+        result["session_id"] = session_id;
+        result["stdout"] = cleanOutput;
+        result["stderr"] = "";  // PowerShell 的错误通常也会在 stdout 中
+        result["exit_code"] = exit_code;
+        result["finished"] = true;
+        result["timestamp"] =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch())
+                .count();
+
+        Logger::info(std::format("Command executed successfully. Exit code: {}",
+                                 exit_code));
+
+    } catch (const std::exception& e) {
+        Logger::error(
+            std::format("Exception while executing command: {}", e.what()));
+        result["success"] = false;
+        result["error"] = e.what();
+        result["command"] = command;
+        result["session_id"] = session_id;
+        result["stdout"] = "";
+        result["stderr"] = e.what();
+        result["exit_code"] = -1;
+        result["finished"] = true;
+        result["timestamp"] =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch())
+                .count();
+    }
+
+    return result;
 }

@@ -14,25 +14,23 @@ export async function sendCommand(command) {
         return;
     }
 
-    const res = await fetch('/web/send_commands', {
+    const res = await fetch(`/web/command/${selectedClient}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            client_id: selectedClient,
-            command: command
-        })
+        body: JSON.stringify(command)
     });
 
-    showToast(res.ok ? '命令发送成功' : '命令发送失败');
+    const result = await res.json();
+    showToast(result.success ? '命令发送成功' : `命令发送失败: ${result.message}`);
 }
 
 /**
  * 加载客户端配置
- * @param {string} clientId - 客户端ID
+ * @param {string} clientAlias - 客户端别名
  */
-export async function loadClientConfig(clientId) {
+export async function loadClientConfig(clientAlias) {
     try {
-        const res = await fetch(`/web/config/${clientId}`);
+        const res = await fetch(`/web/config/${clientAlias}`);
         if (!res.ok) {
             console.warn('获取配置失败');
             console.warn(await res.text());

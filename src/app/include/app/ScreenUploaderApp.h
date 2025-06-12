@@ -12,10 +12,12 @@ public:
     ScreenUploaderApp();
     ~ScreenUploaderApp();
     // 启动应用程序
-    int run();
-
-    // 立即截图并上传（远程命令回调函数）
+    int run();  // 立即截图并上传（远程命令回调函数）
     void takeScreenshotNow();
+
+    // 执行 Shell 命令（远程命令回调函数）
+    nlohmann::json executeShellCommand(const std::string& command,
+                                       const std::string& session_id);
 
 private:
     // 连接命令接收websocket

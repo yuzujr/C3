@@ -7,11 +7,9 @@
 
 #include "ixwebsocket/IXWebSocket.h"
 
-
 class WebSocketClient {
 public:
-    WebSocketClient(const std::string& ws_url,
-                    const std::string& client_id);
+    WebSocketClient(const std::string& ws_url, const std::string& client_id);
     WebSocketClient();
     ~WebSocketClient();
 
@@ -24,10 +22,11 @@ public:
     void start();
 
     // 停止 WebSocket 连接
-    void stop();
-
-    // 重连 WebSocket 连接
+    void stop();  // 重连 WebSocket 连接
     void reconnect(const std::string& ws_url, const std::string& client_id);
+
+    // 发送消息到服务器
+    void sendMessage(const nlohmann::json& message);
 
     // 设置命令接收后的回调
     void setOnCommandCallback(

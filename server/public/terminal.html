@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Terminal - ScreenUploader</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background-color: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #00ff00;
+        }
+
+        .terminal-container {
+            background-color: #000000;
+            border: 2px solid #333333;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .command-line {
+            margin: 5px 0;
+            font-family: inherit;
+        }
+
+        .prompt {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .command {
+            color: #ffffff;
+        }
+
+        .output {
+            color: #cccccc;
+            white-space: pre-wrap;
+            margin-left: 20px;
+        }
+
+        .error {
+            color: #ff6666;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .client-select {
+            padding: 10px;
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            min-width: 200px;
+        }
+
+        .command-input {
+            flex: 1;
+            padding: 10px;
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        .send-button {
+            padding: 10px 20px;
+            background-color: #007acc;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .send-button:hover {
+            background-color: #005999;
+        }
+
+        .send-button:disabled {
+            background-color: #555555;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 10px;
+            background-color: #2d2d2d;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .status.connected {
+            background-color: #1a5d1a;
+        }
+
+        .status.disconnected {
+            background-color: #5d1a1a;
+        }
+
+        .quick-commands {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .quick-command {
+            padding: 8px 12px;
+            background-color: #444444;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .quick-command:hover {
+            background-color: #555555;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ Remote Terminal</h1>
+        </div>
+
+        <div id="status" class="status disconnected">
+            <strong>状态:</strong> <span id="status-text">连接中...</span>
+        </div>
+
+        <div class="input-container">
+            <select id="clientSelect" class="client-select">
+                <option value="">选择客户端...</option>
+            </select>
+            <input type="text" id="commandInput" class="command-input" placeholder="输入shell命令..." disabled>
+            <button id="sendButton" class="send-button" disabled>执行</button>
+        </div>
+
+        <div class="quick-commands">
+            <button class="quick-command" onclick="sendQuickCommand('pwd')">pwd</button>
+            <button class="quick-command" onclick="sendQuickCommand('ls')">ls</button>
+            <button class="quick-command" onclick="sendQuickCommand('dir')">dir</button>
+            <button class="quick-command" onclick="sendQuickCommand('whoami')">whoami</button>
+            <button class="quick-command" onclick="sendQuickCommand('Get-Location')">Get-Location</button>
+            <button class="quick-command" onclick="sendQuickCommand('Get-ChildItem')">Get-ChildItem</button>
+        </div>
+
+        <div id="terminal" class="terminal-container">
+            <div class="command-line">
+                <span class="output">欢迎使用远程终端！选择一个客户端并输入命令开始。</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentClient = null;
+        let sessionId = 0;
+
+        const statusEl = document.getElementById('status');
+        const statusTextEl = document.getElementById('status-text');
+        const clientSelect = document.getElementById('clientSelect');
+        const commandInput = document.getElementById('commandInput');
+        const sendButton = document.getElementById('sendButton');
+        const terminal = document.getElementById('terminal');
+
+        // 连接WebSocket
+        function connectWebSocket() {
+            const wsUrl = `ws://localhost:8080/client/commands?type=web`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function () {
+                updateStatus('已连接', 'connected');
+                loadClients();
+            };
+
+            ws.onmessage = function (event) {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            ws.onclose = function () {
+                updateStatus('连接断开', 'disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = function (error) {
+                updateStatus('连接错误', 'disconnected');
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        // 更新状态
+        function updateStatus(text, className) {
+            statusTextEl.textContent = text;
+            statusEl.className = `status ${className}`;
+        }
+
+        // 加载客户端列表
+        async function loadClients() {
+            try {
+                const response = await fetch('/api/clients');
+                const clients = await response.json();
+
+                clientSelect.innerHTML = '<option value="">选择客户端...</option>';
+
+                Object.entries(clients).forEach(([id, alias]) => {
+                    const option = document.createElement('option');
+                    option.value = alias;
+                    option.textContent = `${alias} (${id})`;
+                    clientSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load clients:', error);
+            }
+        }
+
+        // 处理服务器消息
+        function handleMessage(message) {
+            console.log('Received message:', message);
+
+            if (message.type === 'shell_output') {
+                displayShellOutput(message);
+            }
+        }
+
+        // 显示Shell输出
+        function displayShellOutput(message) {
+            const { client, session_id, data } = message;
+
+            // 显示命令执行结果
+            const outputDiv = document.createElement('div');
+            outputDiv.className = 'command-line';
+
+            if (data.success) {
+                outputDiv.innerHTML = `
+                    <div class="output">${escapeHtml(data.stdout)}</div>
+                `;
+            } else {
+                outputDiv.innerHTML = `
+                    <div class="error">错误: ${escapeHtml(data.error || data.stderr)}</div>
+                `;
+            }
+
+            terminal.appendChild(outputDiv);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // 发送Shell命令
+        function sendShellCommand(command) {
+            if (!currentClient || !command.trim()) {
+                return;
+            }
+
+            sessionId++;
+
+            // 显示命令
+            const commandDiv = document.createElement('div');
+            commandDiv.className = 'command-line';
+            commandDiv.innerHTML = `
+                <span class="prompt">${currentClient}:~$</span>
+                <span class="command"> ${escapeHtml(command)}</span>
+            `;
+            terminal.appendChild(commandDiv);
+
+            // 发送命令到服务器
+            fetch(`/api/command/${currentClient}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    commands: [{
+                        type: 'shell_execute',
+                        data: {
+                            command: command,
+                            session_id: sessionId.toString()
+                        }
+                    }]
+                })
+            }).catch(error => {
+                console.error('Failed to send command:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'command-line';
+                errorDiv.innerHTML = `<div class="error">发送命令失败: ${error.message}</div>`;
+                terminal.appendChild(errorDiv);
+            });
+
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // 快捷命令
+        function sendQuickCommand(command) {
+            if (currentClient) {
+                commandInput.value = command;
+                sendShellCommand(command);
+                commandInput.value = '';
+            }
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 事件监听
+        clientSelect.addEventListener('change', function () {
+            currentClient = this.value;
+            commandInput.disabled = !currentClient;
+            sendButton.disabled = !currentClient;
+
+            if (currentClient) {
+                commandInput.focus();
+            }
+        });
+
+        commandInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const command = this.value.trim();
+                if (command) {
+                    sendShellCommand(command);
+                    this.value = '';
+                }
+            }
+        });
+
+        sendButton.addEventListener('click', function () {
+            const command = commandInput.value.trim();
+            if (command) {
+                sendShellCommand(command);
+                commandInput.value = '';
+            }
+        });
+
+        // 初始化
+        connectWebSocket();
+    </script>
+</body>
+
+</html>

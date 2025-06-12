@@ -6,12 +6,17 @@ import { openImageModal } from './modal.js';
 
 /**
  * 获取指定客户端的截图列表
- * @param {string} clientId - 客户端ID
+ * @param {string} clientAlias - 客户端别名
  * @returns {Promise<number>} 返回当前时间戳用于下次请求
  */
-export async function fetchScreenshots(clientId) {
+export async function fetchScreenshots(clientAlias) {
     try {
-        const res = await fetch(`/web/screenshots/${clientId}`);
+        const res = await fetch(`/web/screenshots/${clientAlias}`);
+
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
         const screenshots = await res.json();
 
         const container = document.getElementById('screenshots');
@@ -35,6 +40,10 @@ export async function fetchScreenshots(clientId) {
         return Date.now(); // 返回当前时间戳用于下次请求
     } catch (error) {
         console.error('获取截图列表失败:', error);
+        const container = document.getElementById('screenshots');
+        if (container) {
+            container.textContent = `获取截图失败: ${error.message}`;
+        }
         throw error;
     }
 }

@@ -4,7 +4,18 @@
 const WebSocket = require('ws');
 const config = require('./config');
 const { logWithTime, errorWithTime } = require('./logger');
-const { getClients } = require('./clients');
+const clientManager = require('./client-manager');
+
+/**
+ * 清理ANSI转义序列
+ * @param {string} text - 包含ANSI转义序列的文本
+ * @returns {string} 清理后的文本
+ */
+function cleanAnsiEscapes(text) {
+    if (typeof text !== 'string') return text;
+    // 移除ANSI颜色和格式代码
+    return text.replace(/\x1b\[[0-9;]*[mGKH]/g, '');
+}
 
 // WebSocket服务器实例
 let wsServer = null;
@@ -77,8 +88,7 @@ function handleWebConnection(ws) {
  * @param {string} client_id - 客户端ID
  */
 function handleClientConnection(ws, client_id) {
-    const clients = getClients();
-    const alias = clients[client_id] || client_id;
+    const alias = clientManager.getAliasByClientId(client_id);
 
     activeConnections.set(alias, ws);
     logWithTime(`[WEBSOCKET] Client connected: ${alias} (${client_id})`);
@@ -86,12 +96,68 @@ function handleClientConnection(ws, client_id) {
     ws.on('close', () => {
         activeConnections.delete(alias);
         logWithTime(`[WEBSOCKET] Client disconnected: ${alias} (${client_id})`);
-    });
-
-    ws.on('error', (error) => {
+    }); ws.on('error', (error) => {
         errorWithTime(`[WEBSOCKET] Client error for ${alias}:`, error);
         activeConnections.delete(alias);
     });
+
+    // 处理客户端发送的消息（如shell命令输出）
+    ws.on('message', (data) => {
+        try {
+            const message = JSON.parse(data.toString());
+            handleClientMessage(alias, message);
+        } catch (error) {
+            errorWithTime(`[WEBSOCKET] Invalid message from ${alias}:`, error);
+        }
+    });
+}
+
+/**
+ * 处理客户端发送的消息
+ * @param {string} alias - 客户端别名
+ * @param {object} message - 客户端消息
+ */
+function handleClientMessage(alias, message) {
+    switch (message.type) {
+        case 'shell_output':
+            handleShellOutput(alias, message);
+            break;
+        default:
+            // 尝试将未知消息作为shell输出处理
+            if (message.command || message.output || message.stdout || message.result || message.data) {
+                handleShellOutput(alias, message);
+            } else {
+                logWithTime(`[WEBSOCKET] Unknown message type from ${alias}:`, message.type);
+            }
+    }
+}
+
+/**
+ * 处理shell命令输出
+ * @param {string} alias - 客户端别名
+ * @param {object} message - shell输出消息
+ */
+function handleShellOutput(alias, message) {    // 从消息中提取输出数据，支持多种可能的数据结构
+    const data = message.data || message || {};
+    const rawOutput = data.stdout || data.output || data.result || message.stdout || message.output || message.result || '';
+    const success = data.success || message.success || true;
+    const exitCode = data.exit_code || data.exitCode || message.exit_code || message.exitCode || 0;
+
+    // 清理输出中的ANSI转义序列
+    const cleanOutput = cleanAnsiEscapes(rawOutput);
+
+    logWithTime(`[WEBSOCKET] Shell output from ${alias} (${cleanOutput.length} chars, exit: ${exitCode})`);
+
+    // 转发shell输出到Web客户端
+    const broadcastMessage = {
+        type: 'shell_output',
+        client: alias,
+        output: cleanOutput, // 使用清理后的输出
+        success: success,
+        exit_code: exitCode
+    };
+
+    broadcastToWebClients(broadcastMessage);
 }
 
 /**
@@ -99,13 +165,10 @@ function handleClientConnection(ws, client_id) {
  * @param {object} message - 要广播的消息对象
  */
 function broadcastToWebClients(message) {
-    const messageStr = JSON.stringify(message);
-
-    webConnections.forEach(ws => {
+    const messageStr = JSON.stringify(message); webConnections.forEach(ws => {
         if (ws.readyState === WebSocket.OPEN) {
             try {
                 ws.send(messageStr);
-                logWithTime('[BROADCAST] Sent message to Web client:', message.type);
             } catch (error) {
                 errorWithTime('[BROADCAST] Failed to send message to Web client:', error);
                 webConnections.delete(ws);

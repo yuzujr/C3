@@ -8,13 +8,23 @@ import { initDeleteScreenshots } from './modules/delete.js';
 import { initThemeToggle } from './modules/theme.js';
 import { initWebSocket } from './modules/websocket.js';
 import { initAllEventListeners } from './modules/events.js';
-import { initAuth } from './modules/auth.js';
+import { initTerminal } from './modules/terminal.js';
 
 /**
  * 应用程序初始化函数
  */
-function initApp() {
-    // 首先初始化认证
+async function initApp() {
+    // 首先初始化认证，等待认证完成
+    const { checkAuthStatus } = await import('./modules/auth.js');
+    const isAuthenticated = await checkAuthStatus();
+
+    if (!isAuthenticated) {
+        // 如果未认证，不继续初始化其他功能
+        return;
+    }
+
+    // 认证成功后初始化其他功能
+    const { initAuth } = await import('./modules/auth.js');
     initAuth();
 
     // 初始化 WebSocket 连接
@@ -30,6 +40,7 @@ function initApp() {
     document.getElementById('cmdButtons').style.display = 'none';
 
     // 初始化各种功能模块
+    initTerminal();
     initImageModal();
     initDeleteScreenshots();
     initThemeToggle();

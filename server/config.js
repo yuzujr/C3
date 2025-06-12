@@ -7,7 +7,6 @@ require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { logWithTime, errorWithTime } = require('./logger');
 
 /**
  * 生成随机密钥
@@ -25,10 +24,10 @@ function loadExternalConfig() {
     if (fs.existsSync(configPath)) {
         try {
             const externalConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            logWithTime('[CONFIG] Loaded external configuration from server.config.json');
+            console.log('[CONFIG] Loaded external configuration from server.config.json');
             return externalConfig;
         } catch (error) {
-            errorWithTime('[CONFIG] Warning: Failed to parse server.config.json:', error.message);
+            console.warn('[CONFIG] Warning: Failed to parse server.config.json:', error.message);
             return {};
         }
     }
@@ -60,10 +59,10 @@ function createDefaultConfigTemplate() {
 
         try {
             fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 4));
-            logWithTime('[CONFIG] Created default configuration template: server.config.json');
-            logWithTime('[CONFIG] ⚠️  IMPORTANT: Please edit server.config.json to set your password!');
+            console.log('[CONFIG] Created default configuration template: server.config.json');
+            console.log('[CONFIG] ⚠️  IMPORTANT: Please edit server.config.json to set your password!');
         } catch (error) {
-            errorWithTime('[CONFIG] Failed to create default config file:', error.message);
+            console.error('[CONFIG] Failed to create default config file:', error.message);
         }
     }
 }
@@ -126,16 +125,20 @@ function validateConfig() {
     // 检查生产环境配置
     if (config.HOST === '0.0.0.0' && process.env.NODE_ENV === 'production') {
         warnings.push('⚠️  Binding to 0.0.0.0 in production. Consider restricting to specific IP.');
-    }    // 显示警告
+    }
+
+    // 显示警告
     if (warnings.length > 0) {
-        logWithTime('[CONFIG] Security Warnings:');
-        warnings.forEach(warning => logWithTime(`  ${warning}`));
+        console.log('\n[CONFIG] Security Warnings:');
+        warnings.forEach(warning => console.log(`  ${warning}`));
+        console.log('');
     }
 
     // 显示错误
     if (errors.length > 0) {
-        errorWithTime('[CONFIG] Configuration Errors:');
-        errors.forEach(error => errorWithTime(`  ❌ ${error}`));
+        console.error('\n[CONFIG] Configuration Errors:');
+        errors.forEach(error => console.error(`  ❌ ${error}`));
+        console.error('');
         process.exit(1);
     }
 }

@@ -21,3 +21,11 @@ void ControlCenter::waitIfPaused() {
         return !paused_;
     });
 }
+
+void ControlCenter::interruptibleSleepUntil(
+    const std::chrono::steady_clock::time_point& time_point) {
+    std::unique_lock lock(mutex_);
+    cv_.wait_until(lock, time_point, [this] {
+        return paused_;  // 只有暂停状态改变时才提前醒来
+    });
+}

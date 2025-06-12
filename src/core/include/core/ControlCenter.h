@@ -24,6 +24,10 @@ public:
     // 如果暂停，等待服务器 resume 命令
     void waitIfPaused();
 
+    // 可被中断的睡眠（用于响应暂停/恢复命令）
+    void interruptibleSleepUntil(
+        const std::chrono::steady_clock::time_point& time_point);
+
 private:
     std::mutex mutex_;
     std::condition_variable cv_;

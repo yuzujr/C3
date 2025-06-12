@@ -279,7 +279,6 @@
 <body>
     <button class="theme-toggle" id="themeToggle">🌙 暗色模式</button>
     <button class="logout-btn" id="logoutBtn">🚪 登出</button>
-
     <h1>ScreenUploader 控制台</h1>
 
     <h2>客户端列表</h2>
@@ -291,7 +290,35 @@
             <button data-cmd='{"type":"pause"}'>暂停</button>
             <button data-cmd='{"type":"resume"}'>继续</button>
             <button data-cmd='{"type":"screenshot_now"}'>立即截图</button>
+        </div>
+    </div>
 
+    <h2>Shell 终端</h2>
+    <div id="terminal-section">
+        <div id="terminal-controls">
+            <button id="cmdPwd" disabled>显示当前目录 (pwd)</button>
+            <button id="cmdLs" disabled>列出文件 (ls)</button>
+            <button id="cmdDir" disabled>列出文件 (dir)</button>
+            <button id="cmdClear">清空输出</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin: 10px 0;">
+            <input type="text" id="customCommand" placeholder="输入自定义命令..." disabled style="flex: 1; padding: 8px;">
+            <button id="executeCustom" disabled>执行</button>
+        </div>
+
+        <div id="terminalOutput"
+            style="background-color: #000; color: #00ff00; padding: 15px; border-radius: 4px; min-height: 300px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre-wrap; border: 1px solid var(--border-color);">
+            [Terminal Ready]
+            等待选择客户端...
+        </div>
+
+        <div id="terminalMessage" style="color:#888; margin-top:10px;">请选择一个在线客户端</div>
+    </div>
+
+    <h2>配置管理</h2>
+    <div id="config-section">
+        <div id="configSection" style="display:none;">
             <h3>更新配置</h3>
             <label>HTTP URL: <input id="serverUrl" type="text"></label>
             <label>WebSocket URL: <input id="wsUrl" type="text"> </label>
@@ -301,14 +328,20 @@
             <label><input id="addToStartup" type="checkbox"> 开机自启</label>
             <button id="updateConfigBtn">更新配置</button>
         </div>
+        <div id="configMessage" style="color:#888; margin-top:10px;">请选择客户端</div>
     </div>
+
     <h2>客户端截图</h2>
     <div>
         <button id="deleteScreenshotsBtn"
             style="margin-bottom: 10px; background-color: #ff6b6b; color: white; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 12px;">删除截图...</button>
     </div>
     <div id="screenshots" style="color:#888; margin-bottom:10px;">请选择客户端</div>
-    <div id="toast" class="toast"></div> <!-- Toast 提示框 --> <!-- 删除截图确认对话框 -->
+
+    <!-- Toast 提示框 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 删除截图确认对话框 -->
     <div id="deleteModal" class="modal" style="display: none;">
         <div class="delete-dialog">
             <h3>删除截图</h3>

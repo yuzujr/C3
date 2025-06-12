@@ -45,5 +45,15 @@ function handleWebSocketMessage(data) {
         if (data.client_id === selectedClient) {
             addNewScreenshot(data.screenshot_url);
         }
+    } else if (data.type === 'shell_output') {
+        // 处理shell命令输出
+        if (data.client === selectedClient) {
+            // 动态导入terminal模块避免循环依赖
+            import('./terminal.js').then(({ handleShellOutput }) => {
+                handleShellOutput(data.output);
+            }).catch(error => {
+                console.error('导入terminal模块失败:', error);
+            });
+        }
     }
 }
