@@ -1,11 +1,15 @@
 #include "core/TerminalManager.h"
 
+#include <signal.h>
+#include <sys/wait.h>
+
 #include <chrono>
 #include <format>
 #include <map>
 #include <mutex>
 #include <regex>
 #include <sstream>
+#include <vector>
 
 #include "core/Logger.h"
 
@@ -24,20 +28,101 @@ static const auto SESSION_TIMEOUT = std::chrono::minutes(10);  // 10分钟超时
 static size_t g_maxOutputLength = 8192;  // 默认最大输出长度 8KB
 
 // 清理ANSI转义序列和多余的格式字符，并限制输出长度
-std::string cleanOutput(const std::string& rawOutput) {
+std::string cleanOutput(const std::string& rawOutput,
+                        const std::string& originalCommand = "") {
     std::string cleaned = rawOutput;
 
     // 移除ANSI转义序列 (如 \u001b[32;1m, \u001b[0m 等)
     std::regex ansiRegex(R"(\x1b\[[0-9;]*[mK])");
     cleaned = std::regex_replace(cleaned, ansiRegex, "");
 
-    // 移除多余的空行 (连续的\r?\n)
-    std::regex multiNewlineRegex(R"((\r?\n){3,})");
-    cleaned = std::regex_replace(cleaned, multiNewlineRegex, "\n\n");
+    // 移除回车符
+    cleaned = std::regex_replace(cleaned, std::regex("\r"), "");
+
+    // 按行分割并处理
+    std::vector<std::string> lines;
+    std::stringstream ss(cleaned);
+    std::string line;
+
+    while (std::getline(ss, line)) {
+        // 移除行尾空白
+        while (!line.empty() && (line.back() == ' ' || line.back() == '\t')) {
+            line.pop_back();
+        }
+
+        // 跳过空行
+        if (line.empty()) {
+            continue;
+        }
+
+        // 如果包含原始命令，跳过这一行（命令回显）
+        if (!originalCommand.empty() &&
+            line.find(originalCommand) != std::string::npos) {
+            continue;
+        }
+
+        // 移除bash提示符模式 (例如: "684c2a4b-393d-2903 [~] > ", "bash-5.2# ",
+        // etc.)
+        std::regex promptPatterns[] = {
+            std::regex(
+                R"(^[a-zA-Z0-9\-_]+ \[.*?\] > )"),  // "session_id [path] > "
+            std::regex(R"(^bash-[0-9.]+[#$] )"),    // "bash-5.2# "
+            std::regex(R"(^[^@]*@[^:]*:[^$#]*[#$] )"),  // "user@host:path$ "
+            std::regex(R"(^[^$#%>]*[#$%>] )"),          // 通用提示符
+        };
+
+        bool isPromptLine = false;
+        for (const auto& pattern : promptPatterns) {
+            if (std::regex_search(line, pattern)) {
+                // 这是一个提示符行，检查是否只有提示符
+                std::string afterPrompt = std::regex_replace(line, pattern, "");
+                if (afterPrompt.empty() || afterPrompt == originalCommand) {
+                    isPromptLine = true;
+                    break;
+                }
+                // 如果提示符后有其他内容，去掉提示符但保留内容
+                line = afterPrompt;
+                break;
+            }
+        }
+
+        if (isPromptLine) {
+            continue;
+        }
+
+        // 跳过echo命令的结束标记相关输出
+        if (line.find("echo \"<<<COMMAND_END>>>\"") != std::string::npos ||
+            line.find("<<<COMMAND_END>>>") != std::string::npos) {
+            continue;
+        }
+
+        // 跳过不完整的命令行（以echo "开头但没有闭合引号的行）
+        if (line.find("echo \"") != std::string::npos &&
+            line.rfind("\"") == line.find("echo \"") + 5) {
+            // 这是一个不完整的echo命令（只有开头的引号）
+            continue;
+        }
+
+        // 跳过看起来像是提示符延续的行（比如 [echo "] > "）
+        if (std::regex_match(line, std::regex(R"(^[^\]]*\] > $)")) ||
+            std::regex_match(line, std::regex(R"(^.*\[.*\] > $)"))) {
+            continue;
+        }
+
+        lines.push_back(line);
+    }
+
+    // 重新组合清理后的行
+    cleaned.clear();
+    for (size_t i = 0; i < lines.size(); ++i) {
+        if (i > 0) cleaned += "\n";
+        cleaned += lines[i];
+    }
 
     // 移除开头和结尾的空白字符
-    cleaned = std::regex_replace(cleaned, std::regex(R"(^\s+|\s+$)"),
-                                 "");  // 限制输出长度
+    cleaned = std::regex_replace(cleaned, std::regex(R"(^\s+|\s+$)"), "");
+
+    // 限制输出长度
     if (cleaned.length() > g_maxOutputLength) {
         // 截取前面部分，并添加截断提示
         cleaned =
@@ -53,6 +138,7 @@ std::string cleanOutput(const std::string& rawOutput) {
         cleaned +=
             "\n\n[输出过长，已截断。使用 'head' 或 'tail' 命令查看特定部分]";
     }
+
     return cleaned;
 }
 
@@ -120,7 +206,7 @@ std::string getCurrentWorkingDirectoryFromSession(
     }
 
     // 清理输出并提取目录路径
-    std::string cleanedOutput = cleanOutput(output);
+    std::string cleanedOutput = cleanOutput(output, "pwd");
 
     // 查找最后一行非空内容作为当前目录
     std::istringstream iss(cleanedOutput);
@@ -395,6 +481,7 @@ nlohmann::json executeShellCommand(const std::string& command,
         }
 
         // 向终端写入命令
+        // 使用一个更隐蔽的结束标记，减少干扰
         std::string commandWithNewline =
             command + "\necho \"<<<COMMAND_END>>>\"\n";
         ssize_t written = write(inputFd, commandWithNewline.c_str(),
@@ -410,12 +497,18 @@ nlohmann::json executeShellCommand(const std::string& command,
                     std::chrono::system_clock::now().time_since_epoch())
                     .count();
             return result;
-        }  // 读取输出直到看到结束标记
+        }
+
+        // 读取输出直到看到结束标记
         std::string output;
         char buffer[4096];
         ssize_t bytesRead;
         bool foundEnd = false;
-        while (!foundEnd) {  // 使用select实现超时读取
+        int consecutiveTimeouts = 0;
+        const int MAX_TIMEOUTS = 30;  // 最多等待3秒 (30 * 100ms)
+
+        while (!foundEnd && consecutiveTimeouts < MAX_TIMEOUTS) {
+            // 使用select实现超时读取
             fd_set readfds;
             struct timeval tv;
             FD_ZERO(&readfds);
@@ -425,7 +518,9 @@ nlohmann::json executeShellCommand(const std::string& command,
 
             int selectResult =
                 select(outputFd + 1, &readfds, nullptr, nullptr, &tv);
+
             if (selectResult > 0 && FD_ISSET(outputFd, &readfds)) {
+                consecutiveTimeouts = 0;  // 重置超时计数
                 bytesRead = read(outputFd, buffer, sizeof(buffer) - 1);
                 if (bytesRead > 0) {
                     buffer[bytesRead] = '\0';
@@ -440,7 +535,16 @@ nlohmann::json executeShellCommand(const std::string& command,
                             output = output.substr(0, endPos);
                         }
                     }
+                } else if (bytesRead == 0) {
+                    // EOF - 管道关闭
+                    break;
                 }
+            } else if (selectResult == 0) {
+                // 超时
+                consecutiveTimeouts++;
+            } else {
+                // 错误
+                break;
             }
         }
 
@@ -448,12 +552,12 @@ nlohmann::json executeShellCommand(const std::string& command,
         result["success"] = true;
         result["command"] = command;
         result["session_id"] = session_id;
-        result["stdout"] = cleanOutput(output);
+        result["stdout"] = cleanOutput(output, command);
         result["stderr"] = "";
         result["exit_code"] = 0;
-        result["finished"] = true;  // 获取当前工作目录
-        std::string cwd = getCurrentWorkingDirectoryFromSession(session_id);
-        result["cwd"] = cwd;
+        result["finished"] = true;
+
+        result["cwd"] = getCurrentWorkingDirectoryFromSession(session_id);
 
         result["timestamp"] =
             std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -530,8 +634,7 @@ nlohmann::json forceKillSession(const std::string& session_id) {
         result["message"] = "Session process forcefully terminated and removed";
         result["session_id"] = session_id;
 
-        Logger::info(
-            std::format("Force killed and removed session: {}", session_id));
+        Logger::info(std::format("Removed session: {}", session_id));
 
     } catch (const std::exception& e) {
         result["success"] = false;
