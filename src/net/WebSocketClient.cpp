@@ -59,7 +59,7 @@ void WebSocketClient::sendMessage(const nlohmann::json& message) {
         std::string message_str = message.dump();
         ix::WebSocketSendInfo result = m_ws.send(message_str);
         if (result.success) {
-            Logger::info(
+            Logger::debug(
                 std::format("Sent message to server: {}", message_str));
         } else {
             Logger::error("Failed to send message to server");

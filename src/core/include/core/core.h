@@ -10,6 +10,7 @@
 #include "core/RawImage.h"
 #include "core/ScreenCapturer.h"
 #include "core/SystemUtils.h"
+#include "core/TerminalManager.h"
 
 #ifdef USE_HARDCODED_CONFIG
 #include "core/HardcodedConfig.h"

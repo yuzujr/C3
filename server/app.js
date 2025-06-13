@@ -104,8 +104,6 @@ function startServer() {
  */
 function main() {
     logWithTime('[INIT] Starting ScreenUploader Server...');
-    logWithTime(`[INIT] Configuration: HTTP Port ${config.HTTP_PORT}, WS Port ${config.WS_PORT}`);
-
     startServer();
 }
 

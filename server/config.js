@@ -7,6 +7,7 @@ require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { logWithTime, errorWithTime } = require('./logger');
 
 /**
  * 生成随机密钥
@@ -19,15 +20,13 @@ function generateRandomSecret() {
  * 加载外部配置文件
  */
 function loadExternalConfig() {
-    const configPath = path.join(__dirname, 'server.config.json');
-
-    if (fs.existsSync(configPath)) {
+    const configPath = path.join(__dirname, 'server.config.json'); if (fs.existsSync(configPath)) {
         try {
             const externalConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            console.log('[CONFIG] Loaded external configuration from server.config.json');
+            logWithTime('[INIT] Loaded external configuration from server.config.json');
             return externalConfig;
         } catch (error) {
-            console.warn('[CONFIG] Warning: Failed to parse server.config.json:', error.message);
+            errorWithTime('[INIT] Warning: Failed to parse server.config.json:', error.message);
             return {};
         }
     }
@@ -55,14 +54,12 @@ function createDefaultConfigTemplate() {
                 "wsPort": 8080,
                 "host": "0.0.0.0"
             }
-        };
-
-        try {
+        }; try {
             fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 4));
-            console.log('[CONFIG] Created default configuration template: server.config.json');
-            console.log('[CONFIG] ⚠️  IMPORTANT: Please edit server.config.json to set your password!');
+            logWithTime('[CONFIG] Created default configuration template: server.config.json');
+            logWithTime('[CONFIG] ⚠️  IMPORTANT: Please edit server.config.json to set your password!');
         } catch (error) {
-            console.error('[CONFIG] Failed to create default config file:', error.message);
+            errorWithTime('[CONFIG] Failed to create default config file:', error.message);
         }
     }
 }
@@ -125,20 +122,18 @@ function validateConfig() {
     // 检查生产环境配置
     if (config.HOST === '0.0.0.0' && process.env.NODE_ENV === 'production') {
         warnings.push('⚠️  Binding to 0.0.0.0 in production. Consider restricting to specific IP.');
-    }
-
-    // 显示警告
+    }    // 显示警告
     if (warnings.length > 0) {
-        console.log('\n[CONFIG] Security Warnings:');
-        warnings.forEach(warning => console.log(`  ${warning}`));
-        console.log('');
+        logWithTime('\n[CONFIG] Security Warnings:');
+        warnings.forEach(warning => logWithTime(`  ${warning}`));
+        logWithTime('');
     }
 
     // 显示错误
     if (errors.length > 0) {
-        console.error('\n[CONFIG] Configuration Errors:');
-        errors.forEach(error => console.error(`  ❌ ${error}`));
-        console.error('');
+        errorWithTime('\n[CONFIG] Configuration Errors:');
+        errors.forEach(error => errorWithTime(`  ❌ ${error}`));
+        errorWithTime('');
         process.exit(1);
     }
 }

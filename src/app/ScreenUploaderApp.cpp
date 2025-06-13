@@ -46,7 +46,7 @@ ScreenUploaderApp::ScreenUploaderApp()
     // 设置 Shell 命令执行回调函数
     m_dispatcher.setShellExecuteCallback(
         [this](const std::string& command, const std::string& session_id) {
-            return SystemUtils::executeShellCommand(command, session_id);
+            return TerminalManager::executeShellCommand(command, session_id);
         });
 
     // 设置响应回调函数

@@ -7,12 +7,19 @@ import { sendCommand, updateClientConfig } from './commands.js';
  * 初始化命令按钮事件监听器
  */
 export function initCommandListeners() {
-    // 命令按钮事件监听
-    document.getElementById('commands').addEventListener('click', e => {
-        if (e.target.tagName === 'BUTTON' && e.target.dataset.cmd) {
-            const cmd = JSON.parse(e.target.dataset.cmd);
-            sendCommand(cmd);
-        }
+    // 暂停命令按钮
+    document.getElementById('pauseBtn')?.addEventListener('click', () => {
+        sendCommand({ type: 'pause_screenshots' });
+    });
+
+    // 继续命令按钮
+    document.getElementById('resumeBtn')?.addEventListener('click', () => {
+        sendCommand({ type: 'resume_screenshots' });
+    });
+
+    // 立即截图按钮
+    document.getElementById('screenshotBtn')?.addEventListener('click', () => {
+        sendCommand({ type: 'take_screenshot' });
     });
 
     // 更新配置按钮事件监听

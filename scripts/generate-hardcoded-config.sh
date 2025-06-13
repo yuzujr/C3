@@ -39,12 +39,13 @@ show_help() {
     echo "  -p, --preset <name>   指定要硬编码的配置预设 (默认: development)"
     echo "  -l, --list            列出所有可用的配置预设"
     echo "  -h, --help            显示此帮助信息"
-    echo ""
-    echo "示例:"
+    echo ""    echo "示例:"
     echo "  ./generate-hardcoded-config.sh -p production"
     echo "  ./generate-hardcoded-config.sh --preset production"
     echo "  ./generate-hardcoded-config.sh -l"
     echo "  ./generate-hardcoded-config.sh --list"
+    echo ""
+    echo "注意: 每次执行都会自动生成新的 client_id"
     echo ""
 }
 
@@ -141,8 +142,7 @@ generate_hardcoded_config() {
     preset_data=$(jq -r ".presets[\"$preset_name\"]" "$PRESETS_FILE")
     preset_display_name=$(echo "$preset_data" | jq -r '.name')
     preset_description=$(echo "$preset_data" | jq -r '.description')
-    
-    # 获取配置数据
+      # 获取配置数据
     config_data=$(echo "$preset_data" | jq -r '.config')
     server_url=$(echo "$config_data" | jq -r '.server_url')
     ws_url=$(echo "$config_data" | jq -r '.ws_url')
@@ -150,7 +150,10 @@ generate_hardcoded_config() {
     max_retries=$(echo "$config_data" | jq -r '.max_retries')
     retry_delay_ms=$(echo "$config_data" | jq -r '.retry_delay_ms')
     add_to_startup=$(echo "$config_data" | jq -r '.add_to_startup')
-    client_id=$(echo "$config_data" | jq -r '.client_id')
+    
+    # 生成新的客户端ID（每次执行都生成新的）
+    client_id=$(generate_client_id)
+    echo -e "${GREEN}生成Client ID: $client_id${NC}"
     
     # 转换布尔值
     if [[ "$add_to_startup" == "true" ]]; then
@@ -255,6 +258,43 @@ EOF
         echo -e "${RED}错误: 生成硬编码配置失败${NC}" >&2
         return 1
     fi
+}
+
+# 生成客户端ID
+generate_client_id() {
+    local full_uuid
+    # 在Linux/macOS上生成UUID
+    if command -v uuidgen >/dev/null 2>&1; then
+        # macOS/BSD系统
+        full_uuid=$(uuidgen | tr '[:upper:]' '[:lower:]')
+    elif [[ -f /proc/sys/kernel/random/uuid ]]; then
+        # Linux系统
+        full_uuid=$(cat /proc/sys/kernel/random/uuid)
+    else
+        # 备用方案：使用随机数生成伪UUID
+        local N B T
+        for (( N=0; N < 16; ++N )); do
+            B=$(( RANDOM%256 ))
+            if (( N == 6 )); then
+                printf '4%x' $(( B%16 ))
+            elif (( N == 8 )); then
+                local C='89ab'
+                printf '%c%x' ${C:$(( RANDOM%${#C} )):1} $(( B%16 ))
+            else
+                printf '%02x' $B
+            fi
+            case $N in
+                3 | 5 | 7 | 9 )
+                    printf '-'
+                    ;;
+            esac
+        done
+        echo
+        return
+    fi
+    
+    # 只取前3段：xxxxxxxx-xxxx-xxxx
+    echo "$full_uuid" | cut -d'-' -f1-3
 }
 
 # 解析命令行参数

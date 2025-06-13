@@ -1,11 +1,14 @@
 #ifndef COMMAND_DISPATCHER_H
 #define COMMAND_DISPATCHER_H
 
+#include <atomic>
 #include <functional>
+#include <thread>
 
 #include "core/Config.h"
 #include "core/ControlCenter.h"
 #include "nlohmann/json.hpp"
+
 
 class CommandDispatcher {
 public:
@@ -17,10 +20,9 @@ public:
     // 返回: nlohmann::json (包含执行结果)
     using ShellExecuteCallback =
         std::function<nlohmann::json(const std::string&, const std::string&)>;
-
     CommandDispatcher(ControlCenter& controller, Config& config)
         : m_controller(controller), m_config(config) {}
-    ~CommandDispatcher() = default;
+    ~CommandDispatcher();
     CommandDispatcher(const CommandDispatcher&) = delete;
     CommandDispatcher& operator=(const CommandDispatcher&) = delete;
 
@@ -40,7 +42,13 @@ private:
     Config& m_config;
     ScreenshotCallback m_screenshotCallback;
     ShellExecuteCallback m_shellExecuteCallback;
-    std::function<void(const nlohmann::json&)> m_responseCallback;
+    std::function<void(const nlohmann::json&)>
+        m_responseCallback;  // 异步执行管理
+    std::atomic<int> m_activeExecutions{0};
+
+    // 异步执行 shell 命令的内部方法
+    void executeShellCommandAsync(const std::string& command,
+                                  const std::string& session_id);
 };
 
 #endif  // COMMAND_DISPATCHER_H

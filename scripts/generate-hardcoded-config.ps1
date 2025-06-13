@@ -5,8 +5,7 @@ param(
     [Parameter(Mandatory=$false)]
     [Alias("p")]
     [string]$Preset,
-    
-    [Parameter(Mandatory=$false)]
+      [Parameter(Mandatory=$false)]
     [Alias("l")]
     [switch]$List,
     
@@ -25,6 +24,16 @@ $CoreIncludeDir = Join-Path $SrcDir "core\include\core"
 $PresetsFile = Join-Path $ConfigDir "build-presets.json"
 $OutputHeaderFile = Join-Path $CoreIncludeDir "HardcodedConfig.h"
 
+function Generate-ClientId {
+    # 生成一个短格式的客户端ID
+    # 格式：xxxxxxxx-xxxx-xxxx
+    $guid = [System.Guid]::NewGuid()
+    $fullId = $guid.ToString().ToLower()
+    # 只取前3段：xxxxxxxx-xxxx-xxxx
+    $parts = $fullId.Split('-')
+    return "$($parts[0])-$($parts[1])-$($parts[2])"
+}
+
 function Show-Help {
     Write-Host "硬编码配置生成工具" -ForegroundColor Green
     Write-Host "========================" -ForegroundColor Green
@@ -33,7 +42,7 @@ function Show-Help {
     Write-Host "  .\generate-hardcoded-config.ps1 [选项]"
     Write-Host ""
     Write-Host "选项:"
-    Write-Host "  -p, --preset <name>   指定要硬编码的配置预设 (默认: development)"
+    Write-Host "  -p, --preset <n>   指定要硬编码的配置预设 (默认: development)"
     Write-Host "  -l, --list            列出所有可用的配置预设"
     Write-Host "  -h, --help            显示此帮助信息"
     Write-Host ""
@@ -43,6 +52,7 @@ function Show-Help {
     Write-Host "  .\generate-hardcoded-config.ps1 -l"
     Write-Host "  .\generate-hardcoded-config.ps1 --list"
     Write-Host ""
+    Write-Host "注意: 每次执行都会自动生成新的 client_id"
 }
 
 function Test-Prerequisites {
@@ -104,10 +114,12 @@ function Generate-HardcodedConfig {
         Write-Error "配置预设 '$PresetName' 不存在"
         Write-Host "可用预设: $($presetsData.presets.PSObject.Properties.Name -join ', ')" -ForegroundColor Yellow
         return $false
-    }
-    
-    $preset = $presetsData.presets.$PresetName
+    }    $preset = $presetsData.presets.$PresetName
     $config = $preset.config
+    
+    # 生成新的 client_id（每次执行都生成新的）
+    $clientId = Generate-ClientId
+    Write-Host "生成Client ID: $clientId" -ForegroundColor Green
     
     # 生成时间戳
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -143,7 +155,7 @@ namespace HardcodedConfig {
     constexpr int MAX_RETRIES = $($config.max_retries);
     constexpr int RETRY_DELAY_MS = $($config.retry_delay_ms);
     constexpr bool ADD_TO_STARTUP = $($config.add_to_startup.ToString().ToLower());
-    constexpr std::string_view CLIENT_ID = "$($config.client_id)";
+    constexpr std::string_view CLIENT_ID = "$clientId";
     
     // 编译时配置检查
     static_assert(INTERVAL_SECONDS > 0, "INTERVAL_SECONDS must be positive");
@@ -194,7 +206,6 @@ namespace HardcodedConfig {
         Write-Host "   预设名称: $PresetName ($($preset.name))" -ForegroundColor Yellow
         Write-Host "   描述: $($preset.description)" -ForegroundColor Yellow
         Write-Host "   输出文件: $OutputHeaderFile" -ForegroundColor Yellow
-
         Write-Host "   配置内容：" -ForegroundColor Cyan
         Write-Host "   http地址: $($config.server_url)" -ForegroundColor Gray
         Write-Host "   WebSocket地址: $($config.ws_url)" -ForegroundColor Gray
@@ -202,6 +213,7 @@ namespace HardcodedConfig {
         Write-Host "   最大重试次数: $($config.max_retries)" -ForegroundColor Gray
         Write-Host "   重试延迟: $($config.retry_delay_ms)毫秒" -ForegroundColor Gray
         Write-Host "   启动时添加到自启动: $($config.add_to_startup)" -ForegroundColor Gray
+        Write-Host "   客户端ID: $clientId" -ForegroundColor Gray
         
         return $true
     }

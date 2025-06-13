@@ -143,50 +143,6 @@ router.delete('/delete-all-screenshots/:client_alias', (req, res) => {
 });
 
 /**
- * 发送命令到指定客户端 (新的API路由)
- */
-router.post('/command/:client_alias', (req, res) => {
-    try {
-        const clientAlias = req.params.client_alias;
-        const command = req.body;
-
-        if (!clientAlias || !command) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing client_alias or command'
-            });
-        }
-
-        // 检查客户端是否在线
-        if (!isClientOnline(clientAlias)) {
-            return res.status(503).json({
-                success: false,
-                message: `Client "${clientAlias}" is not online`
-            });
-        }        // 发送命令 - 包装为commands数组格式以保持与客户端的兼容性
-        const success = sendToClient(clientAlias, { commands: [command] });
-        if (success) {
-            logWithTime(`[WEB] Command sent to "${clientAlias}":`, command.type || 'unknown');
-            res.json({
-                success: true,
-                message: 'Command sent successfully'
-            });
-        } else {
-            res.status(503).json({
-                success: false,
-                message: `Failed to send command to "${clientAlias}"`
-            });
-        }
-    } catch (error) {
-        errorWithTime('[WEB] Error sending command:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error'
-        });
-    }
-});
-
-/**
  * 更新客户端别名
  * PUT /web/clients/:currentAlias/alias
  */
@@ -248,6 +204,69 @@ router.delete('/clients/:alias', async (req, res) => {
         res.status(500).json({
             success: false,
             message: '删除客户端时发生服务器错误'
+        });
+    }
+});
+
+/**
+ * 通用命令路由 - 支持所有命令类型
+ * POST /web/command/:client_alias
+ */
+router.post('/command/:client_alias', (req, res) => {
+    try {
+        const clientAlias = req.params.client_alias;
+        const { type, data } = req.body;
+
+        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing or invalid client alias'
+            });
+        }
+
+        if (!type) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing command type'
+            });
+        }
+
+        if (!isClientOnline(clientAlias)) {
+            return res.status(404).json({
+                success: false,
+                message: 'Client is not online'
+            });
+        }
+
+        // 构建通用命令消息
+        const message = {
+            type: type,
+            data: data || {}
+        };        // 为某些命令类型添加默认的session_id
+        if (['shell_execute', 'force_kill_session'].includes(type)) {
+            if (!message.data.session_id) {
+                message.data.session_id = clientAlias; // 使用client alias作为默认session id
+            }
+        }
+
+        const sent = sendToClient(clientAlias, message);
+        if (sent) {
+            logWithTime(`[WEB] Command sent to "${clientAlias}": ${type}`);
+            res.json({
+                success: true,
+                message: `Command ${type} sent to client`
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                message: 'Failed to send command to client'
+            });
+        }
+    } catch (error) {
+        errorWithTime('[WEB] Error sending command:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send command'
         });
     }
 });

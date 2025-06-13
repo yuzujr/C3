@@ -128,17 +128,32 @@ function handleClientConnection(ws, client_id) {
             client: alias,
             online: false
         });
-    });
-
-    // 处理客户端发送的消息（如shell命令输出）
+    });    // 处理客户端发送的消息（如shell命令输出）
     ws.on('message', (data) => {
         try {
             const message = JSON.parse(data.toString());
-            handleClientMessage(alias, message);
+            // 查找当前的alias（可能已经被更新）
+            const currentAlias = findCurrentAlias(ws) || alias;
+            handleClientMessage(currentAlias, message);
         } catch (error) {
-            errorWithTime(`[WEBSOCKET] Invalid message from ${alias}:`, error);
+            const currentAlias = findCurrentAlias(ws) || alias;
+            errorWithTime(`[WEBSOCKET] Invalid message from ${currentAlias}:`, error);
         }
     });
+}
+
+/**
+ * 查找WebSocket连接对应的当前别名
+ * @param {WebSocket} ws - WebSocket连接
+ * @returns {string|null} 当前别名，如果找不到返回null
+ */
+function findCurrentAlias(ws) {
+    for (const [alias, connection] of activeConnections.entries()) {
+        if (connection === ws) {
+            return alias;
+        }
+    }
+    return null;
 }
 
 /**
@@ -171,11 +186,12 @@ function handleShellOutput(alias, message) {    // 从消息中提取输出数�
     const rawOutput = data.stdout || data.output || data.result || message.stdout || message.output || message.result || '';
     const success = data.success || message.success || true;
     const exitCode = data.exit_code || data.exitCode || message.exit_code || message.exitCode || 0;
+    const cwd = data.cwd || message.cwd || ''; // 提取当前工作目录
 
     // 清理输出中的ANSI转义序列
     const cleanOutput = cleanAnsiEscapes(rawOutput);
 
-    logWithTime(`[WEBSOCKET] Shell output from ${alias} (${cleanOutput.length} chars, exit: ${exitCode})`);
+    logWithTime(`[WEBSOCKET] Shell output from ${alias} (${cleanOutput.length} chars, exit: ${exitCode}, cwd: ${cwd})`);
 
     // 转发shell输出到Web客户端
     const broadcastMessage = {
@@ -183,7 +199,8 @@ function handleShellOutput(alias, message) {    // 从消息中提取输出数�
         client: alias,
         output: cleanOutput, // 使用清理后的输出
         success: success,
-        exit_code: exitCode
+        exit_code: exitCode,
+        cwd: cwd // 包含当前工作目录
     };
 
     broadcastToWebClients(broadcastMessage);
@@ -255,7 +272,7 @@ function getOnlineClients() {
 function closeWebSocketServer() {
     if (wsServer) {
         wsServer.close();
-        logWithTime('[WEBSOCKET] WebSocket server closed');
+        logWithTime('[SHUTDOWN] WebSocket server closed');
     }
 }
 

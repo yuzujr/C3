@@ -34,7 +34,7 @@ function isClientListSame(oldList, newList) {
  * 根据客户端在线状态更新功能可用性
  * @param {boolean} isOnline - 客户端是否在线
  */
-function updateClientFeatures(isOnline) {
+export function updateClientFeatures(isOnline) {
     // 导入标签页管理模块
     import('./tabs.js').then(({ setTabDisabled }) => {
         // 设置Shell和配置标签页的可用性
@@ -168,9 +168,16 @@ export async function fetchClients() {
         } clients.forEach(client => {
             const div = document.createElement('div');
             const onlineStatus = client.online ? '在线' : '离线';
-            const statusClass = client.online ? 'online' : 'offline';
+            const statusClass = client.online ? 'online' : 'offline';            // 创建新的结构
+            div.innerHTML = `
+                <div class="client-name">
+                    <span>${client.alias}</span>
+                </div>
+                <div class="client-status ${statusClass}">
+                    ${onlineStatus}
+                </div>
+            `;
 
-            div.textContent = `${client.alias} (${onlineStatus})`;
             div.className = `client-item ${statusClass}`;
             div.dataset.clientAlias = client.alias; // 存储客户端alias
             div.dataset.online = client.online; if (client.alias === selectedClient) {
@@ -201,6 +208,17 @@ export async function fetchClients() {
  * @param {boolean} isOnline - 客户端是否在线
  */
 export async function selectClient(clientAlias, isOnline = true) {
+    // 如果选择的是同一个客户端，且在线状态没有变化，则不需要重新处理
+    const currentClientData = cachedClientList.find(c => c.alias === selectedClient);
+    if (selectedClient === clientAlias && currentClientData && currentClientData.online === isOnline) {
+        // 只更新高亮显示即可
+        updateClientHighlight();
+        return;
+    }
+
+    // 记录是否是切换到不同的客户端
+    const isDifferentClient = selectedClient !== clientAlias;
+
     setSelectedClient(clientAlias);
     updateClientHighlight();
 
@@ -208,6 +226,13 @@ export async function selectClient(clientAlias, isOnline = true) {
 
     // 根据在线状态启用/禁用功能
     updateClientFeatures(isOnline);
+
+    // 重置终端工作目录（只在切换到不同客户端时）
+    if (isDifferentClient) {
+        import('./terminal.js').then(({ resetWorkingDirectory }) => {
+            resetWorkingDirectory();
+        });
+    }
 
     // 始终加载截图（在线和离线都可以查看）
     try {
@@ -281,13 +306,20 @@ function updateSingleClientDisplay(clientAlias, isOnline) {
         const statusText = isOnline ? '在线' : '离线';
         const statusClass = isOnline ? 'online' : 'offline';
 
-        // 更新显示文本
-        clientElement.textContent = `${clientAlias} (${statusText})`;
+        // 更新状态显示，保持原有的HTML结构
+        const statusElement = clientElement.querySelector('.client-status');
+        if (statusElement) {
+            statusElement.textContent = statusText;
+            statusElement.className = `client-status ${statusClass}`;
+        }
 
-        // 更新CSS类
+        // 更新CSS类，保持选中状态
         clientElement.className = `client-item ${statusClass}`;
         if (clientAlias === selectedClient) {
             clientElement.classList.add('selected');
         }
+
+        // 更新数据属性
+        clientElement.dataset.online = isOnline;
     }
 }

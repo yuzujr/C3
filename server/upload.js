@@ -107,7 +107,6 @@ function handleUploadError(error, req, res, next) {
  */
 function initUploadModule() {
     ensureUploadDirectory();
-    logWithTime('[INIT] Upload module initialized');
 }
 
 module.exports = {

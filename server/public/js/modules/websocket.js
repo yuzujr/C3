@@ -50,7 +50,7 @@ function handleWebSocketMessage(data) {
         if (data.client === selectedClient) {
             // 动态导入terminal模块避免循环依赖
             import('./terminal.js').then(({ handleShellOutput }) => {
-                handleShellOutput(data.output);
+                handleShellOutput(data); // 传递整个data对象而不只是output
             }).catch(error => {
                 console.error('导入terminal模块失败:', error);
             });

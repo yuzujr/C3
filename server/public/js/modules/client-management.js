@@ -128,9 +128,7 @@ async function saveAliasEdit() {
             })
         });
 
-        const result = await response.json();
-
-        if (result.success) {
+        const result = await response.json(); if (result.success) {
             showToast('别名更新成功', 'success');
             closeAliasModal();
 
@@ -138,12 +136,24 @@ async function saveAliasEdit() {
             const { fetchClients } = await import('./clients.js');
             await fetchClients();
 
-            // 如果当前选中的是被重命名的客户端，需要更新选中状态
+            // 如果当前选中的是被重命名的客户端，需要更新选中状态和功能状态
             const { selectedClient, setSelectedClient } = await import('./state.js');
             if (selectedClient === currentEditingAlias) {
+                // 更新选中的客户端别名
                 setSelectedClient(newAlias);
+
+                // 更新高亮显示
                 const { updateClientHighlight } = await import('./clients.js');
                 updateClientHighlight();
+
+                // 找到新客户端的在线状态并更新功能状态
+                const { cachedClientList } = await import('./state.js');
+                const newClientData = cachedClientList.find(c => c.alias === newAlias);
+                const isOnline = newClientData ? newClientData.online : true;
+
+                // 更新功能状态
+                const { updateClientFeatures } = await import('./clients.js');
+                updateClientFeatures(isOnline);
             }
         } else {
             showToast(result.message || '更新别名失败', 'error');

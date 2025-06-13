@@ -22,65 +22,91 @@
         }
 
         .dark-theme {
-            --bg-color: #1a1a1a;
-            --text-color: #e0e0e0;
-            --border-color: #444444;
-            --hover-color: #333333;
-            --selected-color: #2d5aa0;
-            --button-bg: #333333;
-            --button-text: #e0e0e0;
+            --bg-color: #282c34;
+            --text-color: #abb2bf;
+            --border-color: #3e4451;
+            --hover-color: #353b45;
+            --selected-color: rgba(97, 175, 239, 0.2);
+            --button-bg: #3e4451;
+            --button-text: #abb2bf;
             --modal-bg: rgba(0, 0, 0, 0.9);
-            --modal-content-bg: #2a2a2a;
-            --input-bg: #333333;
-            --input-border: #555555;
+            --modal-content-bg: #282c34;
+            --input-bg: #21252b;
+            --input-border: #3e4451;
+            /* One Dark Pro 专用颜色 */
+            --terminal-bg: #21252b;
+            --terminal-text: #abb2bf;
+            --terminal-prompt: #98c379;
+            --terminal-command: #61afef;
+            --terminal-success: #98c379;
+            --terminal-error: #e06c75;
+            --terminal-warning: #e5c07b;
+            --terminal-comment: #5c6370;
+            --terminal-scrollbar: #3e4451;
+            --terminal-scrollbar-thumb: #528bff;
         }
 
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
+            font-family: 'Fira Code', 'JetBrains Mono', 'Source Code Pro', 'Consolas', 'Monaco', 'Arial', sans-serif;
+            margin: 0;
             background-color: var(--bg-color);
             color: var(--text-color);
             transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
         }
 
         /* 主题切换按钮 */
         .theme-toggle {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--button-bg);
-            color: var(--button-text);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 8px 16px;
+            top: 24px;
+            right: 24px;
+            background: var(--terminal-bg);
+            color: var(--terminal-text);
+            border: 1px solid var(--terminal-scrollbar);
+            border-radius: 12px;
+            padding: 12px 18px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
             transition: all 0.3s ease;
             z-index: 1001;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .theme-toggle:hover {
             background: var(--hover-color);
+            border-color: var(--terminal-scrollbar-thumb);
+            transform: translateY(-2px);
         }
 
         /* 登出按钮 */
         .logout-btn {
             position: fixed;
-            top: 20px;
-            right: 150px;
-            background: #ff4757;
+            top: 24px;
+            right: 180px;
+            background: linear-gradient(135deg, #e06c75 0%, #d63031 100%);
             color: white;
             border: none;
-            border-radius: 20px;
-            padding: 8px 16px;
+            border-radius: 12px;
+            padding: 12px 18px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
             transition: all 0.3s ease;
             z-index: 1001;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(224, 108, 117, 0.3);
         }
 
         .logout-btn:hover {
-            background: #ff3838;
+            background: linear-gradient(135deg, #e85a56 0%, #e17055 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(224, 108, 117, 0.4);
         }
 
         h1,
@@ -89,45 +115,124 @@
             color: var(--text-color);
         }
 
+        h1 {
+            text-align: center;
+            margin: 16px 0 24px 0;
+            /* 减少上下间距 */
+            font-size: 28px;
+            /* 稍微减小字体 */
+            font-weight: 700;
+            color: var(--terminal-command);
+            text-shadow: 0 2px 4px rgba(97, 175, 239, 0.3);
+            background: linear-gradient(135deg, var(--terminal-command), var(--terminal-success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 16px;
+            /* 减少底部间距 */
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--terminal-text);
+            padding-bottom: 8px;
+            /* 减少底部padding */
+            border-bottom: none;
+            /* 移除默认边框 */
+            position: relative;
+            max-width: 600px;
+            /* 限制宽度与客户端列表一致 */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--terminal-scrollbar);
+        }
+
+        h3 {
+            margin: 12px 0;
+            /* 减少 h3 的间距 */
+            font-size: 18px;
+            font-weight: 600;
+        }
+
         #clientsList {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
+            /* 减少底部间距 */
+            background: var(--terminal-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--terminal-scrollbar);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .client-item {
             cursor: pointer;
-            padding: 5px;
-            border-bottom: 1px solid var(--border-color);
-            transition: background-color 0.2s ease;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--terminal-scrollbar);
+            transition: all 0.3s ease;
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: rgba(62, 68, 81, 0.2);
+            border-left: 4px solid transparent;
+        }
+
+        .client-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
         }
 
         /* 在线客户端样式 */
         .client-item.online {
-            border-left: 4px solid #28a745;
+            border-left-color: var(--terminal-success);
+            background: rgba(152, 195, 121, 0.1);
         }
 
         .client-item.online:hover {
-            background-color: var(--hover-color);
+            background: rgba(152, 195, 121, 0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(152, 195, 121, 0.2);
         }
 
         /* 离线客户端样式 */
         .client-item.offline {
-            border-left: 4px solid #dc3545;
-            opacity: 0.6;
-            cursor: pointer;
+            border-left-color: var(--terminal-error);
+            background: rgba(224, 108, 117, 0.1);
+            opacity: 0.8;
         }
 
         .client-item.offline:hover {
-            background-color: var(--hover-color);
+            background: rgba(224, 108, 117, 0.15);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(224, 108, 117, 0.2);
         }
 
         /* 选中状态样式 - 更高优先级 */
         .client-item.selected {
             background-color: var(--selected-color) !important;
+            border-left-color: var(--terminal-command) !important;
+            border-left-width: 4px !important;
         }
 
         .client-item.selected:hover {
-            background-color: var(--selected-color) !important;
+            background-color: rgba(97, 175, 239, 0.3) !important;
         }
 
         button {
@@ -207,18 +312,138 @@
             opacity: 0.8;
         }
 
-        /* 模态框样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            padding-top: 50px;
-            left: 0;
-            top: 0;
+        /* 别名编辑对话框样式 */
+        .alias-dialog {
+            background: var(--terminal-bg);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--terminal-scrollbar);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 480px;
+            width: 90%;
+            margin: 10vh auto;
+            position: relative;
+        }
+
+        .alias-dialog h3 {
+            color: var(--terminal-command);
+            margin-bottom: 24px;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .alias-dialog label {
+            display: block;
+            margin-bottom: 16px;
+            color: var(--terminal-text);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .alias-dialog input[type="text"] {
             width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: var(--modal-bg);
+            padding: 14px 16px;
+            border: 2px solid var(--terminal-scrollbar);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--terminal-text);
+            font-size: 16px;
+            margin-top: 8px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .alias-dialog input[type="text"]:focus {
+            outline: none;
+            border-color: var(--terminal-command);
+            box-shadow: 0 0 0 3px rgba(97, 175, 239, 0.2);
+            background: #1e2227;
+        }
+
+        .alias-dialog p {
+            color: var(--terminal-comment);
+            font-size: 12px;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .alias-dialog-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 32px;
+        }
+
+        .cancel-btn {
+            background: var(--terminal-scrollbar);
+            color: var(--terminal-text);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background: var(--hover-color);
+        }
+
+        .save-alias-btn {
+            background: linear-gradient(135deg, var(--terminal-success) 0%, #56b6c2 100%);
+            color: var(--terminal-bg);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .save-alias-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(152, 195, 121, 0.3);
+        }
+
+        /* 删除客户端对话框样式 */
+        .delete-dialog {
+            background: var(--terminal-bg);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--terminal-scrollbar);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 480px;
+            width: 90%;
+            margin: 10vh auto;
+            position: relative;
+        }
+
+        .delete-dialog h3 {
+            color: var(--terminal-error);
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .delete-dialog p {
+            color: var(--terminal-text);
+            margin-bottom: 16px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .delete-dialog .warning {
+            color: var(--terminal-warning) !important;
+            font-size: 12px !important;
+            background: rgba(229, 192, 123, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid var(--terminal-warning);
         }
 
         .modal-content {
@@ -347,6 +572,11 @@
         /* 主内容默认隐藏 */
         #mainContent {
             display: none;
+            max-width: 1400px;
+            /* 增加最大宽度 */
+            margin: 0 auto;
+            padding: 60px 40px 20px 40px;
+            /* 增加左右padding */
         }
 
         /* 在加载期间隐藏固定按钮 */
@@ -358,30 +588,45 @@
         /* 标签页样式 */
         .tab-navigation {
             display: flex;
-            border-bottom: 2px solid var(--border-color);
-            margin: 20px 0 10px 0;
+            background: var(--terminal-bg);
+            border-radius: 12px;
+            padding: 6px;
+            margin: 20px 0 16px 0;
+            /* 减少上下间距 */
+            border: 1px solid var(--terminal-scrollbar);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            justify-content: stretch;
+            max-width: 100%;
+            gap: 4px;
         }
 
         .tab-button {
             background: transparent;
             border: none;
-            padding: 12px 20px;
+            padding: 16px 24px;
+            /* 减少左右padding以节省空间 */
             cursor: pointer;
             font-size: 14px;
-            color: var(--text-color);
-            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            color: var(--terminal-text);
+            border-radius: 8px;
             transition: all 0.3s ease;
-            margin: 0;
+            position: relative;
+            flex: 1;
+            text-align: center;
+            min-width: 120px;
+            /* 减少最小宽度 */
         }
 
         .tab-button:hover {
-            background: var(--hover-color);
+            background: rgba(97, 175, 239, 0.1);
+            color: var(--terminal-command);
         }
 
         .tab-button.active {
-            color: #007bff;
-            border-bottom-color: #007bff;
-            background: var(--hover-color);
+            color: var(--terminal-command);
+            background: rgba(97, 175, 239, 0.2);
+            border: 1px solid rgba(97, 175, 239, 0.3);
         }
 
         .tab-button:disabled {
@@ -390,126 +635,676 @@
             color: var(--border-color);
         }
 
-        .tab-button:disabled:hover {
-            background: transparent;
-        }
-
-        .tab-content {
-            margin-top: 20px;
-        }
-
+        /* 标签页面板样式 */
         .tab-panel {
             display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            padding-top: 8px;
+            /* 添加少量顶部间距 */
         }
 
         .tab-panel.active {
             display: block;
+            opacity: 1;
         }
 
-        .tab-panel h3,
-        .tab-panel h4 {
-            margin-top: 0;
+        /* One Dark Pro 终端样式 */
+        #terminal-section {
+            background: var(--terminal-bg);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--terminal-scrollbar);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #terminal-controls {
             margin-bottom: 15px;
-            color: var(--text-color);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
-        /* 客户端管理样式 */
-        .client-manage-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px;
-            border: 1px solid var(--border-color);
+        #terminal-controls button {
+            background: var(--terminal-scrollbar);
+            color: var(--terminal-text);
+            border: 1px solid var(--terminal-scrollbar-thumb);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #terminal-controls button:hover:not(:disabled) {
+            background: var(--terminal-scrollbar-thumb);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #terminal-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #terminal-controls button:active {
+            transform: translateY(0);
+        }
+
+        /* 终端输出区域自定义滚动条 */
+        #terminalOutput {
+            position: relative;
+        }
+
+        #terminalOutput::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #terminalOutput::-webkit-scrollbar-track {
+            background: var(--terminal-bg);
             border-radius: 4px;
-            margin-bottom: 10px;
-            background: var(--bg-color);
+        }
+
+        #terminalOutput::-webkit-scrollbar-thumb {
+            background: var(--terminal-scrollbar-thumb);
+            border-radius: 4px;
+            border: 2px solid var(--terminal-bg);
+        }
+
+        #terminalOutput::-webkit-scrollbar-thumb:hover {
+            background: #61afef;
+        }
+
+        /* 终端命令输入区域 */
+        .terminal-input-container {
+            background: rgba(62, 68, 81, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid var(--terminal-scrollbar);
+        }
+
+        .terminal-input-container input {
+            flex: 1;
+        }
+
+        #customCommand {
+            background: var(--terminal-bg) !important;
+            color: var(--terminal-text) !important;
+            border: 1px solid var(--terminal-scrollbar) !important;
+            border-radius: 6px !important;
+            padding: 10px 12px !important;
+            font-family: 'Fira Code', 'JetBrains Mono', 'Source Code Pro', 'Consolas', 'Monaco', 'Courier New', monospace !important;
+            font-size: 14px !important;
+            transition: all 0.2s ease !important;
+        }
+
+        #customCommand:focus {
+            outline: none !important;
+            border-color: var(--terminal-scrollbar-thumb) !important;
+            box-shadow: 0 0 0 2px rgba(97, 175, 239, 0.2) !important;
+        }
+
+        #customCommand::placeholder {
+            color: var(--terminal-comment) !important;
+            opacity: 0.8 !important;
+        }
+
+        #executeCustom {
+            background: var(--terminal-success) !important;
+            color: var(--terminal-bg) !important;
+            border: none !important;
+            border-radius: 6px !important;
+            padding: 10px 16px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+
+        #executeCustom:hover:not(:disabled) {
+            background: #7cc085 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(152, 195, 121, 0.3);
+        }
+
+        #executeCustom:disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+        }
+
+        /* 特殊按钮样式 */
+        #cmdKillSession {
+            background: var(--terminal-error) !important;
+            color: white !important;
+            border: 1px solid #c85450 !important;
+        }
+
+        #cmdKillSession:hover:not(:disabled) {
+            background: #e85a56 !important;
+            border-color: #e85a56 !important;
+        }
+
+        /* 终端消息样式 */
+        #terminalMessage {
+            color: var(--terminal-comment) !important;
+            font-style: italic;
+            text-align: center;
+            padding: 10px;
+            background: rgba(92, 99, 112, 0.1);
+            border-radius: 6px;
+            margin-top: 15px !important;
+        }
+
+        /* 终端提示符样式 */
+        .terminal-prompt {
+            border-left: 3px solid var(--terminal-prompt);
+            padding-left: 8px;
+            margin: 2px 0;
+            background: rgba(86, 182, 194, 0.05);
+        }
+
+        .terminal-prompt:hover {
+            background: rgba(86, 182, 194, 0.1);
+        }
+
+        /* 客户端管理页面样式 */
+        #client-management {
+            background: var(--terminal-bg);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--terminal-scrollbar);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #client-management>p {
+            color: var(--terminal-comment) !important;
+            font-size: 14px;
+            text-align: center;
+            background: rgba(92, 99, 112, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 24px !important;
+            border-left: 4px solid var(--terminal-prompt);
+        }
+
+        #clientManagementList {
+            display: grid;
+            gap: 16px;
+        }
+
+        .client-management-item {
+            background: rgba(62, 68, 81, 0.3);
+            border: 1px solid var(--terminal-scrollbar);
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .client-management-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--terminal-prompt);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .client-management-item:hover {
+            background: rgba(62, 68, 81, 0.5);
+            border-color: var(--terminal-scrollbar-thumb);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .client-management-item:hover::before {
+            opacity: 1;
         }
 
         .client-info {
-            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .client-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--terminal-success);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .client-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .client-status.online {
+            background: rgba(152, 195, 121, 0.2);
+            color: var(--terminal-success);
+            border: 1px solid var(--terminal-success);
+        }
+
+        .client-status.offline {
+            background: rgba(224, 108, 117, 0.2);
+            color: var(--terminal-error);
+            border: 1px solid var(--terminal-error);
+        }
+
+        .client-status::before {
+            content: '●';
+            font-size: 8px;
+        }
+
+        .client-details {
+            color: var(--terminal-text);
+            font-size: 13px;
+            margin-bottom: 16px;
+            line-height: 1.5;
         }
 
         .client-actions {
             display: flex;
-            gap: 5px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
-        .edit-alias-btn,
-        .delete-client-btn {
-            padding: 4px 8px;
-            font-size: 12px;
+        .client-action-btn {
+            padding: 8px 16px;
             border: none;
-            border-radius: 3px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .edit-alias-btn {
-            background-color: #007bff;
+        .client-action-btn.edit {
+            background: var(--terminal-command);
+            color: var(--terminal-bg);
+        }
+
+        .client-action-btn.edit:hover {
+            background: #7cc2f7;
+            transform: translateY(-1px);
+        }
+
+        .client-action-btn.delete {
+            background: var(--terminal-error);
             color: white;
         }
 
-        .edit-alias-btn:hover {
-            background-color: #0056b3;
+        .client-action-btn.delete:hover {
+            background: #e85a56;
+            transform: translateY(-1px);
         }
 
-        .delete-client-btn {
-            background-color: #dc3545;
-            color: white;
+        .client-action-btn:active {
+            transform: translateY(0);
         }
 
-        .delete-client-btn:hover {
-            background-color: #c82333;
+        /* 配置管理页面样式 */
+        #config-section {
+            background: var(--terminal-bg);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--terminal-scrollbar);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
-        /* 别名编辑对话框样式 */
-        .alias-dialog {
-            background: var(--modal-content-bg);
-            margin: 15% auto;
+        #configSection {
+            max-width: 600px;
+        }
+
+        #configSection h4 {
+            color: var(--terminal-command);
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        #configSection label {
+            display: block;
+            margin-bottom: 16px;
+            color: var(--terminal-text);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        #configSection input[type="text"],
+        #configSection input[type="number"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--terminal-scrollbar);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--terminal-text);
+            font-size: 14px;
+            margin-top: 6px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        #configSection input[type="text"]:focus,
+        #configSection input[type="number"]:focus {
+            outline: none;
+            border-color: var(--terminal-command);
+            box-shadow: 0 0 0 3px rgba(97, 175, 239, 0.2);
+            background: #1e2227;
+        }
+
+        #configSection input[type="checkbox"] {
+            transform: scale(1.2);
+            margin-right: 8px;
+            accent-color: var(--terminal-success);
+        }
+
+        #updateConfigBtn {
+            background: linear-gradient(135deg, var(--terminal-success) 0%, #56b6c2 100%);
+            color: var(--terminal-bg);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        #updateConfigBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(152, 195, 121, 0.3);
+        }
+
+        #configMessage {
+            color: var(--terminal-comment) !important;
+            text-align: center;
+            background: rgba(92, 99, 112, 0.1);
             padding: 20px;
             border-radius: 8px;
-            width: 400px;
-            max-width: 80%;
+            border-left: 4px solid var(--terminal-warning);
+            font-style: italic;
         }
 
-        .alias-dialog h3 {
-            margin-top: 0;
-            color: var(--text-color);
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            #terminal-controls {
+                flex-direction: column;
+            }
+
+            #terminal-controls button {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+
+            #mainContent {
+                padding: 60px 16px 20px 16px;
+                /* 移动设备上减少padding */
+                max-width: none;
+                /* 移动设备上移除最大宽度限制 */
+            }
+
+            .logout-btn {
+                right: 16px;
+                top: 80px;
+            }
+
+            .theme-toggle {
+                right: 16px;
+                top: 130px;
+            }
+
+            .tab-button {
+                padding: 12px 16px;
+                /* 移动设备上减少padding */
+                font-size: 13px;
+                min-width: 80px;
+            }
+        }
+
+        /* 模态框对话框样式 */
+        .alias-dialog,
+        .delete-dialog {
+            background: var(--terminal-bg);
+            border-radius: 16px;
+            padding: 32px;
+            margin: 10% auto;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid var(--terminal-scrollbar);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+
+        .alias-dialog::before,
+        .delete-dialog::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--terminal-success), var(--terminal-command), var(--terminal-warning));
+            border-radius: 16px 16px 0 0;
+        }
+
+        .alias-dialog h3,
+        .delete-dialog h3 {
+            color: var(--terminal-command);
+            margin-bottom: 24px;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
         }
 
         .alias-dialog label {
             display: block;
-            margin-bottom: 10px;
-            color: var(--text-color);
+            margin-bottom: 16px;
+            color: var(--terminal-text);
+            font-weight: 500;
+            font-size: 14px;
         }
 
         .alias-dialog input {
             width: 100%;
-            margin-top: 5px;
-            padding: 8px;
-            border: 1px solid var(--input-border);
-            border-radius: 4px;
+            padding: 12px 16px;
+            border: 2px solid var(--terminal-scrollbar);
+            border-radius: 8px;
             background: var(--input-bg);
-            color: var(--text-color);
+            color: var(--terminal-text);
+            font-size: 14px;
+            margin-top: 8px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .alias-dialog input:focus {
+            outline: none;
+            border-color: var(--terminal-command);
+            box-shadow: 0 0 0 3px rgba(97, 175, 239, 0.2);
+            background: #1e2227;
         }
 
         .alias-dialog-buttons {
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 12px;
+            margin-top: 24px;
         }
 
-        .save-alias-btn {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
+        .cancel-btn {
+            background: transparent;
+            color: var(--terminal-text);
+            border: 2px solid var(--terminal-scrollbar);
+            border-radius: 8px;
+            padding: 10px 20px;
             cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background: var(--terminal-scrollbar);
+            color: var(--terminal-text);
+        }
+
+        .save-alias-btn,
+        .alias-dialog-buttons button:not(.cancel-btn) {
+            background: linear-gradient(135deg, var(--terminal-success) 0%, #56b6c2 100%);
+            color: var(--terminal-bg);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
 
         .save-alias-btn:hover {
-            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(152, 195, 121, 0.3);
+        }
+
+        .delete-dialog p {
+            color: var(--terminal-text);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        #deleteClientName {
+            color: var(--terminal-command) !important;
+        }
+
+        .delete-dialog .warning {
+            color: var(--terminal-error) !important;
+            background: rgba(224, 108, 117, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid var(--terminal-error);
+            margin: 16px 0;
+        }
+
+        #confirmClientDelete {
+            background: linear-gradient(135deg, var(--terminal-error) 0%, #d63031 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 10px 20px !important;
+            cursor: pointer !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+        }
+
+        #confirmClientDelete:hover {
+            background: linear-gradient(135deg, #e85a56 0%, #e17055 100%) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 16px rgba(224, 108, 117, 0.4) !important;
+        }
+
+        /* 删除截图对话框特殊样式 */
+        .delete-dialog button:not(.cancel-btn):not(#confirmClientDelete) {
+            background: linear-gradient(135deg, var(--terminal-error) 0%, #d63031 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 8px;
+        }
+
+        .delete-dialog button:not(.cancel-btn):not(#confirmClientDelete):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(224, 108, 117, 0.3);
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            padding-top: 50px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: var(--modal-bg);
+        }
+
+        .delete-confirm-btn {
+            background: linear-gradient(135deg, var(--terminal-error) 0%, #d63031 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 12px;
+        }
+
+        .delete-confirm-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(224, 108, 117, 0.4);
+        }
+
+        /* 客户端名称和状态样式 */
+        .client-item .client-name {
+            color: var(--terminal-text);
+            font-weight: 600;
+        }
+
+        .client-item .client-name span:first-child {
+            font-size: 16px;
+            margin-right: 4px;
+        }
+
+        .client-item .client-status {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .client-item .client-status.online {
+            background: rgba(152, 195, 121, 0.2);
+            color: var(--terminal-success);
+            border: 1px solid var(--terminal-success);
+        }
+
+        .client-item .client-status.offline {
+            background: rgba(224, 108, 117, 0.2);
+            color: var(--terminal-error);
+            border: 1px solid var(--terminal-error);
         }
     </style>
 </head>
@@ -518,10 +1313,14 @@
     <div id="loadingOverlay">
         <div class="loading-spinner"></div>
         <div class="loading-text">加载中，请稍候...</div>
-    </div>
-
-    <button class="theme-toggle" id="themeToggle">🌙 暗色模式</button>
-    <button class="logout-btn" id="logoutBtn">🚪 登出</button>
+    </div> <button class="theme-toggle" id="themeToggle">
+        <span>◐</span>
+        <span>主题</span>
+    </button>
+    <button class="logout-btn" id="logoutBtn">
+        <span>⬅</span>
+        <span>登出</span>
+    </button>
     <h1>ScreenUploader 控制台</h1>
     <div id="mainContent">
         <h2>客户端列表</h2>
@@ -538,9 +1337,9 @@
                 <h3>发送命令</h3>
                 <div id="commands">
                     <div id="cmdButtons" style="display:none;">
-                        <button data-cmd='{"type":"pause"}'>暂停</button>
-                        <button data-cmd='{"type":"resume"}'>继续</button>
-                        <button data-cmd='{"type":"screenshot_now"}'>立即截图</button>
+                        <button id="pauseBtn">暂停</button>
+                        <button id="resumeBtn">继续</button>
+                        <button id="screenshotBtn">立即截图</button>
                     </div>
                     <div id="commandMessage" style="color:#888; margin-top:10px;">请选择一个在线客户端</div>
                 </div>
@@ -588,18 +1387,17 @@
                 <h3>Shell 终端</h3>
                 <div id="terminal-section">
                     <div id="terminal-controls">
-                        <button id="cmdPwd" disabled>显示当前目录 (pwd)</button>
-                        <button id="cmdLs" disabled>列出文件 (ls)</button>
-                        <button id="cmdClear">清空输出</button>
+                        <button id="cmdPwd" disabled>📁 当前目录 (pwd)</button>
+                        <button id="cmdLs" disabled>📄 列出文件 (ls)</button>
+                        <button id="cmdClear">🗑️ 清空输出</button>
+                        <button id="cmdKillSession" disabled>⚡ 强制终止会话</button>
                     </div>
-
-                    <div style="display: flex; gap: 10px; margin: 10px 0;">
-                        <input type="text" id="customCommand" placeholder="输入自定义命令..." disabled
-                            style="flex: 1; padding: 8px;">
-                        <button id="executeCustom" disabled>执行</button>
+                    <div class="terminal-input-container" style="display: flex; gap: 10px; margin: 15px 0;">
+                        <input type="text" id="customCommand" placeholder="输入自定义命令... (按 Enter 执行)" disabled>
+                        <button id="executeCustom" disabled>▶ 执行</button>
                     </div>
                     <div id="terminalOutput"
-                        style="background-color: #000; color: #00ff00; padding: 15px; border-radius: 4px; min-height: 300px; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre-wrap; border: 1px solid var(--border-color);">
+                        style="background-color: var(--terminal-bg); color: var(--terminal-text); padding: 15px; border-radius: 8px; min-height: 300px; max-height: 400px; overflow-y: auto; font-family: 'Fira Code', 'JetBrains Mono', 'Source Code Pro', 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.5; white-space: pre-wrap; border: 1px solid var(--terminal-scrollbar); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); scrollbar-width: thin; scrollbar-color: var(--terminal-scrollbar-thumb) var(--terminal-scrollbar);">
                     </div>
 
                     <div id="terminalMessage" style="color:#888; margin-top:10px;">请选择一个在线客户端</div>
@@ -664,13 +1462,12 @@
             <div class="delete-dialog">
                 <h3>删除客户端</h3>
                 <p>确定要删除客户端 "<span id="deleteClientName" style="font-weight: bold;"></span>" 吗？</p>
-                <p style="color:#dc3545; font-size:12px;">
+                <p style="color:#888; font-size:12px; margin-top:5px;" class="warning">
                     ⚠️ 此操作将删除客户端配置和所有相关文件，且无法恢复！
                 </p>
-                <div style="text-align: right; margin-top: 20px;">
+                <div style="text-align: center; margin-top: 24px;">
                     <button id="cancelClientDelete" class="cancel-btn">取消</button>
-                    <button id="confirmClientDelete"
-                        style="background-color: #dc3545; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">确认删除</button>
+                    <button id="confirmClientDelete" class="delete-confirm-btn">确认删除</button>
                 </div>
             </div>
         </div>

@@ -7,21 +7,37 @@ import { showToast } from '../../toast/toast.js';
 /**
  * 向客户端发送命令
  * @param {object} command - 要发送的命令对象
+ * @param {boolean} showToastMessage - 是否显示toast消息（默认true）
+ * @returns {Promise<object|null>} 返回响应结果，如果失败返回null
  */
-export async function sendCommand(command) {
+export async function sendCommand(command, showToastMessage = true) {
     if (!selectedClient) {
-        showToast('请先选择客户端');
-        return;
+        if (showToastMessage) {
+            showToast('请先选择客户端');
+        }
+        return null;
     }
 
-    const res = await fetch(`/web/command/${selectedClient}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(command)
-    });
+    try {
+        const res = await fetch(`/web/command/${selectedClient}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(command)
+        });
 
-    const result = await res.json();
-    showToast(result.success ? '命令发送成功' : `命令发送失败: ${result.message}`);
+        const result = await res.json();
+
+        if (showToastMessage) {
+            showToast(result.success ? '命令发送成功' : `命令发送失败: ${result.message}`);
+        }
+
+        return result;
+    } catch (error) {
+        if (showToastMessage) {
+            showToast(`发送命令失败: ${error.message}`);
+        }
+        return null;
+    }
 }
 
 /**
