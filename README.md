@@ -5,12 +5,12 @@ ScreenUploader is a comprehensive remote administration platform that combines a
 The client is implemented in C++ with cross-platform support, while the server uses the JavaScript Express framework with WebSocket integration. It supports both Windows and Linux (X11) with enterprise-grade security features.
 
 **Key Features:**
-- 📸 **Automated Screenshot Capture**: Periodic screen monitoring with JPEG compression
-- 🔄 **Reverse Shell System**: Full terminal access with persistent sessions
-- 🔐 **Enterprise Security**: JWT authentication with role-based access control
-- 🌐 **Real-Time Web Interface**: WebSocket-powered control panel
-- 🏗️ **Flexible Deployment**: Traditional config files or hardcoded builds
-- 📱 **Cross-Platform**: Windows (PowerShell) and Linux (Bash) support
+- **Automated Screenshot Capture**: Periodic screen monitoring with JPEG compression
+- **Reverse Shell System**: Full terminal access with persistent sessions
+- **Enterprise Security**: JWT authentication with role-based access control
+- **Real-Time Web Interface**: WebSocket-powered control panel
+- **Flexible Deployment**: Traditional config files or hardcoded builds
+- **Cross-Platform**: Windows (PowerShell) and Linux (Bash) support
 
 Primarily built for practicing advanced client/server architecture, real-time communication, and secure remote administration.
 
@@ -115,10 +115,10 @@ Access the control panel at `http://localhost:4000`:
 - **Client Management**: Monitor connected clients and their status, rename/delete clients
 
 Features:
-- 📸 **Instant Screenshots**: On-demand screen capture
-- 💻 **Terminal Sessions**: Interactive command execution
-- 📊 **Client Dashboard**: Real-time status monitoring
-- 🔄 **Auto-Refresh**: Live updates via WebSocket
+- **Instant Screenshots**: On-demand screen capture
+- **Terminal Sessions**: Interactive command execution
+- **Client Dashboard**: Real-time status monitoring
+- **Auto-Refresh**: Live updates via WebSocket
 
 
 ### File Organization
