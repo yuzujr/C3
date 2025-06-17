@@ -1,106 +1,181 @@
 # ScreenUploader
 
-ScreenUploader is a tool that periodically uploads the client's screen to the server. The uploaded images are encoded in JPEG format and stored on the server organized by time.
+ScreenUploader is a comprehensive remote administration platform that combines automated screenshot capture with powerful reverse shell capabilities. The system enables real-time remote monitoring and control through a secure web interface.
 
-The client is implemented in C++, while the server uses the JavaScript Express framework. It supports both Windows and Linux (X11).
+The client is implemented in C++ with cross-platform support, while the server uses the JavaScript Express framework with WebSocket integration. It supports both Windows and Linux (X11) with enterprise-grade security features.
 
-Primarily built for practicing client/server architecture and remote device coordination.
+**Key Features:**
+- 📸 **Automated Screenshot Capture**: Periodic screen monitoring with JPEG compression
+- 🔄 **Reverse Shell System**: Full terminal access with persistent sessions
+- 🔐 **Enterprise Security**: JWT authentication with role-based access control
+- 🌐 **Real-Time Web Interface**: WebSocket-powered control panel
+- 🏗️ **Flexible Deployment**: Traditional config files or hardcoded builds
+- 📱 **Cross-Platform**: Windows (PowerShell) and Linux (Bash) support
+
+Primarily built for practicing advanced client/server architecture, real-time communication, and secure remote administration.
 
 
 
 ## Usage
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/yuzujr/ScreenUploader)
-1. Run server
 
-   **Dependencies**
+### Server Setup
+
+1. **Install Dependencies**
 
    Install [node.js](https://nodejs.org/).
 
-   `cd server`
-
-   `npm install`
-
-   `node server.js`
-
-   Server will run on port `4000` by default.
-
-2. Edit `config.json`:
-
-- `server_url` is the address where the server running. (`http://127.0.0.1:4000` by default)
-- `interval_seconds` is the interval that client send upload request. (60s by default)
-- `max_retries` is the number of retry attempts if upload fails. (3 by default)
-- `retry_delay_ms` is the delay between retry attempts in milliseconds. (1000ms by default)
-- `add_to_startup` determines whether to add the application to system startup. (false by default)
-- `client_id` is the unique identifier for the client. (automatically filled on first run)
-
-   Example `config.json`:
-   ```json
-   {
-     "api": {
-       "server_url": "http://127.0.0.1:4000",
-       "interval_seconds": 60,
-       "max_retries": 3,
-       "retry_delay_ms": 1000,
-       "add_to_startup": false,
-       "client_id": ""
-     }
-   }
+   ```bash
+   cd server
+   npm install
    ```
 
-3. Place this `config.json` next to the executable.
+2. **Configure Authentication (Optional)**
 
-4. Run `ScreenUploader` executable.
+   1. environment method:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit .env with your settings.
+   
+   2. config file method:
+   ```bash
+   node setup-auth.js
+   ```
+   Follow prompts to set up admin credentials and JWT secret.
 
-5. Check the server terminal, you will see the upload logs.
-   - Screenshots is saved in `uploads` folder
-   - Logs are saved in `logs` folder.
-   - Client's config is saved as `uploads/client_id or alias(alias first)/config.json`.
+3. **Start Server**
 
-6. Access the server on port 4000 to enter the control panel，you can send commands to clients and view their screenshots.
-   ![image](https://github.com/user-attachments/assets/f273fe8f-3650-4c3a-b564-bc78b01b77ca)
-
-
-8. (Optional) Edit `clients.json` to alias the client ID to a name. This is useful for identifying clients in the server logs.
-
-   Example `clients.json`:
-   ```json
-   {
-     "client_id": "client_name"
-   }
+   ```bash
+   node server.js
    ```
 
+   Server runs on:
+   - **HTTP Server**: Port 4000 (web interface)
+   - **WebSocket Server**: Port 8080 (real-time communication)
+
+### Client Configuration
+
+**Option 1: Traditional Config File**
+
+Edit `config.json`:
+
+- `upload_url` is server's upload endpoint. (Default: `http://127.0.0.1:4000`)
+- `ws_url` is server's WebSocket endpoint. (Default: `ws://127.0.0.1:8080`)
+- `interval_seconds` is the screenshot capture interval. (Default: 60s)
+- `max_retries` is the number of retry attempts if upload fails. (Default: 3)
+- `retry_delay_ms` is the delay between retry attempts in milliseconds. (Default: 1000ms)
+- `add_to_startup` determines whether to add the application to system startup. (Default: false)
+- `client_id` is a unique identifier for the client (optional, auto-generated if not set).
+
+Example `config.json`:
+```json
+{
+  "api": {
+    "server_url": "http://127.0.0.1:4000",
+    "ws_url": "ws://127.0.0.1:8080",
+    "interval_seconds": 60,
+    "max_retries": 3,
+    "retry_delay_ms": 1000,
+    "add_to_startup": false,
+    "client_id": ""
+  }
+}
+```
+
+**Option 2: Hardcoded Build**
+
+For secure deployment without config files:
+```bash
+# Edit presets as needed: config/build-presets.json
+
+# Generate hardcoded configuration
+./scripts/generate-hardcoded-config.sh
+# Or on Windows: ./scripts/generate-hardcoded-config.ps1
+
+# Build with hardcoded config
+mkdir build-hardcoded
+cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build-hardcoded --config Release -j
+```
+
+### Running the Client
+
+1. Place `config.json` next to the executable (if using traditional config)
+2. Run `ScreenUploader` executable
+3. Check server terminal for connection logs
+
+### Web Interface
+
+Access the control panel at `http://localhost:4000`:
+
+- **Login**: Use credentials set up during server configuration
+- **Screenshot Monitoring**: Real-time screenshot viewing and capture
+- **Terminal Access**: Full reverse shell with persistent sessions
+- **Client Management**: Monitor connected clients and their status, rename/delete clients
+
+Features:
+- 📸 **Instant Screenshots**: On-demand screen capture
+- 💻 **Terminal Sessions**: Interactive command execution
+- 📊 **Client Dashboard**: Real-time status monitoring
+- 🔄 **Auto-Refresh**: Live updates via WebSocket
 
 
-## Build from source
+### File Organization
 
-### Client
+- **Screenshots**: Saved in `uploads/` folder organized by client
+- **Logs**: Server logs saved in `logs/` folder  
+- **Client Config**: Stored as `uploads/{client_id}/config.json`
+- **Authentication**: JWT tokens and session data
 
-For windows, msvc compiler is recommended.
 
-For Linux, gcc compiler is recommended.
+## Build from Source
 
-**Dependencies**
+### Client Dependencies
 
-1. Install [cmake](https://cmake.org/download/) (version `3.16` minimum required).
+**Required Tools:**
+- [CMake](https://cmake.org/download/) (version 3.16+)
+- C++20 compatible compiler:
+  - Windows: MSVC (Visual Studio 2019+)
+  - Linux: GCC 10+ or Clang 12+
 
-2. For linux, install `libx11`, `libssl`, `libcurl`.
+**Linux System Dependencies:**
+```bash
+# Ubuntu/Debian
+sudo apt install libx11-dev libssl-dev libcurl4-openssl-dev
 
-   Ubuntu:
+# CentOS/RHEL
+sudo yum install libX11-devel openssl-devel libcurl-devel
+```
 
-   `sudo apt install libx11-dev libssl-dev libcurl4-openssl-dev`
+**Third-party Libraries (Auto-downloaded):**
+- **cpr**: HTTP client library
+- **libjpeg-turbo**: JPEG compression
+- **nlohmann_json**: JSON parsing  
+- **spdlog**: Logging framework
+- **IXWebSocket**: WebSocket client
 
-**Build**
+### Build Process
 
-In this step, a proper network connection to github is required.
+**Standard Build:**
+```bash
+mkdir build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release -j
+```
 
-Set `http_proxy` and `https_proxy` if possible.
+**Windows GUI Build(avoid console):**
+```bash
+mkdir build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_WIN32_GUI=ON
+cmake --build build --config Release -j
+```
 
-Thirdparty libraries `cpr`, `libjpeg-turbo`, `nlohmann_json`, `spdlog` depend on this.
+**Hardcoded Configuration Build:**
+```bash
+mkdir build-hardcoded
+cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build-hardcoded --config Release -j
+```
 
-1. `mkdir build && cd build`
-
-2. `cmake .. -DCMAKE_BUILD_TYPE=Release`
-   
-   > For windows, you can pass '-DUSE_WIN32_GUI=ON' to avoid console window.
-   
-3. `cmake --build . --config Release`
+> **Network Requirements**: Internet connection required for dependency download. Configure `http_proxy` and `https_proxy` if behind a proxy.
