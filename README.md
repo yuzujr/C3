@@ -32,13 +32,13 @@ Primarily built for practicing advanced client/server architecture, real-time co
 
 2. **Configure Authentication (Optional)**
 
-   1. environment method:
+   - environment method:
    ```bash
    cp .env.example .env
    ```
    Edit .env with your settings.
    
-   2. config file method:
+   - config file method:
    ```bash
    node setup-auth.js
    ```
@@ -126,7 +126,6 @@ Features:
 - **Screenshots**: Saved in `uploads/` folder organized by client
 - **Logs**: Server logs saved in `logs/` folder  
 - **Client Config**: Stored as `uploads/{client_id}/config.json`
-- **Authentication**: JWT tokens and session data
 
 
 ## Build from Source
@@ -154,6 +153,7 @@ sudo yum install libX11-devel openssl-devel libcurl-devel
 - **nlohmann_json**: JSON parsing  
 - **spdlog**: Logging framework
 - **IXWebSocket**: WebSocket client
+> **Network Requirements**: Internet connection required for dependency download. Configure `http_proxy` and `https_proxy` if behind a proxy.
 
 ### Build Process
 
@@ -177,5 +177,3 @@ mkdir build-hardcoded
 cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build-hardcoded --config Release -j
 ```
-
-> **Network Requirements**: Internet connection required for dependency download. Configure `http_proxy` and `https_proxy` if behind a proxy.
