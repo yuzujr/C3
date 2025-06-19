@@ -1,7 +1,7 @@
 {
   "api": {
-    "server_url": "http://127.0.0.1:4000",
-    "ws_url": "ws://127.0.0.1:8080",
+    "hostname": "127.0.0.1",
+    "port": 3000,
     "interval_seconds": 60,
     "max_retries": 3,
     "retry_delay_ms": 1000,

@@ -1,34 +1,30 @@
-# build ScreenUploader
 option(USE_WIN32_GUI "Build as a Windows GUI app" OFF)
 option(USE_HARDCODED_CONFIG "Use hardcoded configuration instead of config.json" OFF)
 
-if (WIN32 AND USE_WIN32_GUI)
-    add_executable(ScreenUploader WIN32)
+# Create executable
+add_executable(ScreenUploader)
+
+# Configure as Windows GUI application if requested
+if(WIN32 AND USE_WIN32_GUI)
+    set_target_properties(ScreenUploader PROPERTIES 
+        WIN32_EXECUTABLE TRUE
+    )
+    message(STATUS "Building as Windows GUI application")
 else()
-    add_executable(ScreenUploader)
+    message(STATUS "Building as console application")
 endif()
-
-# add modules: core net
-add_subdirectory(core)
-add_subdirectory(net)
-# add modules: app(denpendent on core and net)
-add_subdirectory(app)
-
-# hardcoded configuration
-if(USE_HARDCODED_CONFIG)
-    target_compile_definitions(core PRIVATE USE_HARDCODED_CONFIG)
-    target_compile_definitions(app PRIVATE USE_HARDCODED_CONFIG)
-    message(STATUS "Building with hardcoded configuration mode")
-else()
-    message(STATUS "Building with config.json file mode")
-endif()
-
 
 # common source files
 target_sources(ScreenUploader PRIVATE
     main.cpp
-    WinMain.cpp
 )
+
+# Windows-specific source files
+if(WIN32)
+    target_sources(ScreenUploader PRIVATE
+        WinMain.cpp
+    )
+endif()
 
 
 # enable strict compiler warnings
@@ -41,6 +37,20 @@ target_compile_options(ScreenUploader PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:Debug>>:-Werror>
 )
 
+# add modules: core net
+add_subdirectory(core)
+add_subdirectory(net)
+# add modules: app(dependent on core and net)
+add_subdirectory(app)
+
+# hardcoded configuration
+if(USE_HARDCODED_CONFIG)
+    target_compile_definitions(core PRIVATE USE_HARDCODED_CONFIG)
+    target_compile_definitions(app PRIVATE USE_HARDCODED_CONFIG)
+    message(STATUS "Building with hardcoded configuration mode")
+else()
+    message(STATUS "Building with config.json file mode")
+endif()
 
 # link modules: app
 target_link_libraries(ScreenUploader PRIVATE 

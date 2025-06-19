@@ -26,9 +26,16 @@ const webConnections = new Set(); // Web界面的WebSocket连接
 
 /**
  * 初始化WebSocket服务器
+ * @param {http.Server} server - HTTP服务器实例，WebSocket与HTTP共享端口
  */
-function initWebSocketServer() {
-    wsServer = new WebSocket.Server({ port: config.WS_PORT });
+function initWebSocketServer(server) {
+    if (!server) {
+        throw new Error('WebSocket server requires HTTP server instance to share port');
+    }
+
+    // 与HTTP服务器共享端口
+    wsServer = new WebSocket.Server({ server });
+    logWithTime(`[INIT] WebSocket server attached to HTTP server on port ${config.PORT}`);
 
     wsServer.on('connection', handleWebSocketConnection);
 }

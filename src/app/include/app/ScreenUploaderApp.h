@@ -22,18 +22,17 @@ private:
     void mainLoop();
     // 执行一次截图和上传
     void performScreenshotUpload();  // 上传图像和配置文件
-    void uploadImageWithRetry(const std::vector<uint8_t>& frame,
-                              const Config& config);
-    void uploadConfigWithRetry(const Config& config);
+    void uploadImageWithRetry(const std::vector<uint8_t>& frame);
+    void uploadConfigWithRetry();
 
     // 通用上传方法
     template <typename UploadFunc>
     void performUploadWithRetry(const std::string& endpoint,
                                 const std::string& description,
-                                UploadFunc uploadFunc, const Config& config);
+                                UploadFunc uploadFunc);
     // 应用配置设置
     // 包括上传配置文件和设置开机自启
-    void applyConfigSettings(const Config& config);
+    void applyConfigSettings();
 
 private:
     std::atomic<bool> m_running;

@@ -8,7 +8,8 @@ import { addNewScreenshot } from './screenshots.js';
  * 初始化 WebSocket 连接
  */
 export function initWebSocket() {
-    const wsUrl = `ws://${window.location.hostname}:8080?type=web`;
+    // 使用当前页面的端口，支持HTTP和WebSocket共享端口
+    const wsUrl = `ws://${window.location.hostname}:${window.location.port}?type=web`;
 
     const webSocket = new WebSocket(wsUrl);
     setWebSocket(webSocket);

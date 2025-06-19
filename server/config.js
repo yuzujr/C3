@@ -48,10 +48,8 @@ function createDefaultConfigTemplate() {
                 "password": "admin123",
                 "sessionSecret": generateRandomSecret(),
                 "sessionExpireHours": 24
-            },
-            "server": {
-                "httpPort": 4000,
-                "wsPort": 8080,
+            }, "server": {
+                "port": 3000,
                 "host": "0.0.0.0"
             }
         }; try {
@@ -73,10 +71,8 @@ if (Object.keys(externalConfig).length === 0) {
 }
 
 // 服务器配置
-const config = {
-    // 端口配置 (优先使用环境变量，然后是外部配置，最后是默认值)
-    HTTP_PORT: parseInt(process.env.HTTP_PORT) || externalConfig.server?.httpPort || 4000,
-    WS_PORT: parseInt(process.env.WS_PORT) || externalConfig.server?.wsPort || 8080,
+const config = {    // 端口配置 (优先使用环境变量，然后是外部配置，最后是默认值)
+    PORT: parseInt(process.env.PORT) || externalConfig.server?.port || 3000,
 
     // 网络配置
     HOST: process.env.HOST || externalConfig.server?.host || '0.0.0.0',

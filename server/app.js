@@ -58,16 +58,14 @@ function startServer() {
         // 初始化上传模块
         initUploadModule();
 
-        // 初始化WebSocket服务器
-        initWebSocketServer();
-
         // 创建HTTP服务器
         const app = createApp();
 
         // 启动HTTP服务器
-        const server = app.listen(config.HTTP_PORT, config.HOST, () => {
-            logWithTime(`[INIT] HTTP Server running at http://127.0.0.1:${config.HTTP_PORT}`);
-            logWithTime(`[INIT] WebSocket Server running at ws://127.0.0.1:${config.WS_PORT}`);
+        const server = app.listen(config.PORT, config.HOST, () => {
+            // 初始化WebSocket服务器，与HTTP共享端口
+            initWebSocketServer(server);
+            logWithTime(`[INIT] HTTP & WebSocket Server running at http://127.0.0.1:${config.PORT}`);
             logWithTime('[INIT] ScreenUploader Server started successfully');
         });
 

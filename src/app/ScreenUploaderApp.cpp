@@ -35,7 +35,7 @@ ScreenUploaderApp::ScreenUploaderApp()
 #endif
 
     // 应用配置设置
-    applyConfigSettings(m_config);
+    applyConfigSettings();
 
     // 启用高 DPI 感知
     SystemUtils::enableHighDPI();  // 设置截图回调函数
@@ -52,14 +52,14 @@ ScreenUploaderApp::ScreenUploaderApp()
     // 设置响应回调函数
     m_dispatcher.setResponseCallback([this](const nlohmann::json& response) {
         // 通过 WebSocket 发送响应回服务器
-        m_wsClient.sendMessage(response);
+        m_wsClient.send(response);
     });
 }
 
 ScreenUploaderApp::~ScreenUploaderApp() {
     m_running = false;
     // 关闭 WebSocket 客户端
-    m_wsClient.stop();
+    m_wsClient.close();
 }
 
 int ScreenUploaderApp::run() {
@@ -75,7 +75,7 @@ void ScreenUploaderApp::startWebSocketCommandListener() {
     });
 
     // 启动 WebSocket 客户端
-    m_wsClient.start();
+    m_wsClient.connect(m_config.getWebSocketUrl(), m_config.client_id);
 }
 
 void ScreenUploaderApp::mainLoop() {
@@ -97,7 +97,7 @@ void ScreenUploaderApp::mainLoop() {
             if (config_changed || m_config.remote_changed) {
                 // 本地或远程进行了修改
                 m_config.remote_changed = false;
-                applyConfigSettings(m_config);
+                applyConfigSettings();
             }
         } else {
             // 硬编码配置模式：处理远程配置更改
@@ -130,77 +130,67 @@ void ScreenUploaderApp::performScreenshotUpload() {
     if (!frame.has_value()) {
         Logger::error("Failed to capture screen");
     } else {
-        uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame.value()),
-                             m_config);
+        uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame.value()));
     }
 }
 
 template <typename UploadFunc>
 void ScreenUploaderApp::performUploadWithRetry(const std::string& endpoint,
                                                const std::string& description,
-                                               UploadFunc uploadFunc,
-                                               const Config& config) {
+                                               UploadFunc uploadFunc) {
     std::string upload_url =
-        std::format("{}/client/{}?client_id={}", config.server_url, endpoint,
-                    config.client_id);
+        std::format("{}/client/{}?client_id={}", m_config.getServerUrl(),
+                    endpoint, m_config.client_id);
     Logger::info(std::format("Uploading {} to: {}", description, upload_url));
 
     bool success = Uploader::uploadWithRetry(
         [&]() {
             return uploadFunc(upload_url);
         },
-        config.max_retries, config.retry_delay_ms);
+        m_config.max_retries, m_config.retry_delay_ms);
 
     if (!success) {
         Logger::error(std::format("{} failed after {} attempts.\n", description,
-                                  config.max_retries));
+                                  m_config.max_retries));
     }
 }
 
-void ScreenUploaderApp::uploadImageWithRetry(const std::vector<uint8_t>& frame,
-                                             const Config& config) {
-    performUploadWithRetry(
-        "upload_screenshot", "screenshot",
-        [&](const std::string& url) {
-            return Uploader::uploadImage(frame, url);
-        },
-        config);
+void ScreenUploaderApp::uploadImageWithRetry(
+    const std::vector<uint8_t>& frame) {
+    performUploadWithRetry("upload_screenshot", "screenshot",
+                           [&](const std::string& url) {
+                               return Uploader::uploadImage(frame, url);
+                           });
 }
 
-void ScreenUploaderApp::uploadConfigWithRetry(const Config& config) {
+void ScreenUploaderApp::uploadConfigWithRetry() {
     performUploadWithRetry(
-        "upload_client_config", "config",
-        [&](const std::string& url) {
-            return Uploader::uploadConfig(config.toJson(), url);
-        },
-        config);
+        "upload_client_config", "config", [&](const std::string& url) {
+            return Uploader::uploadConfig(m_config.toJson(), url);
+        });
 }
 
-void ScreenUploaderApp::applyConfigSettings(const Config& config) {
+void ScreenUploaderApp::applyConfigSettings() {
     // 上传配置文件
-    uploadConfigWithRetry(config);
+    uploadConfigWithRetry();
 
     // 设置开机自启
-    if (config.add_to_startup) {
+    if (m_config.add_to_startup) {
         SystemUtils::addToStartup("ScreenUploader");
         Logger::info("Added to startup successfully");
     } else {
         SystemUtils::removeFromStartup("ScreenUploader");
         Logger::info("Removed from startup successfully");
     }
+    // 连接或重连 WebSocket 客户端
+    if (m_wsClient.getUrl().empty()) {
+        m_wsClient.connect(m_config.getWebSocketUrl(), m_config.client_id);
 
-    // 设置websocket地址
-    if (!m_wsClient.getClientId().empty() && !m_wsClient.getWsUrl().empty()) {
-        // 非首次调用
-        if (m_wsClient.getClientId() != config.client_id ||
-            m_wsClient.getWsUrl() != config.ws_url) {
-            // ws_url或client_id改变，重连ws
-            m_wsClient.reconnect(config.ws_url, config.client_id);
-        }
     } else {
-        // 首次调用
-        // 设置ws url，client_id
-        m_wsClient.setWsUrl(config.ws_url);
-        m_wsClient.setClientId(config.client_id);
+        // url改变，重连ws
+        if (m_wsClient.getUrl() != m_config.getWebSocketUrl()) {
+            m_wsClient.reconnect(m_config.getWebSocketUrl(),
+                                 m_config.client_id);
+        }
     }
 }

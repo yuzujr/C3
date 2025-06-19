@@ -96,13 +96,24 @@ function validateConfigData(configData) {
         return { valid: false, errors };
     }
 
-    const config = configData.api;
-
-    // 检查必需字段
-    const requiredFields = ['server_url', 'ws_url'];
+    const config = configData.api;    // 检查必需字段
+    const requiredFields = ['hostname', 'port'];
     for (const field of requiredFields) {
         if (!config[field]) {
             errors.push(`Missing required field: ${field}`);
+        }
+    }
+
+    // 检查主机名
+    if (config.hostname && typeof config.hostname !== 'string') {
+        errors.push('hostname must be a string');
+    }
+
+    // 检查端口
+    if (config.port !== undefined) {
+        const port = Number(config.port);
+        if (isNaN(port) || port < 1 || port > 65535) {
+            errors.push('port must be a number between 1 and 65535');
         }
     }
 

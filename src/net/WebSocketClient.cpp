@@ -7,54 +7,40 @@
 
 #include "core/Logger.h"
 
-WebSocketClient::WebSocketClient(const std::string& ws_url,
-                                 const std::string& client_id)
-    : m_ws_url(ws_url), m_client_id(client_id) {
-    ix::initNetSystem();
-}
-
 WebSocketClient::WebSocketClient() {}
 
 WebSocketClient::~WebSocketClient() {
-    stop();
+    close();
     ix::uninitNetSystem();
 }
 
-void WebSocketClient::setWsUrl(const std::string& ws_url) {
-    m_ws_url = ws_url;
-}
-void WebSocketClient::setClientId(const std::string& client_id) {
-    m_client_id = client_id;
+std::string WebSocketClient::getUrl() const {
+    std::string fullUrl = m_ws.getUrl();
+
+    // 找到第三个斜杠的位置，截取基本URL
+    size_t protocolEnd = fullUrl.find("://");
+    if (protocolEnd != std::string::npos) {
+        size_t pathStart = fullUrl.find("/", protocolEnd + 3);
+        if (pathStart != std::string::npos) {
+            return fullUrl.substr(0, pathStart);
+        }
+    }
+
+    return fullUrl;  // 如果解析失败，返回原URL
 }
 
-const std::string& WebSocketClient::getWsUrl() {
-    return m_ws_url;
-}
-const std::string& WebSocketClient::getClientId() {
-    return m_client_id;
-}
-
-void WebSocketClient::start() {
-    Logger::info(std::format("Connecting WebSocket on {}", m_ws_url));
-    connectToServer();
-}
-
-void WebSocketClient::stop() {
+void WebSocketClient::close() {
     m_ws.close();
 }
 
-void WebSocketClient::reconnect(const std::string& server_url,
+void WebSocketClient::reconnect(const std::string& url,
                                 const std::string& client_id) {
-    // 更新 URL 和 Client ID
-    m_ws_url = server_url;
-    m_client_id = client_id;
-
     // 重新连接
-    stop();
-    connectToServer();
+    close();
+    connect(url, client_id);
 }
 
-void WebSocketClient::sendMessage(const nlohmann::json& message) {
+void WebSocketClient::send(const nlohmann::json& message) {
     if (m_ws.getReadyState() == ix::ReadyState::Open) {
         std::string message_str = message.dump();
         ix::WebSocketSendInfo result = m_ws.send(message_str);
@@ -69,9 +55,10 @@ void WebSocketClient::sendMessage(const nlohmann::json& message) {
     }
 }
 
-void WebSocketClient::connectToServer() {
+void WebSocketClient::connect(const std::string& url,
+                              const std::string& client_id) {
     std::string ws_url =
-        std::format("{}/client/commands?client_id={}", m_ws_url, m_client_id);
+        std::format("{}/client/commands?client_id={}", url, client_id);
     m_ws.setUrl(ws_url);
 
     ix::OnMessageCallback callback =
@@ -86,7 +73,7 @@ void WebSocketClient::connectToServer() {
     m_ws.start();
 }
 
-void WebSocketClient::onMessage(const ix::WebSocketMessage& msg) {
+void WebSocketClient::onMessage(const ix::WebSocketMessage& msg) const {
     if (msg.type == ix::WebSocketMessageType::Message) {
         try {
             // 解析服务端的 JSON 消息

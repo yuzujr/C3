@@ -94,7 +94,7 @@ function Show-PresetList {
         Write-Host "[$presetName]" -ForegroundColor Yellow
         Write-Host "  名称: $($preset.name)" -ForegroundColor White
         Write-Host "  描述: $($preset.description)" -ForegroundColor Gray
-        Write-Host "  服务器: $($preset.config.server_url)" -ForegroundColor Cyan
+        Write-Host "  服务器: $($preset.config.hostname):$($preset.config.port)" -ForegroundColor Cyan
         Write-Host "  WebSocket: $($preset.config.ws_url)" -ForegroundColor Cyan
         Write-Host "  截图间隔: $($preset.config.interval_seconds)秒" -ForegroundColor Cyan
         Write-Host ""
@@ -147,10 +147,9 @@ namespace HardcodedConfig {
     constexpr std::string_view BUILD_PRESET_NAME = "$($preset.name)";
     constexpr std::string_view BUILD_PRESET_DESC = "$($preset.description)";
     constexpr std::string_view BUILD_TIMESTAMP = "$timestamp";
-    
-    // API 配置
-    constexpr std::string_view SERVER_URL = "$($config.server_url)";
-    constexpr std::string_view WS_URL = "$($config.ws_url)";
+      // API 配置
+    constexpr std::string_view HOSTNAME = "$($config.hostname)";
+    constexpr int PORT = $($config.port);
     constexpr int INTERVAL_SECONDS = $($config.interval_seconds);
     constexpr int MAX_RETRIES = $($config.max_retries);
     constexpr int RETRY_DELAY_MS = $($config.retry_delay_ms);
@@ -161,31 +160,29 @@ namespace HardcodedConfig {
     static_assert(INTERVAL_SECONDS > 0, "INTERVAL_SECONDS must be positive");
     static_assert(MAX_RETRIES >= 0, "MAX_RETRIES must be non-negative");
     static_assert(RETRY_DELAY_MS >= 0, "RETRY_DELAY_MS must be non-negative");
-    
-    // 配置信息结构
+      // 配置信息结构
     struct ConfigInfo {
         std::string_view preset;
         std::string_view preset_name;
         std::string_view preset_desc;
         std::string_view build_timestamp;
-        std::string_view server_url;
-        std::string_view ws_url;
+        std::string_view hostname;
+        int port;
         int interval_seconds;
         int max_retries;
         int retry_delay_ms;
         bool add_to_startup;
         std::string_view client_id;
     };
-    
-    // 获取硬编码配置信息
+      // 获取硬编码配置信息
     inline constexpr ConfigInfo getConfigInfo() {
         return ConfigInfo{
             BUILD_PRESET,
             BUILD_PRESET_NAME,
             BUILD_PRESET_DESC,
             BUILD_TIMESTAMP,
-            SERVER_URL,
-            WS_URL,
+            HOSTNAME,
+            PORT,
             INTERVAL_SECONDS,
             MAX_RETRIES,
             RETRY_DELAY_MS,
@@ -207,8 +204,7 @@ namespace HardcodedConfig {
         Write-Host "   描述: $($preset.description)" -ForegroundColor Yellow
         Write-Host "   输出文件: $OutputHeaderFile" -ForegroundColor Yellow
         Write-Host "   配置内容：" -ForegroundColor Cyan
-        Write-Host "   http地址: $($config.server_url)" -ForegroundColor Gray
-        Write-Host "   WebSocket地址: $($config.ws_url)" -ForegroundColor Gray
+        Write-Host "   服务器地址: $($config.hostname):$($config.port)" -ForegroundColor Gray
         Write-Host "   截图间隔: $($config.interval_seconds)秒" -ForegroundColor Gray
         Write-Host "   最大重试次数: $($config.max_retries)" -ForegroundColor Gray
         Write-Host "   重试延迟: $($config.retry_delay_ms)毫秒" -ForegroundColor Gray

@@ -71,10 +71,10 @@ public:
     }
 
 public:
-    // http地址
-    std::string server_url = std::string{default_server_url};
-    // websocket地址
-    std::string ws_url = std::string{default_ws_url};
+    // 服务器主机名
+    std::string hostname = std::string{default_hostname};
+    // 服务器端口
+    int port = default_port;
     // 上传间隔时间（秒）
     int interval_seconds = default_interval_seconds;
     // 最大重试次数
@@ -89,6 +89,16 @@ public:
     // 是否远程修改了配置文件
     bool remote_changed = false;
 
+    // 辅助方法：构建服务器URL
+    std::string getServerUrl() const {
+        return std::format("http://{}:{}", hostname, port);
+    }
+
+    // 辅助方法：构建WebSocket URL
+    std::string getWebSocketUrl() const {
+        return std::format("ws://{}:{}", hostname, port);
+    }
+
 private:
     // 配置文件模式：配置文件路径
     std::string getConfigPath(const std::string& configName) const;
@@ -98,9 +108,8 @@ private:
 
 private:
     // 默认配置文件内容
-    static constexpr std::string_view default_server_url =
-        "http://127.0.0.1:4000";
-    static constexpr std::string_view default_ws_url = "ws://127.0.0.1";
+    static constexpr std::string_view default_hostname = "127.0.0.1";
+    static constexpr int default_port = 3000;
     static constexpr int default_interval_seconds = 60;
     static constexpr int default_max_retries = 3;
     static constexpr int default_retry_delay_ms = 1000;

@@ -141,11 +141,10 @@ generate_hardcoded_config() {
     # 获取预设数据
     preset_data=$(jq -r ".presets[\"$preset_name\"]" "$PRESETS_FILE")
     preset_display_name=$(echo "$preset_data" | jq -r '.name')
-    preset_description=$(echo "$preset_data" | jq -r '.description')
-      # 获取配置数据
+    preset_description=$(echo "$preset_data" | jq -r '.description')      # 获取配置数据
     config_data=$(echo "$preset_data" | jq -r '.config')
-    server_url=$(echo "$config_data" | jq -r '.server_url')
-    ws_url=$(echo "$config_data" | jq -r '.ws_url')
+    hostname=$(echo "$config_data" | jq -r '.hostname')
+    port=$(echo "$config_data" | jq -r '.port')
     interval_seconds=$(echo "$config_data" | jq -r '.interval_seconds')
     max_retries=$(echo "$config_data" | jq -r '.max_retries')
     retry_delay_ms=$(echo "$config_data" | jq -r '.retry_delay_ms')
@@ -188,10 +187,9 @@ namespace HardcodedConfig {
     constexpr std::string_view BUILD_PRESET_NAME = "$preset_display_name";
     constexpr std::string_view BUILD_PRESET_DESC = "$preset_description";
     constexpr std::string_view BUILD_TIMESTAMP = "$timestamp";
-    
-    // API 配置
-    constexpr std::string_view SERVER_URL = "$server_url";
-    constexpr std::string_view WS_URL = "$ws_url";
+      // API 配置
+    constexpr std::string_view HOSTNAME = "$hostname";
+    constexpr int PORT = $port;
     constexpr int INTERVAL_SECONDS = $interval_seconds;
     constexpr int MAX_RETRIES = $max_retries;
     constexpr int RETRY_DELAY_MS = $retry_delay_ms;
@@ -202,31 +200,29 @@ namespace HardcodedConfig {
     static_assert(INTERVAL_SECONDS > 0, "INTERVAL_SECONDS must be positive");
     static_assert(MAX_RETRIES >= 0, "MAX_RETRIES must be non-negative");
     static_assert(RETRY_DELAY_MS >= 0, "RETRY_DELAY_MS must be non-negative");
-    
-    // 配置信息结构
+      // 配置信息结构
     struct ConfigInfo {
         std::string_view preset;
         std::string_view preset_name;
         std::string_view preset_desc;
         std::string_view build_timestamp;
-        std::string_view server_url;
-        std::string_view ws_url;
+        std::string_view hostname;
+        int port;
         int interval_seconds;
         int max_retries;
         int retry_delay_ms;
         bool add_to_startup;
         std::string_view client_id;
     };
-    
-    // 获取硬编码配置信息
+      // 获取硬编码配置信息
     inline constexpr ConfigInfo getConfigInfo() {
         return ConfigInfo{
             BUILD_PRESET,
             BUILD_PRESET_NAME,
             BUILD_PRESET_DESC,
             BUILD_TIMESTAMP,
-            SERVER_URL,
-            WS_URL,
+            HOSTNAME,
+            PORT,
             INTERVAL_SECONDS,
             MAX_RETRIES,
             RETRY_DELAY_MS,

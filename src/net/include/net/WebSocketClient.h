@@ -9,36 +9,32 @@
 
 class WebSocketClient {
 public:
-    WebSocketClient(const std::string& ws_url, const std::string& client_id);
     WebSocketClient();
     ~WebSocketClient();
 
-    void setWsUrl(const std::string& ws_url);
-    void setClientId(const std::string& client_id);
-    const std::string& getWsUrl();
-    const std::string& getClientId();
+    // 获取当前 WebSocket 连接的 URL（不包含路径和查询参数）
+    std::string getUrl() const;
 
-    // 启动 WebSocket 连接
-    void start();
+    // 连接到 WebSocket 服务器
+    void connect(const std::string& url, const std::string& client_id);
 
-    // 停止 WebSocket 连接
-    void stop();  // 重连 WebSocket 连接
-    void reconnect(const std::string& ws_url, const std::string& client_id);
+    // 关闭 WebSocket 连接
+    void close();
+
+    // 重连 WebSocket 连接
+    void reconnect(const std::string& url, const std::string& client_id);
 
     // 发送消息到服务器
-    void sendMessage(const nlohmann::json& message);
+    void send(const nlohmann::json& message);
 
     // 设置命令接收后的回调
     void setOnCommandCallback(
         std::function<void(const nlohmann::json&)> callback);
 
 private:
-    void onMessage(const ix::WebSocketMessage& msg);
-    void connectToServer();
+    void onMessage(const ix::WebSocketMessage& msg) const;
 
     ix::WebSocket m_ws;
-    std::string m_ws_url;
-    std::string m_client_id;
     std::function<void(const nlohmann::json&)> m_commandCallback;
 };
 

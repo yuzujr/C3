@@ -36,8 +36,12 @@ public:
                      LogTarget target = LogTarget::Client);
 
 private:
-    static inline std::shared_ptr<spdlog::logger> client_logger;
-    static inline std::shared_ptr<spdlog::logger> server_logger;
+    // Logger names
+    static constexpr const char* CLIENT_LOGGER_NAME = "client";
+    static constexpr const char* SERVER_LOGGER_NAME = "server";
+
+    // 获取目标日志记录器
+    static std::shared_ptr<spdlog::logger> get_logger(LogTarget target);
 };
 
 #endif  // LOGGER_H
