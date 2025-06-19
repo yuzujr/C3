@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  screen-uploader-server:
+    build: .
+    container_name: screen-uploader-server
+    ports:
+      - "3000:3000"
+    volumes:
+      # 持久化上传文件
+      - ./uploads:/usr/src/app/uploads
+      # 持久化日志文件
+      - ./logs:/usr/src/app/logs
+      # 持久化配置文件
+      - ./server.config.json:/usr/src/app/server.config.json:ro
+      # 持久化环境变量文件
+      - ./.env:/usr/src/app/.env:ro
+      # 持久化客户端信息
+      - ./clients.json:/usr/src/app/clients.json
+    environment:
+      - NODE_ENV=production
+      - DOCKER_ENV=true
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    networks:
+      - screen-uploader-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => { process.exit(1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  screen-uploader-network:
+    driver: bridge

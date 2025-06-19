@@ -116,13 +116,14 @@ function validateConfig() {
     }
 
     // 检查生产环境配置
-    if (config.HOST === '0.0.0.0' && process.env.NODE_ENV === 'production') {
+    // 在Docker环境中，绑定0.0.0.0是正常的，因为有容器网络隔离
+    const isDockerEnv = process.env.DOCKER_ENV === 'true' || fs.existsSync('/.dockerenv');
+    if (config.HOST === '0.0.0.0' && process.env.NODE_ENV === 'production' && !isDockerEnv) {
         warnings.push('⚠️  Binding to 0.0.0.0 in production. Consider restricting to specific IP.');
     }    // 显示警告
     if (warnings.length > 0) {
-        logWithTime('\n[CONFIG] Security Warnings:');
+        logWithTime('[CONFIG] Security Warnings:');
         warnings.forEach(warning => logWithTime(`  ${warning}`));
-        logWithTime('');
     }
 
     // 显示错误
