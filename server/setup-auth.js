@@ -50,8 +50,7 @@ async function main() {
                 sessionExpireHours: 24
             },
             server: {
-                httpPort: 4000,
-                wsPort: 8080,
+                port: 3000,
                 host: "0.0.0.0"
             }
         };
