@@ -42,6 +42,8 @@ add_subdirectory(core)
 add_subdirectory(net)
 # add modules: app(dependent on core and net)
 add_subdirectory(app)
+# feature modules
+add_subdirectory(feature/pty)
 
 # hardcoded configuration
 if(USE_HARDCODED_CONFIG)
