@@ -22,7 +22,7 @@ function getClientConfig(clientId) {
     try {
         const raw = fs.readFileSync(configPath, 'utf-8').trim();
         const configData = raw ? JSON.parse(raw) : {};
-        return configData.api || null;
+        return configData || null;
     } catch (error) {
         errorWithTime(`[CONFIG] Failed to read config for ${clientId}:`, error);
         return null;

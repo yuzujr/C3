@@ -54,12 +54,14 @@ export async function loadClientConfig(clientAlias) {
         }
         const config = await res.json();
 
-        document.getElementById('serverUrl').value = config.server_url || '';
-        document.getElementById('wsUrl').value = config.ws_url || '';
-        document.getElementById('intervalSeconds').value = config.interval_seconds ?? '';
-        document.getElementById('maxRetries').value = config.max_retries ?? '';
-        document.getElementById('retryDelayMs').value = config.retry_delay_ms ?? '';
-        document.getElementById('addToStartup').checked = !!config.add_to_startup;
+        if (config.api) {
+            document.getElementById('hostname').value = config.api.hostname || '';
+            document.getElementById('port').value = config.api.port || '';
+            document.getElementById('intervalSeconds').value = config.api.interval_seconds ?? '';
+            document.getElementById('maxRetries').value = config.api.max_retries ?? '';
+            document.getElementById('retryDelayMs').value = config.api.retry_delay_ms ?? '';
+            document.getElementById('addToStartup').checked = !!config.api.add_to_startup;
+        }
     } catch (err) {
         console.error('加载客户端配置出错:', err);
     }
@@ -74,26 +76,39 @@ export async function updateClientConfig() {
         return;
     }
 
-    const serverUrl = document.getElementById('serverUrl').value;
-    const wsUrl = document.getElementById('wsUrl').value;
+    const hostname = document.getElementById('hostname').value.trim();
+    const port = parseInt(document.getElementById('port').value);
     const intervalSeconds = parseInt(document.getElementById('intervalSeconds').value);
     const maxRetries = parseInt(document.getElementById('maxRetries').value);
     const retryDelayMs = parseInt(document.getElementById('retryDelayMs').value);
     const addToStartup = document.getElementById('addToStartup').checked;
 
-    if (!serverUrl || !wsUrl || isNaN(intervalSeconds) || isNaN(maxRetries) || isNaN(retryDelayMs)) {
+    // 验证必填字段
+    if (!hostname || isNaN(port) || isNaN(intervalSeconds) || isNaN(maxRetries) || isNaN(retryDelayMs)) {
         showToast('请填写正确的配置参数');
+        return;
+    }
+
+    // 验证端口范围
+    if (port < 1 || port > 65535) {
+        showToast('端口号必须在1-65535之间');
+        return;
+    }
+
+    // 验证间隔时间
+    if (intervalSeconds < 1) {
+        showToast('截图间隔必须大于0秒');
         return;
     }
 
     const newConfig = {
         api: {
-            server_url: serverUrl,
-            ws_url: wsUrl,
+            hostname: hostname,
+            port: port,
             interval_seconds: intervalSeconds,
             max_retries: maxRetries,
             retry_delay_ms: retryDelayMs,
-            add_to_startup: addToStartup
+            add_to_startup: addToStartup,
         }
     };
 

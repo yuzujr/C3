@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 #include <filesystem>
+#include <format>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <string_view>
