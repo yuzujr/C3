@@ -10,9 +10,11 @@
 class ScreenUploaderApp {
 public:
     ScreenUploaderApp();
-    ~ScreenUploaderApp();
-    // 启动应用程序
-    int run();                 // 立即截图并上传（远程命令回调函数）
+    ~ScreenUploaderApp();  // 启动应用程序
+    int run();
+    // 停止应用程序（用于信号处理）
+    void stop();
+    // 立即截图并上传（远程命令回调函数）
     void takeScreenshotNow();  // 执行 Shell 命令（远程命令回调函数）
 
 private:

@@ -8,7 +8,7 @@ import { initDeleteScreenshots } from './modules/delete.js';
 import { initThemeToggle } from './modules/theme.js';
 import { initWebSocket } from './modules/websocket.js';
 import { initAllEventListeners } from './modules/events.js';
-import { initTerminal } from './modules/terminal.js';
+import { initPtyTerminal } from './modules/pty-terminal.js';
 import { initTabs } from './modules/tabs.js';
 
 /**
@@ -41,7 +41,7 @@ async function initApp() {
         // 初始隐藏命令按钮
         document.getElementById('cmdButtons').style.display = 'none';        // 初始化各种功能模块
         initTabs();
-        initTerminal();
+        initPtyTerminal();
         initImageModal();
         initDeleteScreenshots();
         initThemeToggle();

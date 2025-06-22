@@ -1,21 +1,22 @@
 #include <Windows.h>
 #include <process.h>
 
-#include <cstdio>   // 添加printf支持
-#include <cstring>  // 添加strcpy支持
+#include <cstdio>
+#include <cstring>
 
 // Forward declarations
 HRESULT CreatePseudoConsoleAndPipes(HPCON*, HANDLE*, HANDLE*);
 HRESULT InitializeStartupInfoAttachedToPseudoConsole(STARTUPINFOEXW*, HPCON);
+void TestDirectPowerShell();          // 测试直接管道PowerShell
 void __cdecl OutputListener(LPVOID);  // 输出监听线程
 void __cdecl InputHandler(LPVOID);    // 输入处理线程
 
 int main() {
     // 启动交互式shell而不是固定命令
-    // wchar_t szCommand[]{L"cmd.exe"};  // 启动命令提示符
+    wchar_t szCommand[]{L"cmd.exe"};  // 启动命令提示符
 
     // PowerShell - 让它自动检测ConPTY环境
-    wchar_t szCommand[]{L"powershell.exe -NoLogo"};
+    // wchar_t szCommand[]{L"powershell.exe -NoLogo"};
 
     // wchar_t szCommand[]{L"wsl.exe"};             // 启动WSL
     // wchar_t szCommand[]{L"ping localhost"};      // 旧版本：直接执行ping命令

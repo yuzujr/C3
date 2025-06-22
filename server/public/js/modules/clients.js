@@ -50,11 +50,9 @@ export function updateClientFeatures(isOnline) {
         const commandMessage = document.getElementById('commandMessage');
         if (commandMessage) {
             commandMessage.style.display = 'none';
-        }
-
-        // 启用终端功能 - 使用terminal模块的统一方法
-        import('./terminal.js').then(({ updateTerminalState }) => {
-            updateTerminalState(true);
+        }        // 启用终端功能 - 使用pty-terminal模块的统一方法
+        import('./pty-terminal.js').then(({ updatePtyTerminalState }) => {
+            updatePtyTerminalState(true);
         });
 
         // 显示配置区域
@@ -76,9 +74,9 @@ export function updateClientFeatures(isOnline) {
             commandMessage.style.display = 'block';
         }
 
-        // 禁用终端功能 - 使用terminal模块的统一方法
-        import('./terminal.js').then(({ updateTerminalState }) => {
-            updateTerminalState(false);
+        // 禁用终端功能 - 使用pty-terminal模块的统一方法
+        import('./pty-terminal.js').then(({ updatePtyTerminalState }) => {
+            updatePtyTerminalState(false);
         });
 
         // 隐藏配置区域
@@ -114,11 +112,9 @@ export async function fetchClients() {
             clientsList.textContent = '无客户端';
             setSelectedClient(null);
             document.getElementById('commands').style.display = 'none';
-            document.getElementById('screenshots').textContent = '请选择客户端';
-
-            // 禁用终端功能 - 使用terminal模块的统一方法
-            import('./terminal.js').then(({ updateTerminalState }) => {
-                updateTerminalState(false);
+            document.getElementById('screenshots').textContent = '请选择客户端';            // 禁用终端功能 - 使用pty-terminal模块的统一方法
+            import('./pty-terminal.js').then(({ updatePtyTerminalState }) => {
+                updatePtyTerminalState(false);
             });
             return;
         }// 检查是否有在线客户端
@@ -149,11 +145,9 @@ export async function fetchClients() {
                 if (commandMessage) {
                     commandMessage.textContent = '请选择一个客户端';
                     commandMessage.style.display = 'block';
-                }
-
-                // 禁用终端功能 - 使用terminal模块的统一方法
-                import('./terminal.js').then(({ updateTerminalState }) => {
-                    updateTerminalState(false);
+                }                // 禁用终端功能 - 使用pty-terminal模块的统一方法
+                import('./pty-terminal.js').then(({ updatePtyTerminalState }) => {
+                    updatePtyTerminalState(false);
                 });
 
                 // 隐藏配置区域
@@ -225,12 +219,10 @@ export async function selectClient(clientAlias, isOnline = true) {
     document.getElementById('screenshots').textContent = '加载截图中...';
 
     // 根据在线状态启用/禁用功能
-    updateClientFeatures(isOnline);
-
-    // 重置终端工作目录（只在切换到不同客户端时）
+    updateClientFeatures(isOnline);    // 重置终端工作目录（只在切换到不同客户端时）
     if (isDifferentClient) {
-        import('./terminal.js').then(({ resetWorkingDirectory }) => {
-            resetWorkingDirectory();
+        import('./pty-terminal.js').then(({ resetPtyTerminal }) => {
+            resetPtyTerminal();
         });
     }
 

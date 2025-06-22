@@ -1,167 +1,273 @@
 #include "core/CommandDispatcher.h"
 
 #include <format>
+#include <memory>
 #include <string>
 
 #include "core/Logger.h"
-#include "core/TerminalManager.h"
+#include "core/PtyManager.h"
 
-CommandDispatcher::~CommandDispatcher() {
-    // 等待所有活跃的异步执行完成
-    while (m_activeExecutions.load() > 0) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-}
+// ===========================================
+// 具体命令实现类
+// ===========================================
 
-void CommandDispatcher::setScreenshotCallback(ScreenshotCallback callback) {
-    m_screenshotCallback = callback;
-}
+// 暂停截图命令
+class PauseScreenshotsCommand : public ICommand {
+private:
+    ControlCenter& m_controller;
 
-void CommandDispatcher::setShellExecuteCallback(ShellExecuteCallback callback) {
-    m_shellExecuteCallback = callback;
-}
-
-void CommandDispatcher::setResponseCallback(
-    std::function<void(const nlohmann::json&)> callback) {
-    m_responseCallback = callback;
-}
-
-void CommandDispatcher::dispatchCommands(const nlohmann::json& message) {
-    // 验证消息格式
-    if (!message.is_object()) {
-        Logger::warn("Invalid command message: not a JSON object");
-        return;
-    }
-
-    if (!message.contains("type") || !message["type"].is_string()) {
-        Logger::warn(
-            "Invalid command message: missing or invalid 'type' field");
-        return;
-    }
-
-    std::string command = message["type"];
-
-    if (command.empty()) {
-        Logger::warn("[command] empty command");
-        return;
-    }
-
-    Logger::info(std::format("[command] {}", command));
-    if (command == "pause_screenshots") {
+public:
+    explicit PauseScreenshotsCommand(ControlCenter& controller)
+        : m_controller(controller) {}
+    CommandDispatcher::CommandResult execute(const nlohmann::json&) override {
         m_controller.pause();
-    } else if (command == "resume_screenshots") {
+        return {true, "Screenshots paused"};
+    }
+};
+
+// 恢复截图命令
+class ResumeScreenshotsCommand : public ICommand {
+private:
+    ControlCenter& m_controller;
+
+public:
+    explicit ResumeScreenshotsCommand(ControlCenter& controller)
+        : m_controller(controller) {}
+    CommandDispatcher::CommandResult execute(const nlohmann::json&) override {
         m_controller.resume();
-    } else if (command == "update_config") {
+        return {true, "Screenshots resumed"};
+    }
+};
+
+// 更新配置命令
+class UpdateConfigCommand : public ICommand {
+private:
+    Config& m_config;
+
+public:
+    explicit UpdateConfigCommand(Config& config) : m_config(config) {}
+
+    CommandDispatcher::CommandResult execute(
+        const nlohmann::json& message) override {
         if (!message.contains("data")) {
-            Logger::warn("update_config command received without config data");
-            return;
+            return {false, "Missing config data"};
         }
+
         if (m_config.parseConfig(message["data"])) {
             m_config.save("config.json");
             m_config.updateLastWriteTime("config.json");
             m_config.remote_changed = true;
             Logger::info("Config reloaded successfully");
             m_config.list();
+            return {true, "Config updated successfully"};
         } else {
-            Logger::warn("Failed to parse config data, ignoring command");
+            return {false, "Failed to parse config data"};
         }
-    } else if (command == "take_screenshot") {
-        if (m_screenshotCallback) {
-            m_screenshotCallback();
+    }
+};
+
+// 截图命令
+class TakeScreenshotCommand : public ICommand {
+private:
+    CommandDispatcher::ScreenshotCallback m_callback;
+
+public:
+    explicit TakeScreenshotCommand(
+        CommandDispatcher::ScreenshotCallback callback)
+        : m_callback(callback) {}
+    CommandDispatcher::CommandResult execute(const nlohmann::json&) override {
+        if (m_callback) {
+            m_callback();
+            return {true, "Screenshot taken"};
         } else {
-            Logger::warn("Screenshot callback not set");
+            return {false, "Screenshot callback not set"};
         }
-    } else if (command == "shell_execute") {
+    }
+};
+
+// PTY 调整大小命令
+class PtyResizeCommand : public ICommand {
+public:
+    CommandDispatcher::CommandResult execute(
+        const nlohmann::json& message) override {
         if (!message.contains("data")) {
-            Logger::warn("shell_execute command received without data");
-            return;
+            return {false, "Missing resize data"};
         }
 
         auto data = message["data"];
-        std::string shell_command = data.value("command", "");
         std::string session_id = data.value("session_id", "default");
-        if (shell_command.empty()) {
-            Logger::warn("shell_execute command received with empty command");
-            return;
-        }
-        if (m_shellExecuteCallback) {
-            // 异步执行 shell 命令，避免阻塞 WebSocket 消息处理线程
-            executeShellCommandAsync(shell_command, session_id);
-        } else {
-            Logger::warn("Shell execute callback not set");
-        }
-    } else if (command == "force_kill_session") {
+        int cols = data.value("cols", 80);
+        int rows = data.value("rows", 24);
+
+        // 调整 PTY 会话大小
+        auto result = PtyManager::resizePtySession(session_id, cols, rows);
+
+        Logger::info(std::format("Resize PTY session {}: {}", session_id,
+                                 result["message"].get<std::string>()));
+
+        return {true, "PTY session resized", result};
+    }
+};
+
+// 强制终止会话命令
+class ForceKillSessionCommand : public ICommand {
+public:
+    CommandDispatcher::CommandResult execute(
+        const nlohmann::json& message) override {
         if (!message.contains("data")) {
-            Logger::warn("force_kill_session command received without data");
-            return;
+            return {false, "Missing session data"};
         }
 
         auto data = message["data"];
         std::string session_id = data.value("session_id", "default");
 
-        // 调用强制终止会话函数
-        auto result = TerminalManager::forceKillSession(session_id);
+        auto result = PtyManager::closePtySession(session_id);
 
-        // 发送执行结果回服务器
-        if (m_responseCallback) {
-            nlohmann::json response = {{"type", "kill_session_result"},
-                                       {"session_id", session_id},
-                                       {"data", result}};
-            m_responseCallback(response);
+        return {true, "Session killed", result};
+    }
+};
+
+// PTY 输入命令（逐字符输入）
+class PtyInputCommand : public ICommand {
+public:
+    CommandDispatcher::CommandResult execute(
+        const nlohmann::json& message) override {
+        if (!message.contains("data")) {
+            return {false, "Missing PTY input data"};
         }
+
+        auto data = message["data"];
+        std::string input = data.value("input", "");
+        std::string session_id = data.value("session_id", "default");
+
+        if (input.empty()) {
+            return {false, "Empty PTY input"};
+        }
+
+        // 直接将用户输入写入到 PTY 会话，不添加额外的换行符
+        // 让 shell 自己处理输入的回显和处理
+        PtyManager::writeToPtySession(session_id, input);
+
+        return {true,
+                "PTY input sent",
+                {{"session_id", session_id}, {"input_length", input.length()}}};
+    }
+};
+
+// 创建PTY会话命令
+class CreatePtySessionCommand : public ICommand {
+public:
+    CommandDispatcher::CommandResult execute(
+        const nlohmann::json& message) override {
+        if (!message.contains("data")) {
+            return {false, "Missing PTY session data"};
+        }
+
+        auto data = message["data"];
+        std::string session_id = data.value("session_id", "default");
+        int cols = data.value("cols", 80);
+        int rows = data.value("rows", 24);
+
+        // 创建新的PTY会话
+        auto result = PtyManager::createPtySession(session_id, cols, rows);
+
+        Logger::info(std::format("Create PTY session {}: {}", session_id,
+                                 result["message"].get<std::string>()));
+        
+        return {true, "PTY session created", result};
+    }
+};
+
+// ===========================================
+// CommandDispatcher 实现
+// ===========================================
+
+CommandDispatcher::CommandDispatcher(ControlCenter& controller, Config& config)
+    : m_controller(controller), m_config(config) {
+    registerCommandHandlers();
+}
+
+void CommandDispatcher::setScreenshotCallback(ScreenshotCallback callback) {
+    m_screenshotCallback = callback;
+
+    // 更新截图命令的回调
+    m_commandHandlers["take_screenshot"] =
+        std::make_unique<TakeScreenshotCommand>(callback);
+}
+
+void CommandDispatcher::dispatchCommands(const nlohmann::json& message) {
+    // 验证消息格式
+    auto validationResult = validateCommandMessage(message);
+    if (!validationResult.success) {
+        Logger::warn(std::format("Command validation failed: {}",
+                                 validationResult.message));
+        return;
+    }
+
+    std::string commandType = message["type"];
+    Logger::info(std::format("[command] {}", commandType));
+
+    // 执行命令
+    auto result = executeCommand(commandType, message);
+
+    if (!result.success) {
+        Logger::warn(std::format("Command '{}' failed: {}", commandType,
+                                 result.message));
     } else {
-        Logger::warn(std::format("Unknown command: {}", command));
+        Logger::info(std::format("Command '{}' executed successfully: {}",
+                                 commandType, result.message));
     }
 }
 
-void CommandDispatcher::executeShellCommandAsync(
-    const std::string& command, const std::string& session_id) {
-    // 增加活跃执行计数
-    m_activeExecutions.fetch_add(1);
+void CommandDispatcher::registerCommandHandlers() {
+    // 注册所有命令处理器
+    m_commandHandlers["pause_screenshots"] =
+        std::make_unique<PauseScreenshotsCommand>(m_controller);
+    m_commandHandlers["resume_screenshots"] =
+        std::make_unique<ResumeScreenshotsCommand>(m_controller);
+    m_commandHandlers["update_config"] =
+        std::make_unique<UpdateConfigCommand>(m_config);
+    m_commandHandlers["create_pty_session"] =
+        std::make_unique<CreatePtySessionCommand>();
+    m_commandHandlers["pty_input"] = std::make_unique<PtyInputCommand>();
+    m_commandHandlers["pty_resize"] = std::make_unique<PtyResizeCommand>();
+    m_commandHandlers["force_kill_session"] =
+        std::make_unique<ForceKillSessionCommand>();
+    m_commandHandlers["create_pty_session"] =
+        std::make_unique<CreatePtySessionCommand>();
 
-    // 创建分离的线程来执行命令
-    std::thread([this, command, session_id]() {
-        Logger::debug(std::format(
-            "Starting async execution of shell command in session: {}",
-            session_id));
+    // take_screenshot 命令需要在 setScreenshotCallback 中设置
+}
 
-        try {
-            // 执行 shell 命令
-            auto result = m_shellExecuteCallback(command, session_id);
+CommandDispatcher::CommandResult CommandDispatcher::validateCommandMessage(
+    const nlohmann::json& message) {
+    if (!message.is_object()) {
+        return {false, "Invalid command message: not a JSON object"};
+    }
 
-            // 发送执行结果回服务器
-            if (m_responseCallback) {
-                nlohmann::json response = {{"type", "shell_output"},
-                                           {"session_id", session_id},
-                                           {"data", result}};
-                m_responseCallback(response);
-            }
-        } catch (const std::exception& e) {
-            Logger::error(
-                std::format("Error executing shell command in session {}: {}",
-                            session_id, e.what()));
+    if (!message.contains("type") || !message["type"].is_string()) {
+        return {false,
+                "Invalid command message: missing or invalid 'type' field"};
+    }
 
-            // 发送错误响应
-            if (m_responseCallback) {
-                nlohmann::json errorResponse = {
-                    {"type", "shell_output"},
-                    {"session_id", session_id},
-                    {"data", nlohmann::json{{"success", false},
-                                            {"error", e.what()},
-                                            {"output", ""},
-                                            {"exit_code", -1}}}};
-                m_responseCallback(errorResponse);
-            }
-        }
+    std::string commandType = message["type"];
+    if (commandType.empty()) {
+        return {false, "Empty command type"};
+    }
 
-        // 减少活跃执行计数
-        m_activeExecutions.fetch_sub(1);
+    return {true, "Validation passed"};
+}
 
-        Logger::debug(std::format(
-            "Completed async execution of shell command in session: {}",
-            session_id));
-    }).detach();  // 分离线程，让其独立运行
-    Logger::debug(
-        std::format("Dispatched async shell command: {} (session: {})", command,
-                    session_id));
+CommandDispatcher::CommandResult CommandDispatcher::executeCommand(
+    const std::string& commandType, const nlohmann::json& message) {
+    auto it = m_commandHandlers.find(commandType);
+    if (it == m_commandHandlers.end()) {
+        return {false, std::format("Unknown command: {}", commandType)};
+    }
+
+    try {
+        return it->second->execute(message);
+    } catch (const std::exception& e) {
+        return {false, std::format("Command execution failed: {}", e.what())};
+    }
 }

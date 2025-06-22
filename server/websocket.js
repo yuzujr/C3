@@ -101,41 +101,47 @@ function handleClientConnection(ws, client_id) {
     if (!clientManager.clientsMapping[client_id]) {
         clientManager.setClient(client_id, client_id);
         logWithTime(`[WEBSOCKET] Added new client to mapping: ${client_id}`);
-    }
-
-    activeConnections.set(alias, ws);
+    } activeConnections.set(alias, ws);
     logWithTime(`[WEBSOCKET] Client connected: ${alias} (${client_id})`);
+
+    // 打印最新的连接状态
+    const stats = getConnectionStats();
+    logWithTime(`[STATUS] Online clients: ${stats.onlineClients}/${stats.totalRegistered}`);
 
     // 广播客户端上线状态
     broadcastToWebClients({
         type: 'client_status_change',
         client: alias,
         online: true
-    });
-
-    ws.on('close', () => {
+    }); ws.on('close', () => {
         activeConnections.delete(alias);
         logWithTime(`[WEBSOCKET] Client disconnected: ${alias} (${client_id})`);
 
+        // 打印最新的连接状态
+        const stats = getConnectionStats();
+        logWithTime(`[STATUS] Online clients: ${stats.onlineClients}/${stats.totalRegistered}`);
+
         // 广播客户端下线状态
         broadcastToWebClients({
             type: 'client_status_change',
             client: alias,
             online: false
         });
-    });
-
-    ws.on('error', (error) => {
+    }); ws.on('error', (error) => {
         errorWithTime(`[WEBSOCKET] Client error for ${alias}:`, error);
         activeConnections.delete(alias);
 
+        // 打印最新的连接状态
+        const stats = getConnectionStats();
+        logWithTime(`[STATUS] Online clients: ${stats.onlineClients}/${stats.totalRegistered}`);
+
         // 广播客户端下线状态
         broadcastToWebClients({
             type: 'client_status_change',
             client: alias,
             online: false
         });
-    });    // 处理客户端发送的消息（如shell命令输出）
+    });// 处理客户端发送的消息（如shell命令输出）
     ws.on('message', (data) => {
         try {
             const message = JSON.parse(data.toString());
@@ -188,26 +194,21 @@ function handleClientMessage(alias, message) {
  * @param {string} alias - 客户端别名
  * @param {object} message - shell输出消息
  */
-function handleShellOutput(alias, message) {    // 从消息中提取输出数据，支持多种可能的数据结构
+function handleShellOutput(alias, message) {
+    // 从消息中提取输出数据，支持多种可能的数据结构
     const data = message.data || message || {};
     const rawOutput = data.stdout || data.output || data.result || message.stdout || message.output || message.result || '';
     const success = data.success || message.success || true;
     const exitCode = data.exit_code || data.exitCode || message.exit_code || message.exitCode || 0;
-    const cwd = data.cwd || message.cwd || ''; // 提取当前工作目录
 
-    // 清理输出中的ANSI转义序列
-    const cleanOutput = cleanAnsiEscapes(rawOutput);
-
-    logWithTime(`[WEBSOCKET] Shell output from ${alias} (${cleanOutput.length} chars, exit: ${exitCode}, cwd: ${cwd})`);
-
-    // 转发shell输出到Web客户端
+    // 转发shell输出到Web客户端 - 保留原始数据和清理后的数据
     const broadcastMessage = {
         type: 'shell_output',
         client: alias,
-        output: cleanOutput, // 使用清理后的输出
+        output: rawOutput,  // 保留原始输出（包含ANSI序列）
+        clean_output: cleanAnsiEscapes(rawOutput), // 提供清理后的输出作为备选
         success: success,
-        exit_code: exitCode,
-        cwd: cwd // 包含当前工作目录
+        exit_code: exitCode
     };
 
     broadcastToWebClients(broadcastMessage);
@@ -274,12 +275,67 @@ function getOnlineClients() {
 }
 
 /**
+ * 获取连接状态报告
+ * @returns {object} 连接状态统计
+ */
+function getConnectionStats() {
+    const onlineClients = getOnlineClients();
+    return {
+        totalRegistered: Object.keys(clientManager.clientsMapping).length,
+        onlineClients: onlineClients.length,
+        webConnections: webConnections.size,
+        onlineClientsList: onlineClients
+    };
+}
+
+/**
  * 关闭WebSocket服务器
  */
 function closeWebSocketServer() {
-    if (wsServer) {
-        wsServer.close();
-        logWithTime('[SHUTDOWN] WebSocket server closed');
+    logWithTime('[SHUTDOWN] Closing WebSocket server...');
+    try {        // 关闭所有 Web 连接
+        if (webConnections && webConnections.size > 0) {
+            webConnections.forEach(ws => {
+                try {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.close(1000, 'Server shutting down');
+                    }
+                } catch (error) {
+                    // 静默处理连接关闭错误
+                }
+            });
+            webConnections.clear();
+        }
+
+        // 关闭所有活跃的客户端连接
+        if (activeConnections && activeConnections.size > 0) {
+            activeConnections.forEach((ws, clientId) => {
+                try {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.close(1000, 'Server shutting down');
+                    }
+                } catch (error) {
+                    // 静默处理连接关闭错误
+                }
+            });
+            activeConnections.clear();
+        }
+        // 关闭WebSocket服务器
+        if (wsServer) {
+            wsServer.close();
+            wsServer = null;
+        }
+        // 清理客户端管理器
+        try {
+            if (clientManager && clientManager.cleanup) {
+                clientManager.cleanup();
+            }
+        } catch (error) {
+            // 静默处理清理错误
+        }
+
+    } catch (error) {
+        logWithTime('[SHUTDOWN] Error during WebSocket server shutdown:', error);
     }
 }
 
@@ -345,6 +401,7 @@ module.exports = {
     sendToClient,
     isClientOnline,
     getOnlineClients,
+    getConnectionStats,
     closeWebSocketServer,
     updateClientAlias,
     removeClientConnection,

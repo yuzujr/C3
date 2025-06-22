@@ -3,6 +3,8 @@
 
 import { selectedClient, setWebSocket } from './state.js';
 import { addNewScreenshot } from './screenshots.js';
+import { handlePtyShellOutput } from './pty-terminal.js';  // 新的PTY处理函数
+import { handleClientStatusChange } from './clients.js';
 
 /**
  * 初始化 WebSocket 连接
@@ -49,19 +51,11 @@ function handleWebSocketMessage(data) {
     } else if (data.type === 'shell_output') {
         // 处理shell命令输出
         if (data.client === selectedClient) {
-            // 动态导入terminal模块避免循环依赖
-            import('./terminal.js').then(({ handleShellOutput }) => {
-                handleShellOutput(data); // 传递整个data对象而不只是output
-            }).catch(error => {
-                console.error('导入terminal模块失败:', error);
-            });
+            // 直接使用PTY处理函数
+            handlePtyShellOutput(data);
         }
     } else if (data.type === 'client_status_change') {
         // 处理客户端状态变化
-        import('./clients.js').then(({ handleClientStatusChange }) => {
-            handleClientStatusChange(data.client, data.online);
-        }).catch(error => {
-            console.error('导入clients模块失败:', error);
-        });
+        handleClientStatusChange(data.client, data.online);
     }
 }

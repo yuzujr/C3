@@ -21,3 +21,8 @@ add_subdirectory(thirdparty)
 
 # build ScreenUploader
 add_subdirectory(src)
+
+
+# build tests
+enable_testing()
+add_subdirectory(test/test_pty)

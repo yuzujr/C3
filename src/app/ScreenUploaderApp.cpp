@@ -43,29 +43,44 @@ ScreenUploaderApp::ScreenUploaderApp()
         takeScreenshotNow();
     });
 
-    // 设置 Shell 命令执行回调函数
-    m_dispatcher.setShellExecuteCallback(
-        [this](const std::string& command, const std::string& session_id) {
-            return TerminalManager::executeShellCommand(command, session_id);
-        });
-
     // 设置响应回调函数
-    m_dispatcher.setResponseCallback([this](const nlohmann::json& response) {
+    PtyManager::setOutputCallback([this](const nlohmann::json& response) {
         // 通过 WebSocket 发送响应回服务器
         m_wsClient.send(response);
     });
 }
 
 ScreenUploaderApp::~ScreenUploaderApp() {
-    m_running = false;
-    // 关闭 WebSocket 客户端
-    m_wsClient.close();
+    // 调用统一的清理方法
+    stop();
+    Logger::info("Application shutdown complete");
 }
 
 int ScreenUploaderApp::run() {
     startWebSocketCommandListener();
     mainLoop();
     return 0;
+}
+
+void ScreenUploaderApp::stop() {
+    Logger::info("Stopping application...");
+    m_running = false;
+
+    // 集中处理所有清理工作
+    Logger::info("Performing cleanup operations...");
+
+    // 关闭所有PTY会话
+    Logger::info("Closing all PTY sessions...");
+    PtyManager::shutdownAllPtySessions();
+
+    // 关闭 WebSocket 客户端
+    Logger::info("Closing WebSocket client...");
+    m_wsClient.close();
+
+    // 将来可以在这里添加其他清理工作
+    // 例如：文件清理、缓存清理、其他资源释放等
+
+    Logger::info("All cleanup operations completed");
 }
 
 void ScreenUploaderApp::startWebSocketCommandListener() {

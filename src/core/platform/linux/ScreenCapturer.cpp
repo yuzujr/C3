@@ -4,7 +4,7 @@
 #include <X11/Xutil.h>
 
 #include "core/Logger.h"
-#include "core/X11RAIIClasses.h"
+#include "core/platform/linux/X11RAIIClasses.h"
 
 std::optional<RawImage> ScreenCapturer::captureScreen() {
     X11DisplayRAII display(XOpenDisplay(nullptr));

@@ -15,9 +15,7 @@ class ClientManager {
 
         // 监听文件变化
         this.watchClientsFile();
-    }
-
-    /**
+    }    /**
      * 加载客户端映射
      */
     loadClients() {
@@ -28,7 +26,16 @@ class ClientManager {
             } else {
                 this.clientsMapping = {};
             }
-            logWithTime('[CLIENT-MANAGER] Loaded clients:', Object.keys(this.clientsMapping).length);
+
+            const clientCount = Object.keys(this.clientsMapping).length;
+            logWithTime(`[CLIENT-MANAGER] Loaded ${clientCount} registered clients from clients.json`);
+
+            if (clientCount > 0) {
+                logWithTime('[CLIENT-MANAGER] Registered clients:');
+                Object.entries(this.clientsMapping).forEach(([clientId, alias]) => {
+                    logWithTime(`  - ${alias} (${clientId})`);
+                });
+            }
         } catch (err) {
             errorWithTime('[CLIENT-MANAGER] Failed to load clients:', err.message);
             this.clientsMapping = {};
@@ -241,9 +248,25 @@ class ClientManager {
         // 如果是clientId，返回对应的alias
         if (this.clientsMapping[identifier]) {
             return this.clientsMapping[identifier];
-        }
-        // 如果是alias，直接返回
+        }        // 如果是alias，直接返回
         return identifier;
+    }
+
+    /**
+     * 清理资源（在服务器关闭时调用）
+     */    cleanup() {
+        try {
+            // 停止文件监听
+            if (fs.existsSync(this.clientsJsonPath)) {
+                fs.unwatchFile(this.clientsJsonPath);
+            }
+
+            // 清空内存中的映射
+            this.clientsMapping = {};
+
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Error during cleanup:', error);
+        }
     }
 }
 

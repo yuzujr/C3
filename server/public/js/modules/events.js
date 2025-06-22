@@ -2,6 +2,7 @@
 // 集中管理各种DOM事件监听器的设置
 
 import { sendCommand, updateClientConfig } from './commands.js';
+import { updatePtyTerminalState, resetPtyTerminal } from './pty-terminal.js';
 
 /**
  * 初始化命令按钮事件监听器

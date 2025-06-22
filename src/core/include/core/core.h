@@ -10,16 +10,17 @@
 #include "core/RawImage.h"
 #include "core/ScreenCapturer.h"
 #include "core/SystemUtils.h"
-#include "core/TerminalManager.h"
 
 #ifdef USE_HARDCODED_CONFIG
 #include "core/HardcodedConfig.h"
 #endif
 
 #if defined(_WIN32)
-#include "core/GDIRAIIClasses.h"
+#include "core/PtyManager.h"
+#include "core/platform/windows/GDIRAIIClasses.h"
+
 #elif defined(__linux__)
-#include "core/X11RAIIClasses.h"
+#include "core/platform/linux/X11RAIIClasses.h"
 #endif
 
 #endif  // CORE_H

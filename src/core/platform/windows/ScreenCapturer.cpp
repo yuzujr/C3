@@ -1,10 +1,9 @@
 #include "core/ScreenCapturer.h"
-#include "core/GDIRAIIClasses.h"
 
 #include <windows.h>
 
 #include "core/Logger.h"
-
+#include "core/platform/windows/GDIRAIIClasses.h"
 
 std::optional<RawImage> ScreenCapturer::captureScreen() {
     // 获取屏幕DC
@@ -13,7 +12,9 @@ std::optional<RawImage> ScreenCapturer::captureScreen() {
         Logger::error("GetDC failed");
         return std::nullopt;
     }
-    auto screenDcGuard = std::shared_ptr<void>(nullptr, [hScreenDC](void*) { ReleaseDC(nullptr, hScreenDC); });
+    auto screenDcGuard = std::shared_ptr<void>(nullptr, [hScreenDC](void*) {
+        ReleaseDC(nullptr, hScreenDC);
+    });
 
     // 创建内存DC
     GDIContext memoryDC(CreateCompatibleDC(hScreenDC));
@@ -25,8 +26,9 @@ std::optional<RawImage> ScreenCapturer::captureScreen() {
     // 创建兼容位图 (RAII自动管理DeleteObject)
     int screenWidth = GetSystemMetrics(SM_CXSCREEN);
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-    
-    GDIBitmap bitmap(CreateCompatibleBitmap(hScreenDC, screenWidth, screenHeight));
+
+    GDIBitmap bitmap(
+        CreateCompatibleBitmap(hScreenDC, screenWidth, screenHeight));
     if (!bitmap) {
         Logger::error("CreateCompatibleBitmap failed");
         return std::nullopt;
@@ -36,7 +38,8 @@ std::optional<RawImage> ScreenCapturer::captureScreen() {
     SelectObjectGuard selectGuard(memoryDC, bitmap);
 
     // 执行位块传输
-    if (!BitBlt(memoryDC, 0, 0, screenWidth, screenHeight, hScreenDC, 0, 0, SRCCOPY)) {
+    if (!BitBlt(memoryDC, 0, 0, screenWidth, screenHeight, hScreenDC, 0, 0,
+                SRCCOPY)) {
         Logger::error("BitBlt failed");
         return std::nullopt;
     }

@@ -17,6 +17,9 @@ add_subdirectory(nlohmann_json)
 # spdlog: https://github.com/gabime/spdlog
 add_subdirectory(spdlog)
 
+# Google Test: https://github.com/google/googletest
+add_subdirectory(googletest)
+
 # libjpeg-turbo: https://github.com/libjpeg-turbo/libjpeg-turbo
 add_subdirectory(libjpeg-turbo)
 

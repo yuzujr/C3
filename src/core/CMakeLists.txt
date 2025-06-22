@@ -18,14 +18,13 @@ if(WIN32)
         platform/windows/ScreenCapturer.cpp
         platform/windows/SystemUtils.cpp
         platform/windows/GDIRAIIClasses.cpp
-        platform/windows/TerminalManager.cpp
+        platform/windows/PtyManager.cpp
     )
 elseif(UNIX)
     target_sources(core PRIVATE
         platform/linux/ScreenCapturer.cpp
         platform/linux/SystemUtils.cpp
         platform/linux/X11RAIIClasses.cpp
-        platform/linux/TerminalManager.cpp
     )
 endif()
 

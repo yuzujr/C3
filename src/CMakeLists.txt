@@ -45,6 +45,7 @@ add_subdirectory(app)
 # feature modules
 add_subdirectory(feature/pty)
 
+
 # hardcoded configuration
 if(USE_HARDCODED_CONFIG)
     target_compile_definitions(core PRIVATE USE_HARDCODED_CONFIG)

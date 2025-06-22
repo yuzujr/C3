@@ -243,7 +243,7 @@ router.post('/command/:client_alias', (req, res) => {
             type: type,
             data: data || {}
         };        // 为某些命令类型添加默认的session_id
-        if (['shell_execute', 'force_kill_session'].includes(type)) {
+        if (['create_pty_session', 'pty_input', 'pty_resize', 'force_kill_session'].includes(type)) {
             if (!message.data.session_id) {
                 message.data.session_id = clientAlias; // 使用client alias作为默认session id
             }
