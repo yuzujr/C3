@@ -112,7 +112,6 @@ static void cleanupTimeoutPtySessions() {
 void setOutputCallback(OutputCallback callback) {
     std::lock_guard<std::mutex> lock(g_mutex);
     g_output_callback = callback;
-    Logger::info("PTY output callback set");
 }
 
 // 创建新的PTY会话
