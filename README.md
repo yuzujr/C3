@@ -69,8 +69,8 @@ cmake --build build-hardcoded --config Release
 
 ## Documentation
 
-- [Setup Guide](docs/SETUP.md) - Complete installation and server configuration
 - [Build Instructions](docs/BUILD.md) - Compilation options and deployment
+- [Setup Guide](docs/SETUP.md) - Complete installation and server configuration
 
 ## Legal
 
