@@ -29,7 +29,8 @@ bool Uploader::uploadImage(const std::vector<uint8_t>& frame,
 
     cpr::Response r =
         cpr::Post(cpr::Url{url}, form,
-                  cpr::Header{{"User-Agent", "cpr/1.11.0"}, {"Accept", "*/*"}});
+                  cpr::Header{{"User-Agent", "cpr/1.11.0"}, {"Accept", "*/*"}},
+                  cpr::Timeout{3000});  // 3秒超时
 
     return handleUploadResponse(r, "Image upload");
 }
@@ -38,7 +39,7 @@ bool Uploader::uploadConfig(const nlohmann::json& config,
                             const std::string& url) {
     cpr::Response r = cpr::Post(
         cpr::Url{url}, cpr::Header{{"Content-Type", "application/json"}},
-        cpr::Body{config.dump()});
+        cpr::Body{config.dump()}, cpr::Timeout{3000});  // 3秒超时
     return handleUploadResponse(r, "Config upload");
 }
 

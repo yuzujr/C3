@@ -152,7 +152,8 @@ class ClientManager {
                     errorWithTime('[CLIENT-MANAGER] Failed to rename directory:', renameError.message);
                     return { success: false, message: '重命名文件夹失败: ' + renameError.message };
                 }
-            } logWithTime(`[CLIENT-MANAGER] Updated alias: ${oldAlias} -> ${newAlias} (clientId: ${clientId})`);
+            }
+            logWithTime(`[CLIENT-MANAGER] Alias updated: ${oldAlias} -> ${newAlias}`);
 
             // 通知WebSocket模块更新别名映射
             try {

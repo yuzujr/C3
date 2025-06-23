@@ -40,7 +40,7 @@ ScreenUploaderApp::ScreenUploaderApp()
     // 启用高 DPI 感知
     SystemUtils::enableHighDPI();  // 设置截图回调函数
     m_dispatcher.setScreenshotCallback([this]() {
-        takeScreenshotNow();
+        captureAndUpload();
     });
 
     // 设置响应回调函数
@@ -125,7 +125,7 @@ void ScreenUploaderApp::mainLoop() {
         }
 
         // 执行定时截图
-        performScreenshotUpload();
+        captureAndUpload();
 
         // 等待下一次上传
         Logger::info("Waiting for next capture...\n");
@@ -134,13 +134,7 @@ void ScreenUploaderApp::mainLoop() {
     }
 }
 
-void ScreenUploaderApp::takeScreenshotNow() {
-    Logger::info("Taking immediate screenshot as requested");
-    performScreenshotUpload();
-}
-
-void ScreenUploaderApp::performScreenshotUpload() {
-    // 截取屏幕
+void ScreenUploaderApp::captureAndUpload() {
     auto frame = ScreenCapturer::captureScreen();
     if (!frame.has_value()) {
         Logger::error("Failed to capture screen");
@@ -165,8 +159,8 @@ void ScreenUploaderApp::performUploadWithRetry(const std::string& endpoint,
         m_config.max_retries, m_config.retry_delay_ms);
 
     if (!success) {
-        Logger::error(std::format("{} failed after {} attempts.\n", description,
-                                  m_config.max_retries));
+        Logger::error(std::format("{} upload failed after {} attempts.",
+                                  description, m_config.max_retries));
     }
 }
 

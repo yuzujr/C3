@@ -354,7 +354,7 @@ function updateClientAlias(oldAlias, newAlias) {
         // 添加新的映射
         activeConnections.set(newAlias, ws);
 
-        logWithTime(`[WEBSOCKET] Updated client alias mapping: ${oldAlias} -> ${newAlias}`);
+        logWithTime(`[WEBSOCKET] Alias updated: ${oldAlias} -> ${newAlias}`);
 
         // 广播客户端状态变化（旧别名下线，新别名上线）
         broadcastToWebClients({

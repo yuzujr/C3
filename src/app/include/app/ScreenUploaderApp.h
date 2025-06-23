@@ -14,16 +14,17 @@ public:
     int run();
     // 停止应用程序（用于信号处理）
     void stop();
-    // 立即截图并上传（远程命令回调函数）
-    void takeScreenshotNow();  // 执行 Shell 命令（远程命令回调函数）
+    // 截图并上传（远程命令回调函数）
+    void captureAndUpload();
 
 private:
     // 连接命令接收websocket
     void startWebSocketCommandListener();
+
     // 主循环
     void mainLoop();
-    // 执行一次截图和上传
-    void performScreenshotUpload();  // 上传图像和配置文件
+
+    // 上传图像和配置文件
     void uploadImageWithRetry(const std::vector<uint8_t>& frame);
     void uploadConfigWithRetry();
 
