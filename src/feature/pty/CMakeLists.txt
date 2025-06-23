@@ -1,1 +1,0 @@
-add_executable(pty platform/windows/pty.cpp)
