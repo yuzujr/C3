@@ -1,6 +1,6 @@
 # C3
 
-C3 (command-control-c++) is a minimal C++ command and control framework for remote system administration.
+C3 (Command-Control-C++) is a minimal command and control framework for remote system administration.
 
 ## Features
 
