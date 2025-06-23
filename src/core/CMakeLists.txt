@@ -25,6 +25,7 @@ elseif(UNIX)
         platform/linux/ScreenCapturer.cpp
         platform/linux/SystemUtils.cpp
         platform/linux/X11RAIIClasses.cpp
+        platform/linux/PtyManager.cpp
     )
 endif()
 

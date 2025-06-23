@@ -8,9 +8,6 @@
 #include <map>
 #include <mutex>
 #include <thread>
-#include <vector>
-
-#include "core/Logger.h"
 
 namespace PtyManager {
 
