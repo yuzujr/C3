@@ -96,10 +96,17 @@ export function updateClientFeatures(isOnline) {
 export async function fetchClients() {
     try {
         const res = await fetch('/web/clients');
+
+        // 检查HTTP响应状态
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+
         const clients = await res.json();
 
-        // 检查客户端列表是否有变化
-        if (isClientListSame(cachedClientList, clients)) {
+        // 检查客户端列表是否有变化，但第一次加载时要强制更新DOM
+        const isFirstLoad = cachedClientList.length === 0 && document.getElementById('clientsList').textContent === '加载中...';
+        if (!isFirstLoad && isClientListSame(cachedClientList, clients)) {
             // 列表没有变化，直接返回，避免不必要的DOM更新
             return;
         }
@@ -193,6 +200,23 @@ export async function fetchClients() {
     } catch (error) {
         console.error('获取客户端列表失败:', error);
         showToast('获取客户端列表失败');
+
+        // 更新DOM显示错误状态
+        const clientsList = document.getElementById('clientsList');
+        if (clientsList) {
+            clientsList.innerHTML = '';
+            clientsList.textContent = '获取客户端列表失败，请刷新页面重试';
+        }
+
+        // 清除选中状态和隐藏相关功能
+        setSelectedClient(null);
+        document.getElementById('commands').style.display = 'none';
+        document.getElementById('screenshots').textContent = '请选择客户端';
+
+        // 禁用终端功能
+        import('./pty-terminal.js').then(({ updatePtyTerminalState }) => {
+            updatePtyTerminalState(false);
+        });
     }
 }
 
