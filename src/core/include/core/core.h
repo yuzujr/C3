@@ -7,6 +7,7 @@
 #include "core/IDGenerator.h"
 #include "core/ImageEncoder.h"
 #include "core/Logger.h"
+#include "core/PtyManager.h"
 #include "core/RawImage.h"
 #include "core/ScreenCapturer.h"
 #include "core/SystemUtils.h"
@@ -16,9 +17,7 @@
 #endif
 
 #if defined(_WIN32)
-#include "core/PtyManager.h"
 #include "core/platform/windows/GDIRAIIClasses.h"
-
 #elif defined(__linux__)
 #include "core/platform/linux/X11RAIIClasses.h"
 #endif
