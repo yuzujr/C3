@@ -10,6 +10,12 @@
 
 bool Uploader::uploadImage(const std::vector<uint8_t>& frame,
                            const std::string& url) {
+    return uploadImageWithSSL(frame, url, false);
+}
+
+bool Uploader::uploadImageWithSSL(const std::vector<uint8_t>& frame,
+                                  const std::string& url,
+                                  bool skip_ssl_verification) {
     if (frame.empty()) {
         Logger::error("frame is empty!");
         return false;
@@ -27,19 +33,61 @@ bool Uploader::uploadImage(const std::vector<uint8_t>& frame,
 
     cpr::Multipart form = {cpr::Part{"file", buffer}};
 
-    cpr::Response r =
-        cpr::Post(cpr::Url{url}, form,
-                  cpr::Header{{"User-Agent", "cpr/1.11.0"}, {"Accept", "*/*"}},
-                  cpr::Timeout{3000});  // 3秒超时
+    cpr::Response r;
+
+    // 根据是否需要跳过SSL验证选择不同的请求方式
+    if (url.starts_with("https://") && skip_ssl_verification) {
+        Logger::warn(
+            "HTTPS SSL certificate verification disabled - unsafe for "
+            "production");
+        cpr::SslOptions sslOptions =
+            cpr::Ssl(cpr::ssl::VerifyHost{false}, cpr::ssl::VerifyPeer{false});
+        r = cpr::Post(
+            cpr::Url{url}, form,
+            cpr::Header{{"User-Agent", "cpr/1.11.0"}, {"Accept", "*/*"}},
+            cpr::Timeout{3000}, sslOptions);
+    } else {
+        if (url.starts_with("https://")) {
+            Logger::info("Using HTTPS with SSL certificate verification");
+        }
+        r = cpr::Post(
+            cpr::Url{url}, form,
+            cpr::Header{{"User-Agent", "cpr/1.11.0"}, {"Accept", "*/*"}},
+            cpr::Timeout{3000});
+    }
 
     return handleUploadResponse(r, "Image upload");
 }
 
 bool Uploader::uploadConfig(const nlohmann::json& config,
                             const std::string& url) {
-    cpr::Response r = cpr::Post(
-        cpr::Url{url}, cpr::Header{{"Content-Type", "application/json"}},
-        cpr::Body{config.dump()}, cpr::Timeout{3000});  // 3秒超时
+    return uploadConfigWithSSL(config, url, false);
+}
+
+bool Uploader::uploadConfigWithSSL(const nlohmann::json& config,
+                                   const std::string& url,
+                                   bool skip_ssl_verification) {
+    cpr::Response r;
+
+    // 根据是否需要跳过SSL验证选择不同的请求方式
+    if (url.starts_with("https://") && skip_ssl_verification) {
+        Logger::warn(
+            "HTTPS SSL certificate verification disabled - unsafe for "
+            "production");
+        cpr::SslOptions sslOptions =
+            cpr::Ssl(cpr::ssl::VerifyHost{false}, cpr::ssl::VerifyPeer{false});
+        r = cpr::Post(cpr::Url{url},
+                      cpr::Header{{"Content-Type", "application/json"}},
+                      cpr::Body{config.dump()}, cpr::Timeout{3000}, sslOptions);
+    } else {
+        if (url.starts_with("https://")) {
+            Logger::info("Using HTTPS with SSL certificate verification");
+        }
+        r = cpr::Post(cpr::Url{url},
+                      cpr::Header{{"Content-Type", "application/json"}},
+                      cpr::Body{config.dump()}, cpr::Timeout{3000});
+    }
+
     return handleUploadResponse(r, "Config upload");
 }
 

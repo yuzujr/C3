@@ -93,9 +93,21 @@ function Show-PresetList {
         $preset = $presetsData.presets.$presetName
         Write-Host "[$presetName]" -ForegroundColor Yellow
         Write-Host "  名称: $($preset.name)" -ForegroundColor White
-        Write-Host "  描述: $($preset.description)" -ForegroundColor Gray
-        Write-Host "  服务器: $($preset.config.hostname):$($preset.config.port)" -ForegroundColor Cyan
-        Write-Host "  WebSocket: $($preset.config.ws_url)" -ForegroundColor Cyan
+        Write-Host "  描述: $($preset.description)" -ForegroundColor Gray        
+        $serverInfo = "$($preset.config.hostname):$($preset.config.port)"
+        if ($preset.config.use_ssl) {
+            $serverInfo += " (HTTPS/WSS)"
+        } else {
+            $serverInfo += " (HTTP/WS)"
+        }
+        Write-Host "  服务器: $serverInfo" -ForegroundColor Cyan
+        if ($preset.config.use_ssl -and $preset.config.skip_ssl_verification) {
+            Write-Host "  SSL: 启用 (跳过证书验证)" -ForegroundColor Yellow
+        } elseif ($preset.config.use_ssl) {
+            Write-Host "  SSL: 启用 (验证证书)" -ForegroundColor Green
+        } else {
+            Write-Host "  SSL: 禁用" -ForegroundColor Gray
+        }
         Write-Host "  截图间隔: $($preset.config.interval_seconds)秒" -ForegroundColor Cyan
         Write-Host ""
     }
@@ -146,10 +158,11 @@ namespace HardcodedConfig {
     constexpr std::string_view BUILD_PRESET = "$PresetName";
     constexpr std::string_view BUILD_PRESET_NAME = "$($preset.name)";
     constexpr std::string_view BUILD_PRESET_DESC = "$($preset.description)";
-    constexpr std::string_view BUILD_TIMESTAMP = "$timestamp";
-      // API 配置
+    constexpr std::string_view BUILD_TIMESTAMP = "$timestamp";      // API 配置
     constexpr std::string_view HOSTNAME = "$($config.hostname)";
     constexpr int PORT = $($config.port);
+    constexpr bool USE_SSL = $($config.use_ssl.ToString().ToLower());
+    constexpr bool SKIP_SSL_VERIFICATION = $($config.skip_ssl_verification.ToString().ToLower());
     constexpr int INTERVAL_SECONDS = $($config.interval_seconds);
     constexpr int MAX_RETRIES = $($config.max_retries);
     constexpr int RETRY_DELAY_MS = $($config.retry_delay_ms);
@@ -159,8 +172,7 @@ namespace HardcodedConfig {
     // 编译时配置检查
     static_assert(INTERVAL_SECONDS > 0, "INTERVAL_SECONDS must be positive");
     static_assert(MAX_RETRIES >= 0, "MAX_RETRIES must be non-negative");
-    static_assert(RETRY_DELAY_MS >= 0, "RETRY_DELAY_MS must be non-negative");
-      // 配置信息结构
+    static_assert(RETRY_DELAY_MS >= 0, "RETRY_DELAY_MS must be non-negative");      // 配置信息结构
     struct ConfigInfo {
         std::string_view preset;
         std::string_view preset_name;
@@ -168,13 +180,14 @@ namespace HardcodedConfig {
         std::string_view build_timestamp;
         std::string_view hostname;
         int port;
+        bool use_ssl;
+        bool skip_ssl_verification;
         int interval_seconds;
         int max_retries;
         int retry_delay_ms;
         bool add_to_startup;
         std::string_view client_id;
-    };
-      // 获取硬编码配置信息
+    };      // 获取硬编码配置信息
     inline constexpr ConfigInfo getConfigInfo() {
         return ConfigInfo{
             BUILD_PRESET,
@@ -183,6 +196,8 @@ namespace HardcodedConfig {
             BUILD_TIMESTAMP,
             HOSTNAME,
             PORT,
+            USE_SSL,
+            SKIP_SSL_VERIFICATION,
             INTERVAL_SECONDS,
             MAX_RETRIES,
             RETRY_DELAY_MS,
@@ -202,9 +217,22 @@ namespace HardcodedConfig {
         Write-Host "✅ 成功生成硬编码配置!" -ForegroundColor Green
         Write-Host "   预设名称: $PresetName ($($preset.name))" -ForegroundColor Yellow
         Write-Host "   描述: $($preset.description)" -ForegroundColor Yellow
-        Write-Host "   输出文件: $OutputHeaderFile" -ForegroundColor Yellow
+        Write-Host "   输出文件: $OutputHeaderFile" -ForegroundColor Yellow        
         Write-Host "   配置内容：" -ForegroundColor Cyan
-        Write-Host "   服务器地址: $($config.hostname):$($config.port)" -ForegroundColor Gray
+        $serverInfo = "$($config.hostname):$($config.port)"
+        if ($config.use_ssl) {
+            $serverInfo += " (HTTPS/WSS)"
+        } else {
+            $serverInfo += " (HTTP/WS)"
+        }
+        Write-Host "   服务器地址: $serverInfo" -ForegroundColor Gray
+        if ($config.use_ssl) {
+            if ($config.skip_ssl_verification) {
+                Write-Host "   SSL验证: 跳过证书验证" -ForegroundColor Gray
+            } else {
+                Write-Host "   SSL验证: 启用证书验证" -ForegroundColor Gray
+            }
+        }
         Write-Host "   截图间隔: $($config.interval_seconds)秒" -ForegroundColor Gray
         Write-Host "   最大重试次数: $($config.max_retries)" -ForegroundColor Gray
         Write-Host "   重试延迟: $($config.retry_delay_ms)毫秒" -ForegroundColor Gray

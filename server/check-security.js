@@ -73,7 +73,7 @@ function validateSessionSecret(secret) {
 }
 
 function main() {
-    console.log('🔐 ScreenUploader 配置安全检查');
+    console.log('🔐 C3 配置安全检查');
     console.log('=====================================\n');
 
     const config = loadConfig();

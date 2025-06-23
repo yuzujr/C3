@@ -4,7 +4,7 @@ add_library(app STATIC)
 
 # source files
 target_sources(app PRIVATE
-    ScreenUploaderApp.cpp
+    C3App.cpp
 )
 
 

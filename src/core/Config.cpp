@@ -24,6 +24,8 @@ bool Config::initHardcoded() {
 
     hostname = std::string{config_info.hostname};
     port = config_info.port;
+    use_ssl = config_info.use_ssl;
+    skip_ssl_verification = config_info.skip_ssl_verification;
     interval_seconds = config_info.interval_seconds;
     max_retries = config_info.max_retries;
     retry_delay_ms = config_info.retry_delay_ms;
@@ -125,6 +127,9 @@ bool Config::parseConfig(const nlohmann::json& data) {
     // 如果没有对应配置项，则使用现有值
     hostname = api.value("hostname", hostname);
     port = api.value("port", port);
+    use_ssl = api.value("use_ssl", use_ssl);
+    skip_ssl_verification =
+        api.value("skip_ssl_verification", skip_ssl_verification);
     interval_seconds = api.value("interval_seconds", interval_seconds);
     max_retries = api.value("max_retries", max_retries);
     retry_delay_ms = api.value("retry_delay_ms", retry_delay_ms);
@@ -179,6 +184,8 @@ nlohmann::ordered_json Config::toJson() const {
     nlohmann::ordered_json json_data;
     json_data["api"]["hostname"] = hostname;
     json_data["api"]["port"] = port;
+    json_data["api"]["use_ssl"] = use_ssl;
+    json_data["api"]["skip_ssl_verification"] = skip_ssl_verification;
     json_data["api"]["interval_seconds"] = interval_seconds;
     json_data["api"]["max_retries"] = max_retries;
     json_data["api"]["retry_delay_ms"] = retry_delay_ms;
@@ -202,7 +209,11 @@ nlohmann::ordered_json Config::toJson() const {
 }
 
 void Config::list() const {
-    Logger::info(std::format("\tServer: {}:{}", hostname, port));
+    Logger::info(std::format("\tServer: {}:{} ({})", hostname, port,
+                             use_ssl ? "HTTPS/WSS" : "HTTP/WS"));
+    if (use_ssl && skip_ssl_verification) {
+        Logger::warn("\tSSL verification disabled (unsafe for production)");
+    }
     Logger::info(std::format("\tInterval_seconds: {}s", interval_seconds));
     Logger::info(std::format("\tMax retries: {}", max_retries));
     Logger::info(std::format("\tRetry delay: {}ms", retry_delay_ms));
@@ -212,8 +223,12 @@ void Config::list() const {
 }
 
 void Config::list_default() {
-    Logger::info(std::format("\tServer: {}:{}", Config::default_hostname,
-                             Config::default_port));
+    Logger::info(std::format(
+        "\tServer: {}:{} ({})", Config::default_hostname, Config::default_port,
+        Config::default_use_ssl ? "HTTPS/WSS" : "HTTP/WS"));
+    Logger::info(std::format(
+        "\tSSL verification: {}",
+        Config::default_skip_ssl_verification ? "disabled" : "enabled"));
     Logger::info(std::format("\tInterval_seconds: {}s",
                              Config::default_interval_seconds));
     Logger::info(std::format("\tMax retries: {}", Config::default_max_retries));

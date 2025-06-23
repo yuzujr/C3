@@ -2,11 +2,11 @@ option(USE_WIN32_GUI "Build as a Windows GUI app" OFF)
 option(USE_HARDCODED_CONFIG "Use hardcoded configuration instead of config.json" OFF)
 
 # Create executable
-add_executable(ScreenUploader)
+add_executable(C3)
 
 # Configure as Windows GUI application if requested
 if(WIN32 AND USE_WIN32_GUI)
-    set_target_properties(ScreenUploader PROPERTIES 
+    set_target_properties(C3 PROPERTIES 
         WIN32_EXECUTABLE TRUE
     )
     message(STATUS "Building as Windows GUI application")
@@ -15,20 +15,20 @@ else()
 endif()
 
 # common source files
-target_sources(ScreenUploader PRIVATE
+target_sources(C3 PRIVATE
     main.cpp
 )
 
 # Windows-specific source files
 if(WIN32)
-    target_sources(ScreenUploader PRIVATE
+    target_sources(C3 PRIVATE
         WinMain.cpp
     )
 endif()
 
 
 # enable strict compiler warnings
-target_compile_options(ScreenUploader PRIVATE
+target_compile_options(C3 PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
     $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra -pedantic>
     $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra -pedantic>
@@ -54,6 +54,6 @@ else()
 endif()
 
 # link modules: app
-target_link_libraries(ScreenUploader PRIVATE 
+target_link_libraries(C3 PRIVATE 
     app
 )

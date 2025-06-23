@@ -1,22 +1,21 @@
-#include "app/ScreenUploaderApp.h"
+#include "app/C3App.h"
 
 #include <chrono>
 #include <regex>
 #include <thread>
 
-ScreenUploaderApp::ScreenUploaderApp()
+C3App::C3App()
     : m_running(true),
       m_config(),
       m_controller(),
       m_dispatcher(m_controller, m_config),
       m_wsClient() {
-    // 初始化日志
     Logger::init(spdlog::level::info, spdlog::level::info);
 
     // 根据编译配置选择配置模式
 #ifdef USE_HARDCODED_CONFIG
     // 硬编码配置模式
-    Logger::info("=== Initializing Hardcoded Configuration ===");
+    Logger::info("=== C3 Initializing Hardcoded Configuration ===");
     if (!m_config.initHardcoded()) {
         Logger::error("Failed to initialize hardcoded config");
         throw std::runtime_error("Failed to initialize hardcoded config");
@@ -25,7 +24,7 @@ ScreenUploaderApp::ScreenUploaderApp()
     m_config.listHardcoded();
 #else
     // 配置文件模式
-    Logger::info("=== Starting with Config File Mode ===");
+    Logger::info("=== C3 Starting with Config File Mode ===");
     if (!m_config.load("config.json")) {
         Logger::error("Failed to load config.json");
         throw std::runtime_error("Failed to load config.json");
@@ -38,7 +37,9 @@ ScreenUploaderApp::ScreenUploaderApp()
     applyConfigSettings();
 
     // 启用高 DPI 感知
-    SystemUtils::enableHighDPI();  // 设置截图回调函数
+    SystemUtils::enableHighDPI();
+
+    // 设置截图回调函数
     m_dispatcher.setScreenshotCallback([this]() {
         captureAndUpload();
     });
@@ -50,20 +51,20 @@ ScreenUploaderApp::ScreenUploaderApp()
     });
 }
 
-ScreenUploaderApp::~ScreenUploaderApp() {
+C3App::~C3App() {
     // 调用统一的清理方法
     stop();
-    Logger::info("Application shutdown complete");
+    Logger::info("C3 shutdown complete");
 }
 
-int ScreenUploaderApp::run() {
+int C3App::run() {
     startWebSocketCommandListener();
     mainLoop();
     return 0;
 }
 
-void ScreenUploaderApp::stop() {
-    Logger::info("Stopping application...");
+void C3App::stop() {
+    Logger::info("Stopping C3...");
     m_running = false;
 
     // 集中处理所有清理工作
@@ -77,23 +78,21 @@ void ScreenUploaderApp::stop() {
     Logger::info("Closing WebSocket client...");
     m_wsClient.close();
 
-    // 将来可以在这里添加其他清理工作
-    // 例如：文件清理、缓存清理、其他资源释放等
-
     Logger::info("All cleanup operations completed");
 }
 
-void ScreenUploaderApp::startWebSocketCommandListener() {
+void C3App::startWebSocketCommandListener() {
     // 设置接收到命令时的回调
     m_wsClient.setOnCommandCallback([this](const nlohmann::json& commands) {
         m_dispatcher.dispatchCommands(commands);
     });
 
     // 启动 WebSocket 客户端
-    m_wsClient.connect(m_config.getWebSocketUrl(), m_config.client_id);
+    m_wsClient.connect(m_config.getWebSocketUrl(), m_config.client_id,
+                       m_config.skip_ssl_verification);
 }
 
-void ScreenUploaderApp::mainLoop() {
+void C3App::mainLoop() {
     // 进入主循环
     while (m_running) {
         // 如果接收到 pause 命令，暂停，等待服务器的 resume 命令
@@ -134,7 +133,7 @@ void ScreenUploaderApp::mainLoop() {
     }
 }
 
-void ScreenUploaderApp::captureAndUpload() {
+void C3App::captureAndUpload() {
     auto frame = ScreenCapturer::captureScreen();
     if (!frame.has_value()) {
         Logger::error("Failed to capture screen");
@@ -144,9 +143,9 @@ void ScreenUploaderApp::captureAndUpload() {
 }
 
 template <typename UploadFunc>
-void ScreenUploaderApp::performUploadWithRetry(const std::string& endpoint,
-                                               const std::string& description,
-                                               UploadFunc uploadFunc) {
+void C3App::performUploadWithRetry(const std::string& endpoint,
+                                   const std::string& description,
+                                   UploadFunc uploadFunc) {
     std::string upload_url =
         std::format("{}/client/{}?client_id={}", m_config.getServerUrl(),
                     endpoint, m_config.client_id);
@@ -164,42 +163,44 @@ void ScreenUploaderApp::performUploadWithRetry(const std::string& endpoint,
     }
 }
 
-void ScreenUploaderApp::uploadImageWithRetry(
-    const std::vector<uint8_t>& frame) {
+void C3App::uploadImageWithRetry(const std::vector<uint8_t>& frame) {
     performUploadWithRetry("upload_screenshot", "screenshot",
                            [&](const std::string& url) {
-                               return Uploader::uploadImage(frame, url);
+                               return Uploader::uploadImageWithSSL(
+                                   frame, url, m_config.skip_ssl_verification);
                            });
 }
 
-void ScreenUploaderApp::uploadConfigWithRetry() {
+void C3App::uploadConfigWithRetry() {
     performUploadWithRetry(
         "upload_client_config", "config", [&](const std::string& url) {
-            return Uploader::uploadConfig(m_config.toJson(), url);
+            return Uploader::uploadConfigWithSSL(
+                m_config.toJson(), url, m_config.skip_ssl_verification);
         });
 }
 
-void ScreenUploaderApp::applyConfigSettings() {
+void C3App::applyConfigSettings() {
     // 上传配置文件
     uploadConfigWithRetry();
 
     // 设置开机自启
     if (m_config.add_to_startup) {
-        SystemUtils::addToStartup("ScreenUploader");
+        SystemUtils::addToStartup("C3");
         Logger::info("Added to startup successfully");
     } else {
-        SystemUtils::removeFromStartup("ScreenUploader");
+        SystemUtils::removeFromStartup("C3");
         Logger::info("Removed from startup successfully");
     }
+
     // 连接或重连 WebSocket 客户端
     if (m_wsClient.getUrl().empty()) {
-        m_wsClient.connect(m_config.getWebSocketUrl(), m_config.client_id);
-
+        m_wsClient.connect(m_config.getWebSocketUrl(), m_config.client_id,
+                           m_config.skip_ssl_verification);
     } else {
         // url改变，重连ws
         if (m_wsClient.getUrl() != m_config.getWebSocketUrl()) {
-            m_wsClient.reconnect(m_config.getWebSocketUrl(),
-                                 m_config.client_id);
+            m_wsClient.reconnect(m_config.getWebSocketUrl(), m_config.client_id,
+                                 m_config.skip_ssl_verification);
         }
     }
 }

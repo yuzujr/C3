@@ -1,5 +1,5 @@
-#ifndef SCREEN_UPLOADER_APP_H
-#define SCREEN_UPLOADER_APP_H
+#ifndef C3_APP_H
+#define C3_APP_H
 
 #include <atomic>
 #include <thread>
@@ -7,10 +7,12 @@
 #include "core/core.h"
 #include "net/net.h"
 
-class ScreenUploaderApp {
+class C3App {
 public:
-    ScreenUploaderApp();
-    ~ScreenUploaderApp();  // 启动应用程序
+    C3App();
+    ~C3App();
+
+    // 启动应用程序
     int run();
     // 停止应用程序（用于信号处理）
     void stop();
@@ -45,4 +47,4 @@ private:
     WebSocketClient m_wsClient;
 };
 
-#endif  // SCREEN_UPLOADER_APP_H
+#endif  // C3_APP_H

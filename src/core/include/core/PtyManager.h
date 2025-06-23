@@ -7,7 +7,7 @@
 #include "nlohmann/json.hpp"
 
 #if defined(_WIN32)
-#define SHELL_EXECUTABLE "pwsh.exe"
+#define SHELL_EXECUTABLE "cmd.exe"
 #elif defined(__linux__)
 #define SHELL_EXECUTABLE "bash"
 #endif

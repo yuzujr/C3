@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
-project(ScreenUploader LANGUAGES CXX)
+project(C3 LANGUAGES CXX)
+
+# CMake build options
+option(BUILD_TESTS "Build unit tests" ON)
 
 # use MT/MTd runtime for MSVC
 if (MSVC)
@@ -14,15 +17,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # disable compiler extensions
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
 # try to get thirdparty libraries
 add_subdirectory(thirdparty)
 
-
-# build ScreenUploader
+# build C3
 add_subdirectory(src)
 
-
 # build tests
-enable_testing()
-add_subdirectory(test/test_pty)
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test/test_pty)
+    message(STATUS "Building with tests enabled")
+else()
+    message(STATUS "Building without tests")
+endif()

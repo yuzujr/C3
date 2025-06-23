@@ -100,20 +100,33 @@ show_preset_list() {
     
     # 获取所有预设名称
     preset_names=$(jq -r '.presets | keys[]' "$PRESETS_FILE")
-    
-    for preset_name in $preset_names; do
+      for preset_name in $preset_names; do
         preset_data=$(jq -r ".presets[\"$preset_name\"]" "$PRESETS_FILE")
         name=$(echo "$preset_data" | jq -r '.name')
         description=$(echo "$preset_data" | jq -r '.description')
-        server_url=$(echo "$preset_data" | jq -r '.config.server_url')
-        ws_url=$(echo "$preset_data" | jq -r '.config.ws_url')
+        hostname=$(echo "$preset_data" | jq -r '.config.hostname')
+        port=$(echo "$preset_data" | jq -r '.config.port')
+        use_ssl=$(echo "$preset_data" | jq -r '.config.use_ssl')
+        skip_ssl_verification=$(echo "$preset_data" | jq -r '.config.skip_ssl_verification')
         interval_seconds=$(echo "$preset_data" | jq -r '.config.interval_seconds')
         
         echo -e "${YELLOW}[$preset_name]${NC}"
         echo -e "  名称: $name"
         echo -e "${GRAY}  描述: $description${NC}"
-        echo -e "${CYAN}  服务器: $server_url${NC}"
-        echo -e "${CYAN}  WebSocket: $ws_url${NC}"
+        
+        # 显示服务器信息
+        if [[ "$use_ssl" == "true" ]]; then
+            echo -e "${CYAN}  服务器: $hostname:$port (HTTPS/WSS)${NC}"
+            if [[ "$skip_ssl_verification" == "true" ]]; then
+                echo -e "${YELLOW}  SSL: 启用 (跳过证书验证)${NC}"
+            else
+                echo -e "${GREEN}  SSL: 启用 (验证证书)${NC}"
+            fi
+        else
+            echo -e "${CYAN}  服务器: $hostname:$port (HTTP/WS)${NC}"
+            echo -e "${GRAY}  SSL: 禁用${NC}"
+        fi
+        
         echo -e "${CYAN}  截图间隔: ${interval_seconds}秒${NC}"
         echo ""
     done
@@ -141,10 +154,12 @@ generate_hardcoded_config() {
     # 获取预设数据
     preset_data=$(jq -r ".presets[\"$preset_name\"]" "$PRESETS_FILE")
     preset_display_name=$(echo "$preset_data" | jq -r '.name')
-    preset_description=$(echo "$preset_data" | jq -r '.description')      # 获取配置数据
+    preset_description=$(echo "$preset_data" | jq -r '.description')    # 获取配置数据
     config_data=$(echo "$preset_data" | jq -r '.config')
     hostname=$(echo "$config_data" | jq -r '.hostname')
     port=$(echo "$config_data" | jq -r '.port')
+    use_ssl=$(echo "$config_data" | jq -r '.use_ssl')
+    skip_ssl_verification=$(echo "$config_data" | jq -r '.skip_ssl_verification')
     interval_seconds=$(echo "$config_data" | jq -r '.interval_seconds')
     max_retries=$(echo "$config_data" | jq -r '.max_retries')
     retry_delay_ms=$(echo "$config_data" | jq -r '.retry_delay_ms')
@@ -153,8 +168,19 @@ generate_hardcoded_config() {
     # 生成新的客户端ID（每次执行都生成新的）
     client_id=$(generate_client_id)
     echo -e "${GREEN}生成Client ID: $client_id${NC}"
+      # 转换布尔值
+    if [[ "$use_ssl" == "true" ]]; then
+        use_ssl_cpp="true"
+    else
+        use_ssl_cpp="false"
+    fi
     
-    # 转换布尔值
+    if [[ "$skip_ssl_verification" == "true" ]]; then
+        skip_ssl_verification_cpp="true"
+    else
+        skip_ssl_verification_cpp="false"
+    fi
+    
     if [[ "$add_to_startup" == "true" ]]; then
         add_to_startup_cpp="true"
     else
@@ -186,10 +212,11 @@ namespace HardcodedConfig {
     constexpr std::string_view BUILD_PRESET = "$preset_name";
     constexpr std::string_view BUILD_PRESET_NAME = "$preset_display_name";
     constexpr std::string_view BUILD_PRESET_DESC = "$preset_description";
-    constexpr std::string_view BUILD_TIMESTAMP = "$timestamp";
-      // API 配置
+    constexpr std::string_view BUILD_TIMESTAMP = "$timestamp";    // API 配置
     constexpr std::string_view HOSTNAME = "$hostname";
     constexpr int PORT = $port;
+    constexpr bool USE_SSL = $use_ssl_cpp;
+    constexpr bool SKIP_SSL_VERIFICATION = $skip_ssl_verification_cpp;
     constexpr int INTERVAL_SECONDS = $interval_seconds;
     constexpr int MAX_RETRIES = $max_retries;
     constexpr int RETRY_DELAY_MS = $retry_delay_ms;
@@ -199,8 +226,7 @@ namespace HardcodedConfig {
     // 编译时配置检查
     static_assert(INTERVAL_SECONDS > 0, "INTERVAL_SECONDS must be positive");
     static_assert(MAX_RETRIES >= 0, "MAX_RETRIES must be non-negative");
-    static_assert(RETRY_DELAY_MS >= 0, "RETRY_DELAY_MS must be non-negative");
-      // 配置信息结构
+    static_assert(RETRY_DELAY_MS >= 0, "RETRY_DELAY_MS must be non-negative");    // 配置信息结构
     struct ConfigInfo {
         std::string_view preset;
         std::string_view preset_name;
@@ -208,13 +234,14 @@ namespace HardcodedConfig {
         std::string_view build_timestamp;
         std::string_view hostname;
         int port;
+        bool use_ssl;
+        bool skip_ssl_verification;
         int interval_seconds;
         int max_retries;
         int retry_delay_ms;
         bool add_to_startup;
         std::string_view client_id;
-    };
-      // 获取硬编码配置信息
+    };    // 获取硬编码配置信息
     inline constexpr ConfigInfo getConfigInfo() {
         return ConfigInfo{
             BUILD_PRESET,
@@ -223,6 +250,8 @@ namespace HardcodedConfig {
             BUILD_TIMESTAMP,
             HOSTNAME,
             PORT,
+            USE_SSL,
+            SKIP_SSL_VERIFICATION,
             INTERVAL_SECONDS,
             MAX_RETRIES,
             RETRY_DELAY_MS,
@@ -239,15 +268,25 @@ EOF
         echo -e "${GREEN}✅ 成功生成硬编码配置!${NC}"
         echo -e "   ${YELLOW}预设名称: $preset_name ($preset_display_name)${NC}"
         echo -e "   ${YELLOW}描述: $preset_description${NC}"
-        echo -e "   ${YELLOW}输出文件: $OUTPUT_HEADER_FILE${NC}"
-
-        echo -e "   ${CYAN}配置内容：${NC}"
-        echo -e "   ${GRAY}http地址: $server_url${NC}"
-        echo -e "   ${GRAY}WebSocket地址: $ws_url${NC}"
+        echo -e "   ${YELLOW}输出文件: $OUTPUT_HEADER_FILE${NC}"        echo -e "   ${CYAN}配置内容：${NC}"
+        
+        # 显示服务器信息
+        if [[ "$use_ssl" == "true" ]]; then
+            echo -e "   ${GRAY}服务器地址: $hostname:$port (HTTPS/WSS)${NC}"
+            if [[ "$skip_ssl_verification" == "true" ]]; then
+                echo -e "   ${YELLOW}SSL验证: 跳过证书验证 (不安全)${NC}"
+            else
+                echo -e "   ${GREEN}SSL验证: 启用证书验证 (安全)${NC}"
+            fi
+        else
+            echo -e "   ${GRAY}服务器地址: $hostname:$port (HTTP/WS)${NC}"
+        fi
+        
         echo -e "   ${GRAY}截图间隔: ${interval_seconds}秒${NC}"
         echo -e "   ${GRAY}最大重试次数: $max_retries${NC}"
         echo -e "   ${GRAY}重试延迟: ${retry_delay_ms}毫秒${NC}"
         echo -e "   ${GRAY}启动时添加到自启动: $add_to_startup${NC}"
+        echo -e "   ${GRAY}客户端ID: $client_id${NC}"
         
         return 0
     else

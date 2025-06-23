@@ -13,16 +13,14 @@ public:
     ~WebSocketClient();
 
     // 获取当前 WebSocket 连接的 URL（不包含路径和查询参数）
-    std::string getUrl() const;
-
-    // 连接到 WebSocket 服务器
-    void connect(const std::string& url, const std::string& client_id);
+    std::string getUrl() const;  // 连接到 WebSocket 服务器
+    void connect(const std::string& url, const std::string& client_id,
+                 bool skip_ssl_verification = false);
 
     // 关闭 WebSocket 连接
-    void close();
-
-    // 重连 WebSocket 连接
-    void reconnect(const std::string& url, const std::string& client_id);
+    void close();  // 重连 WebSocket 连接
+    void reconnect(const std::string& url, const std::string& client_id,
+                   bool skip_ssl_verification = false);
 
     // 发送消息到服务器
     void send(const nlohmann::json& message);

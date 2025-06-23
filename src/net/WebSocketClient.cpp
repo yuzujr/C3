@@ -34,10 +34,11 @@ void WebSocketClient::close() {
 }
 
 void WebSocketClient::reconnect(const std::string& url,
-                                const std::string& client_id) {
+                                const std::string& client_id,
+                                bool skip_ssl_verification) {
     // 重新连接
     close();
-    connect(url, client_id);
+    connect(url, client_id, skip_ssl_verification);
 }
 
 void WebSocketClient::send(const nlohmann::json& message) {
@@ -56,10 +57,26 @@ void WebSocketClient::send(const nlohmann::json& message) {
 }
 
 void WebSocketClient::connect(const std::string& url,
-                              const std::string& client_id) {
+                              const std::string& client_id,
+                              bool skip_ssl_verification) {
     std::string ws_url =
         std::format("{}/client/commands?client_id={}", url, client_id);
     m_ws.setUrl(ws_url);
+
+    // 配置SSL/TLS设置
+    if (ws_url.starts_with("wss://")) {
+        ix::SocketTLSOptions tlsOptions;
+
+        if (skip_ssl_verification) {
+            Logger::warn(
+                "SSL certificate verification disabled - unsafe for "
+                "production");
+            tlsOptions.caFile = "NONE";  // 跳过证书验证
+        }
+
+        m_ws.setTLSOptions(tlsOptions);
+    } else {
+    }
 
     ix::OnMessageCallback callback =
         [this](const ix::WebSocketMessagePtr& msg) {

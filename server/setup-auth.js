@@ -21,7 +21,7 @@ async function question(query) {
 }
 
 async function main() {
-    console.log('🔐 ScreenUploader 安全配置向导');
+    console.log('🔐 C3 安全配置向导');
     console.log('=====================================\n');
 
     try {

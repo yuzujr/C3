@@ -3,10 +3,6 @@ include(ExternalProject)
 # make cache variables for install destinations
 include(GNUInstallDirs)
 
-# Use cached content if available
-option(FETCHCONTENT_TRY_DISCONNECTED "Use cached content if available" ON)
-set(FETCHCONTENT_UPDATES_DISCONNECTED ${FETCHCONTENT_TRY_DISCONNECTED})
-
 
 # cpr: https://github.com/libcpr/cpr/releases
 add_subdirectory(cpr)

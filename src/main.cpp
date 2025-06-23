@@ -2,10 +2,10 @@
 
 #include <cstdlib>
 
-#include "app/ScreenUploaderApp.h"
+#include "app/C3App.h"
 
 // 全局应用实例指针，用于信号处理
-ScreenUploaderApp* g_appInstance = nullptr;
+C3App* g_appInstance = nullptr;
 
 // 信号处理函数
 void signalHandler(int signum) {
@@ -25,7 +25,7 @@ int main() {
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
     try {
-        ScreenUploaderApp app;
+        C3App app;
         g_appInstance = &app;  // 设置全局实例指针
         int result = app.run();
         g_appInstance = nullptr;  // 清除全局实例指针

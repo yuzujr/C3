@@ -20,9 +20,20 @@ public:
     // 尝试上传图像
     static bool uploadImage(const std::vector<uint8_t>& frame,
                             const std::string& url);
+
+    // 尝试上传图像（支持SSL配置）
+    static bool uploadImageWithSSL(const std::vector<uint8_t>& frame,
+                                   const std::string& url,
+                                   bool skip_ssl_verification = false);
+
     // 尝试上传配置文件
     static bool uploadConfig(const nlohmann::json& config,
                              const std::string& url);
+
+    // 尝试上传配置文件（支持SSL配置）
+    static bool uploadConfigWithSSL(const nlohmann::json& config,
+                                    const std::string& url,
+                                    bool skip_ssl_verification = false);
 
     // 有重试机制的上传
     // 要求Func是一个可调用对象，函数签名为bool()

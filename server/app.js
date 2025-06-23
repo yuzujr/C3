@@ -64,7 +64,7 @@ function startServer() {
             // 初始化WebSocket服务器，与HTTP共享端口
             initWebSocketServer(server);
             logWithTime(`[INIT] HTTP & WebSocket Server running at http://127.0.0.1:${config.PORT}`);
-            logWithTime('[INIT] ScreenUploader Server started successfully');
+            logWithTime('[INIT] C3 Server started successfully');
         });        // 关闭处理
         let isShuttingDown = false; // 防止重复关闭
 
@@ -131,7 +131,7 @@ function startServer() {
  * 应用入口点
  */
 function main() {
-    logWithTime('[INIT] Starting ScreenUploader Server...');
+    logWithTime('[INIT] Starting C3 Server...');
     startServer();
 }
 
