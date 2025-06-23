@@ -1,79 +1,39 @@
-# ScreenUploader
+# C3
 
-ScreenUploader is a comprehensive remote administration platform that combines automated screenshot capture with powerful reverse shell capabilities. The system enables real-time remote monitoring and control through a secure web interface.
+A minimal C++ command and control framework for remote system administration.
 
-The client is implemented in C++ with cross-platform support, while the server uses the JavaScript Express framework with WebSocket integration. It supports both Windows and Linux (X11) with enterprise-grade security features.
+## Features
 
-**Key Features:**
-- **Automated Screenshot Capture**: Periodic screen monitoring with JPEG compression
-- **Reverse Shell System**: Full terminal access with persistent sessions
-- **Enterprise Security**: JWT authentication with role-based access control
-- **Real-Time Web Interface**: WebSocket-powered control panel
-- **Flexible Deployment**: Traditional config files or hardcoded builds
-- **Cross-Platform**: Windows (PowerShell) and Linux (Bash) support
+- Remote shell access via WebSocket
+- Automated screenshot capture and upload
+- HTTPS/WSS encryption with certificate validation options
+- Web-based control interface with real-time communication
+- Cross-platform client (Windows/Linux)
+- Hardcoded configuration builds for deployment
 
-Primarily built for practicing advanced client/server architecture, real-time communication, and secure remote administration.
+## Quick Setup
 
+**Server:**
+```bash
+cd server && npm install && node server.js
+```
 
+**Client:**
+```bash
+cmake -S . -B build && cmake --build build
+./build/src/C3
+```
 
-## Usage
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/yuzujr/ScreenUploader)
+## Configuration
 
-### Server Setup
-
-1. **Install Dependencies**
-
-   Install [node.js](https://nodejs.org/).
-
-   ```bash
-   cd server
-   npm install
-   ```
-
-2. **Configure Authentication (Optional)**
-
-   - environment method:
-   ```bash
-   cp .env.example .env
-   ```
-   Edit .env with your settings.
-   
-   - config file method:
-   ```bash
-   node setup-auth.js
-   ```
-   Follow prompts to set up admin credentials and JWT secret.
-
-3. **Start Server**
-
-   ```bash
-   node server.js
-   ```
-
-   Server runs on:
-   - **HTTP Server**: Port 4000 (web interface)
-   - **WebSocket Server**: Port 8080 (real-time communication)
-
-### Client Configuration
-
-**Option 1: Traditional Config File**
-
-Edit `config.json`:
-
-- `upload_url` is server's upload endpoint. (Default: `http://127.0.0.1:4000`)
-- `ws_url` is server's WebSocket endpoint. (Default: `ws://127.0.0.1:8080`)
-- `interval_seconds` is the screenshot capture interval. (Default: 60s)
-- `max_retries` is the number of retry attempts if upload fails. (Default: 3)
-- `retry_delay_ms` is the delay between retry attempts in milliseconds. (Default: 1000ms)
-- `add_to_startup` determines whether to add the application to system startup. (Default: false)
-- `client_id` is a unique identifier for the client (optional, auto-generated if not set).
-
-Example `config.json`:
+Create `config.json`:
 ```json
 {
   "api": {
-    "server_url": "http://127.0.0.1:4000",
-    "ws_url": "ws://127.0.0.1:8080",
+    "hostname": "127.0.0.1",
+    "port": 3000,
+    "use_ssl": false,
+    "skip_ssl_verification": false,
     "interval_seconds": 60,
     "max_retries": 3,
     "retry_delay_ms": 1000,
@@ -83,97 +43,35 @@ Example `config.json`:
 }
 ```
 
-**Option 2: Hardcoded Build**
 
-For secure deployment without config files:
+## Build Options
+
+- `USE_HARDCODED_CONFIG=ON` - Embed configuration at compile time
+- `BUILD_TESTS=OFF` - Skip test compilation
+- `USE_WIN32_GUI=ON` - Build as Windows GUI application
+
+## Hardcoded Builds
+
+Generate hardcoded configuration:
 ```bash
-# Edit presets as needed: config/build-presets.json
+# Windows
+powershell scripts/generate-hardcoded-config.ps1 -preset production
 
-# Generate hardcoded configuration
-./scripts/generate-hardcoded-config.sh
-# Or on Windows: ./scripts/generate-hardcoded-config.ps1
-
-# Build with hardcoded config
-mkdir build-hardcoded
-cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release
-cmake --build build-hardcoded --config Release -j
+# Linux/macOS  
+./scripts/generate-hardcoded-config.sh -p production
 ```
 
-### Running the Client
-
-1. Place `config.json` next to the executable (if using traditional config)
-2. Run `ScreenUploader` executable
-3. Check server terminal for connection logs
-
-### Web Interface
-
-Access the control panel at `http://localhost:4000`:
-
-- **Login**: Use credentials set up during server configuration
-- **Screenshot Monitoring**: Real-time screenshot viewing and capture
-- **Terminal Access**: Full reverse shell with persistent sessions
-- **Client Management**: Monitor connected clients and their status, rename/delete clients
-
-Features:
-- **Instant Screenshots**: On-demand screen capture
-- **Terminal Sessions**: Interactive command execution
-- **Client Dashboard**: Real-time status monitoring
-- **Auto-Refresh**: Live updates via WebSocket
-
-
-### File Organization
-
-- **Screenshots**: Saved in `uploads/` folder organized by client
-- **Logs**: Server logs saved in `logs/` folder  
-- **Client Config**: Stored as `uploads/{client_id}/config.json`
-
-
-## Build from Source
-
-### Client Dependencies
-
-**Required Tools:**
-- [CMake](https://cmake.org/download/) (version 3.16+)
-- C++20 compatible compiler:
-  - Windows: MSVC (Visual Studio 2019+)
-  - Linux: GCC 10+ or Clang 12+
-
-**Linux System Dependencies:**
+Then build with hardcoded config:
 ```bash
-# Ubuntu/Debian
-sudo apt install libx11-dev libssl-dev libcurl4-openssl-dev
-
-# CentOS/RHEL
-sudo yum install libX11-devel openssl-devel libcurl-devel
+cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON
+cmake --build build-hardcoded --config Release
 ```
 
-**Third-party Libraries (Auto-downloaded):**
-- **cpr**: HTTP client library
-- **libjpeg-turbo**: JPEG compression
-- **nlohmann_json**: JSON parsing  
-- **spdlog**: Logging framework
-- **IXWebSocket**: WebSocket client
-> **Network Requirements**: Internet connection required for dependency download. Configure `http_proxy` and `https_proxy` if behind a proxy.
+## Documentation
 
-### Build Process
+- [Setup Guide](docs/SETUP.md) - Complete installation and server configuration
+- [Build Instructions](docs/BUILD.md) - Compilation options and deployment
 
-**Standard Build:**
-```bash
-mkdir build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release -j
-```
+## Legal
 
-**Windows GUI Build(avoid console):**
-```bash
-mkdir build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_WIN32_GUI=ON
-cmake --build build --config Release -j
-```
-
-**Hardcoded Configuration Build:**
-```bash
-mkdir build-hardcoded
-cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release
-cmake --build build-hardcoded --config Release -j
-```
+Educational use only. User assumes all responsibility for compliance with applicable laws.
