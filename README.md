@@ -49,29 +49,6 @@ Create `config.json`:
 ```
 
 
-## Build Options
-
-- `USE_HARDCODED_CONFIG=ON` - Embed configuration at compile time
-- `BUILD_TESTS=OFF` - Skip test compilation
-- `USE_WIN32_GUI=ON` - Build as Windows GUI application
-
-## Hardcoded Builds
-
-Generate hardcoded configuration:
-```bash
-# Windows
-.\scripts\generate-hardcoded-config.ps1 -p development
-
-# Linux
-./scripts/generate-hardcoded-config.sh -p development
-```
-
-Then build with hardcoded config:
-```bash
-cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release
-cmake --build build-hardcoded --config Release
-```
-
 ## Documentation
 
 - [Build Instructions](docs/BUILD.md) - Compilation options and deployment
