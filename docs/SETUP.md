@@ -4,7 +4,9 @@ This guide provides complete installation and configuration instructions for C3.
 
 ## Server Setup
 
-### 1. Install Dependencies
+### Method 1: Native Installation
+
+#### 1. Install Dependencies
 
 Install [Node.js](https://nodejs.org/) (version 16 or later).
 
@@ -13,7 +15,7 @@ cd server
 npm install
 ```
 
-### 2. Configure Authentication
+#### 2. Configure Authentication
 
 **Option A: Environment Variables**
 ```bash
@@ -33,11 +35,23 @@ node setup-auth.js
 ```
 Follow prompts to set up admin credentials and JWT secret.
 
-### 3. Start Server
+#### 3. Start Server
 
 ```bash
-node server.js
+node app.js
 ```
+
+### Method 2: Docker Deployment
+
+
+```bash
+cd server
+docker-compose up -d
+```
+
+Configuration is same as native installation.
+
+---
 
 Server will run on:
 - **HTTP Server**: Port 3000 (web interface)
@@ -85,7 +99,7 @@ Create `config.json` next to the executable:
 
 
 ### Hardcoded Configuration
-See [build guide](BUILD.md) for secure deployment without config files.
+See [hardcoded build guide](BUILD.md#hardcoded-configuration-build) for secure deployment without config files.
 
 
 ## Running the Client

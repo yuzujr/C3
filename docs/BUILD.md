@@ -77,13 +77,13 @@ For secure deployment without config files:
    ```
 
 2. **Generate Hardcoded Config**
-   ```bash
-   # Linux/macOS
-   ./scripts/generate-hardcoded-config.sh
-   
-   # Windows
-   .\scripts\generate-hardcoded-config.ps1
-   ```
+```bash
+# Windows
+.\scripts\generate-hardcoded-config.ps1 -p development
+
+# Linux
+./scripts/generate-hardcoded-config.sh -p development
+```
 
 3. **Build with Hardcoded Config**
    ```bash

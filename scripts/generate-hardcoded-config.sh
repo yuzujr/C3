@@ -66,7 +66,6 @@ test_prerequisites() {
         echo -e "${RED}错误: 需要安装 jq 工具来解析 JSON 文件${NC}" >&2
         echo "在 Ubuntu/Debian 上: sudo apt install jq"
         echo "在 CentOS/RHEL 上: sudo yum install jq"
-        echo "在 macOS 上: brew install jq"
         return 1
     fi
     
@@ -298,11 +297,7 @@ EOF
 # 生成客户端ID
 generate_client_id() {
     local full_uuid
-    # 在Linux/macOS上生成UUID
-    if command -v uuidgen >/dev/null 2>&1; then
-        # macOS/BSD系统
-        full_uuid=$(uuidgen | tr '[:upper:]' '[:lower:]')
-    elif [[ -f /proc/sys/kernel/random/uuid ]]; then
+    if [[ -f /proc/sys/kernel/random/uuid ]]; then
         # Linux系统
         full_uuid=$(cat /proc/sys/kernel/random/uuid)
     else

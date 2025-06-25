@@ -13,9 +13,14 @@ C3 (Command-Control-C++) is a minimal command and control framework for remote s
 
 ## Quick Setup
 
-**Server:**
+**Server (Native):**
 ```bash
 cd server && npm install && node app.js
+```
+
+**Server (Docker):**
+```bash
+cd server && docker-compose up -d
 ```
 
 **Client:**
@@ -57,7 +62,7 @@ Generate hardcoded configuration:
 # Windows
 .\scripts\generate-hardcoded-config.ps1 -p development
 
-# Linux/macOS  
+# Linux
 ./scripts/generate-hardcoded-config.sh -p development
 ```
 
