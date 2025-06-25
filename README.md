@@ -15,7 +15,7 @@ C3 (Command-Control-C++) is a minimal command and control framework for remote s
 
 **Server:**
 ```bash
-cd server && npm install && node server.js
+cd server && npm install && node app.js
 ```
 
 **Client:**
@@ -55,15 +55,15 @@ Create `config.json`:
 Generate hardcoded configuration:
 ```bash
 # Windows
-powershell scripts/generate-hardcoded-config.ps1 -preset production
+.\scripts\generate-hardcoded-config.ps1 -p development
 
 # Linux/macOS  
-./scripts/generate-hardcoded-config.sh -p production
+./scripts/generate-hardcoded-config.sh -p development
 ```
 
 Then build with hardcoded config:
 ```bash
-cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON
+cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build-hardcoded --config Release
 ```
 
