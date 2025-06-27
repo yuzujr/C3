@@ -28,12 +28,11 @@ class ClientManager {
             }
 
             const clientCount = Object.keys(this.clientsMapping).length;
-            logWithTime(`[CLIENT-MANAGER] Loaded ${clientCount} registered clients from clients.json`);
 
             if (clientCount > 0) {
                 logWithTime('[CLIENT-MANAGER] Registered clients:');
                 Object.entries(this.clientsMapping).forEach(([clientId, alias]) => {
-                    logWithTime(`  - ${alias} (${clientId})`);
+                    logWithTime(`[CLIENT-MANAGER]  - ${alias} (${clientId})`);
                 });
             }
         } catch (err) {
@@ -48,7 +47,6 @@ class ClientManager {
     watchClientsFile() {
         if (fs.existsSync(this.clientsJsonPath)) {
             fs.watchFile(this.clientsJsonPath, () => {
-                logWithTime('[CLIENT-MANAGER] Clients file changed, reloading...');
                 this.loadClients();
             });
         }
@@ -144,12 +142,10 @@ class ClientManager {
 
                 try {
                     fs.renameSync(oldDir, newDir);
-                    logWithTime(`[CLIENT-MANAGER] Renamed directory: ${oldAlias} -> ${newAlias}`);
                 } catch (renameError) {
                     // 如果重命名失败，回滚映射更改
                     this.clientsMapping[clientId] = oldAlias;
                     this.saveClients();
-                    errorWithTime('[CLIENT-MANAGER] Failed to rename directory:', renameError.message);
                     return { success: false, message: '重命名文件夹失败: ' + renameError.message };
                 }
             }
@@ -223,9 +219,7 @@ class ClientManager {
     saveClients() {
         try {
             fs.writeFileSync(this.clientsJsonPath, JSON.stringify(this.clientsMapping, null, 2));
-            logWithTime('[CLIENT-MANAGER] Clients saved to disk');
         } catch (err) {
-            errorWithTime('[CLIENT-MANAGER] Failed to save clients:', err.message);
         }
     }
 

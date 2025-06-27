@@ -63,8 +63,7 @@ function startServer() {
         const server = app.listen(config.PORT, config.HOST, () => {
             // 初始化WebSocket服务器，与HTTP共享端口
             initWebSocketServer(server);
-            logWithTime(`[INIT] HTTP & WebSocket Server running at http://127.0.0.1:${config.PORT}`);
-            logWithTime('[INIT] C3 Server started successfully');
+            logWithTime(`[INIT] Server running at http://127.0.0.1:${config.PORT}`);
         });        // 关闭处理
         let isShuttingDown = false; // 防止重复关闭
 
@@ -75,7 +74,7 @@ function startServer() {
             }
 
             isShuttingDown = true;
-            logWithTime(`[SHUTDOWN] Received ${signal}, shutting down...`);
+            logWithTime(`[SHUTDOWN] Received ${signal}, shutting down gracefully...`);
             // 设置强制退出超时
             const forceExitTimer = setTimeout(() => {
                 logWithTime('[SHUTDOWN] Force exit after timeout');
@@ -100,7 +99,6 @@ function startServer() {
                     logWithTime('[SHUTDOWN] Error closing HTTP server:', err);
                 }
 
-                logWithTime('[SHUTDOWN] Server shutdown completed');
                 process.exit(0);
             });            // 如果所有方法都失败，最后的保险机制
             setTimeout(() => {
@@ -131,7 +129,6 @@ function startServer() {
  * 应用入口点
  */
 function main() {
-    logWithTime('[INIT] Starting C3 Server...');
     startServer();
 }
 

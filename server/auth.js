@@ -41,7 +41,6 @@ function createSession(username) {
         lastAccess: Date.now()
     });
 
-    logWithTime(`[AUTH] New session created for user: ${username}`);
     return sessionId;
 }
 
@@ -77,7 +76,6 @@ function destroySession(sessionId) {
     if (activeSessions.has(sessionId)) {
         const session = activeSessions.get(sessionId);
         activeSessions.delete(sessionId);
-        logWithTime(`[AUTH] Session destroyed for user: ${session.username}`);
     }
 }
 
@@ -138,7 +136,7 @@ function handleLogin(req, res) {
     }
 
     if (!validateCredentials(username, password)) {
-        logWithTime(`[AUTH] Failed login attempt for user: ${username} from IP: ${req.ip}`);
+        logWithTime(`[WEB] user: ${username} ip: ${req.ip} login failed - invalid credentials`);
         return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -153,7 +151,7 @@ function handleLogin(req, res) {
         maxAge: config.SESSION_EXPIRE_HOURS * 60 * 60 * 1000
     });
 
-    logWithTime(`[AUTH] Successful login for user: ${username} from IP: ${req.ip}`);
+    logWithTime(`[WEB] user: ${username} ip: ${req.ip} login successfully`);
     res.json({ success: true, message: 'Login successful' });
 }
 

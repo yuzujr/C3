@@ -35,7 +35,6 @@ function initWebSocketServer(server) {
 
     // 与HTTP服务器共享端口
     wsServer = new WebSocket.Server({ server });
-    logWithTime(`[INIT] WebSocket server attached to HTTP server on port ${config.PORT}`);
 
     wsServer.on('connection', handleWebSocketConnection);
 }
@@ -76,11 +75,9 @@ function handleWebSocketConnection(ws, req) {
  */
 function handleWebConnection(ws) {
     webConnections.add(ws);
-    logWithTime('[WEBSOCKET] Web client connected');
 
     ws.on('close', () => {
         webConnections.delete(ws);
-        logWithTime('[WEBSOCKET] Web client disconnected');
     });
 
     ws.on('error', (error) => {
@@ -100,13 +97,9 @@ function handleClientConnection(ws, client_id) {
     // 如果客户端没有设置别名，将其添加到映射中（使用client_id作为别名）
     if (!clientManager.clientsMapping[client_id]) {
         clientManager.setClient(client_id, client_id);
-        logWithTime(`[WEBSOCKET] Added new client to mapping: ${client_id}`);
     } activeConnections.set(alias, ws);
-    logWithTime(`[WEBSOCKET] Client connected: ${alias} (${client_id})`);
+    logWithTime(`[CLIENT] Client connected: ${alias} (${client_id})`);
 
-    // 打印最新的连接状态
-    const stats = getConnectionStats();
-    logWithTime(`[STATUS] Online clients: ${stats.onlineClients}/${stats.totalRegistered}`);
 
     // 广播客户端上线状态
     broadcastToWebClients({
@@ -115,11 +108,7 @@ function handleClientConnection(ws, client_id) {
         online: true
     }); ws.on('close', () => {
         activeConnections.delete(alias);
-        logWithTime(`[WEBSOCKET] Client disconnected: ${alias} (${client_id})`);
-
-        // 打印最新的连接状态
-        const stats = getConnectionStats();
-        logWithTime(`[STATUS] Online clients: ${stats.onlineClients}/${stats.totalRegistered}`);
+        logWithTime(`[CLIENT] Client disconnected: ${alias} (${client_id})`);
 
         // 广播客户端下线状态
         broadcastToWebClients({
@@ -128,12 +117,9 @@ function handleClientConnection(ws, client_id) {
             online: false
         });
     }); ws.on('error', (error) => {
-        errorWithTime(`[WEBSOCKET] Client error for ${alias}:`, error);
+        errorWithTime(`[CLIENT] Client error for ${alias}:`, error);
         activeConnections.delete(alias);
 
-        // 打印最新的连接状态
-        const stats = getConnectionStats();
-        logWithTime(`[STATUS] Online clients: ${stats.onlineClients}/${stats.totalRegistered}`);
 
         // 广播客户端下线状态
         broadcastToWebClients({
@@ -274,25 +260,11 @@ function getOnlineClients() {
     );
 }
 
-/**
- * 获取连接状态报告
- * @returns {object} 连接状态统计
- */
-function getConnectionStats() {
-    const onlineClients = getOnlineClients();
-    return {
-        totalRegistered: Object.keys(clientManager.clientsMapping).length,
-        onlineClients: onlineClients.length,
-        webConnections: webConnections.size,
-        onlineClientsList: onlineClients
-    };
-}
 
 /**
  * 关闭WebSocket服务器
  */
 function closeWebSocketServer() {
-    logWithTime('[SHUTDOWN] Closing WebSocket server...');
     try {        // 关闭所有 Web 连接
         if (webConnections && webConnections.size > 0) {
             webConnections.forEach(ws => {
@@ -354,8 +326,6 @@ function updateClientAlias(oldAlias, newAlias) {
         // 添加新的映射
         activeConnections.set(newAlias, ws);
 
-        logWithTime(`[WEBSOCKET] Alias updated: ${oldAlias} -> ${newAlias}`);
-
         // 广播客户端状态变化（旧别名下线，新别名上线）
         broadcastToWebClients({
             type: 'client_status_change',
@@ -384,8 +354,6 @@ function removeClientConnection(alias) {
         // 移除映射
         activeConnections.delete(alias);
 
-        logWithTime(`[WEBSOCKET] Removed client connection: ${alias}`);
-
         // 广播客户端下线状态
         broadcastToWebClients({
             type: 'client_status_change',
@@ -401,7 +369,6 @@ module.exports = {
     sendToClient,
     isClientOnline,
     getOnlineClients,
-    getConnectionStats,
     closeWebSocketServer,
     updateClientAlias,
     removeClientConnection,

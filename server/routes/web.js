@@ -169,13 +169,11 @@ router.put('/clients/:currentAlias/alias', async (req, res) => {
         const result = await clientManager.updateAlias(currentAlias, newAlias);
 
         if (result.success) {
-            logWithTime(`[WEB] Alias updated: ${currentAlias} -> ${newAlias}`);
             res.json(result);
         } else {
             res.status(400).json(result);
         }
     } catch (error) {
-        errorWithTime('[WEB] Error updating alias:', error);
         res.status(500).json({
             success: false,
             message: '更新别名时发生服务器错误'

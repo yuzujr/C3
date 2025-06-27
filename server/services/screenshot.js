@@ -179,11 +179,11 @@ function processNewScreenshot(file, clientId, alias) {
         const screenshotUrl = `/uploads${pathAfterUploads.replace(/\\/g, '/')}`;
 
         const displayName = alias ? `${alias} (${clientId})` : clientId;
-        logWithTime('[UPLOAD] Screenshot uploaded from:', displayName);
+        logWithTime('[CLIENT] Screenshot uploaded from:', displayName);
 
         return screenshotUrl;
     } catch (error) {
-        errorWithTime('[UPLOAD] Error processing screenshot:', error);
+        errorWithTime('[CLIENT] Error processing screenshot:', error);
         throw error;
     }
 }

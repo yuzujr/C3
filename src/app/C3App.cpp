@@ -127,7 +127,7 @@ void C3App::mainLoop() {
         captureAndUpload();
 
         // 等待下一次上传
-        Logger::info("Waiting for next capture...\n");
+        Logger::info("Waiting for next capture...");
         std::this_thread::sleep_until(
             start + std::chrono::seconds(m_config.interval_seconds));
     }

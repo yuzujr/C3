@@ -93,9 +93,6 @@ static ThreadSafeOutputCollector g_collector;
 class PtyManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // 初始化日志
-        Logger::init(spdlog::level::info, spdlog::level::debug);
-
         // 清理收集器
         g_collector.clear();
 
@@ -257,6 +254,9 @@ INSTANTIATE_TEST_SUITE_P(
                       std::make_pair("echo 123", "123")));
 
 int main(int argc, char** argv) {
+    // 初始化日志（只初始化一次）
+    Logger::init(spdlog::level::info, spdlog::level::debug);
+    
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

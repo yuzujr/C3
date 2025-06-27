@@ -99,39 +99,30 @@ const config = {    // 端口配置 (优先使用环境变量，然后是外部�
 // 配置验证和安全检查
 function validateConfig() {
     const warnings = [];
-    const errors = [];
 
     // 检查密码安全性
     if (config.AUTH_PASSWORD === 'CHANGE_ME_PLEASE' || config.AUTH_PASSWORD === 'admin123') {
-        warnings.push('⚠️  Using default password! Please change AUTH_PASSWORD for security.');
+        warnings.push('[CONFIG] ⚠️  Using default password! Please change AUTH_PASSWORD for security.');
     }
 
     if (config.AUTH_PASSWORD && config.AUTH_PASSWORD.length < 8) {
-        warnings.push('⚠️  Password is too short! Recommend at least 8 characters.');
+        warnings.push('[CONFIG] ⚠️  Password is too short! Recommend at least 8 characters.');
     }
 
     // 检查会话密钥
     if (config.SESSION_SECRET.length < 32) {
-        warnings.push('⚠️  SESSION_SECRET is too short! Should be at least 32 characters.');
+        warnings.push('[CONFIG] ⚠️  SESSION_SECRET is too short! Should be at least 32 characters.');
     }
 
     // 检查生产环境配置
     // 在Docker环境中，绑定0.0.0.0是正常的，因为有容器网络隔离
     const isDockerEnv = process.env.DOCKER_ENV === 'true' || fs.existsSync('/.dockerenv');
     if (config.HOST === '0.0.0.0' && process.env.NODE_ENV === 'production' && !isDockerEnv) {
-        warnings.push('⚠️  Binding to 0.0.0.0 in production. Consider restricting to specific IP.');
+        warnings.push('[CONFIG] ⚠️  Binding to 0.0.0.0 in production. Consider restricting to specific IP.');
     }    // 显示警告
     if (warnings.length > 0) {
         logWithTime('[CONFIG] Security Warnings:');
-        warnings.forEach(warning => logWithTime(`  ${warning}`));
-    }
-
-    // 显示错误
-    if (errors.length > 0) {
-        errorWithTime('\n[CONFIG] Configuration Errors:');
-        errors.forEach(error => errorWithTime(`  ❌ ${error}`));
-        errorWithTime('');
-        process.exit(1);
+        warnings.forEach(warning => logWithTime(`${warning}`));
     }
 }
 

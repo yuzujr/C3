@@ -24,7 +24,7 @@ function getClientConfig(clientId) {
         const configData = raw ? JSON.parse(raw) : {};
         return configData || null;
     } catch (error) {
-        errorWithTime(`[CONFIG] Failed to read config for ${clientId}:`, error);
+        errorWithTime(`[CLIENT] Failed to read config for ${clientId}:`, error);
         return null;
     }
 }
@@ -68,11 +68,10 @@ function saveClientConfig(clientId, configData) {
         };
 
         fs.writeFileSync(configPath, JSON.stringify(fullConfig, null, 2));
-        logWithTime(`[CONFIG] Saved client config to ${configPath}`);
 
         return true;
     } catch (error) {
-        errorWithTime(`[CONFIG] Failed to save config for ${clientId}:`, error);
+        errorWithTime(`[CLIENT] Failed to save config for ${clientId}:`, error);
         return false;
     }
 }
