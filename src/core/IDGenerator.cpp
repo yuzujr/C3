@@ -1,7 +1,8 @@
+#include "core/IDGenerator.h"
+
 #include <chrono>
 #include <random>
 #include <sstream>
-#include "core/IDGenerator.h"
 
 std::string IDGenerator::generateUUID() {
     // 使用随机数生成器

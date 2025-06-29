@@ -11,7 +11,6 @@
 #include "core/ControlCenter.h"
 #include "nlohmann/json.hpp"
 
-
 // 前向声明
 class ICommand;
 

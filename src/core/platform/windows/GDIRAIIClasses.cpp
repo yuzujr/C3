@@ -2,7 +2,6 @@
 
 #include <stdexcept>
 
-
 // GDIContext 实现
 GDIContext::GDIContext(HDC hdc) noexcept : m_hdc(hdc) {}
 

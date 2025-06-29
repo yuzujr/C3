@@ -23,10 +23,13 @@ public:
 
         // 调试输出 - 区分不同类型的输出
         if (output.contains("data") && output["data"].contains("output")) {
-            std::string output_text = output["data"]["output"].get<std::string>();
-            std::string session_id = output.contains("session_id") ? 
-                                   output["session_id"].get<std::string>() : "unknown";
-            
+            std::string output_text =
+                output["data"]["output"].get<std::string>();
+            std::string session_id =
+                output.contains("session_id")
+                    ? output["session_id"].get<std::string>()
+                    : "unknown";
+
             if (!output_text.empty()) {
                 std::cout << "[COLLECTED] Session: " << session_id
                           << ", Output: '" << output_text << "'" << std::endl;
@@ -59,7 +62,8 @@ public:
                 std::string output_text =
                     output["data"]["output"].get<std::string>();
                 // 只检查非空输出，忽略写入操作的空响应
-                if (!output_text.empty() && output_text.find(text) != std::string::npos) {
+                if (!output_text.empty() &&
+                    output_text.find(text) != std::string::npos) {
                     return true;
                 }
             }
@@ -102,7 +106,7 @@ protected:
     void SetUp() override {
         // 重置PTY管理器状态
         PtyManager::resetPtyManager();
-        
+
         // 清理收集器
         g_collector.clear();
 
@@ -151,7 +155,7 @@ TEST_F(PtyManagerTest, MultipleSessions) {
     // 创建多个会话
     PtyManager::writeToPtySession("session1", "echo Session-1-Output\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    
+
     PtyManager::writeToPtySession("session2", "echo Session-2-Output\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
@@ -207,16 +211,16 @@ TEST_F(PtyManagerTest, ShutdownAllSessions) {
     // 创建多个会话
     PtyManager::writeToPtySession("shutdown_test1", "echo Test1\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    
+
     PtyManager::writeToPtySession("shutdown_test2", "echo Test2\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    
+
     PtyManager::writeToPtySession("shutdown_test3", "echo Test3\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // 关闭所有会话
     PtyManager::shutdownAllPtySessions();
-    
+
     // 等待一下确保会话被关闭
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -265,7 +269,7 @@ TEST_P(PtyCommandTest, DifferentCommands) {
     auto [command, expected_output] = GetParam();
 
     PtyManager::writeToPtySession("cmd_test", command + "\r\n");
-    
+
     // 给命令时间执行
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

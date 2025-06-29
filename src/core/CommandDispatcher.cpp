@@ -173,7 +173,7 @@ public:
 
         Logger::info(std::format("Create PTY session {}: {}", session_id,
                                  result["message"].get<std::string>()));
-        
+
         return {true, "PTY session created", result};
     }
 };
