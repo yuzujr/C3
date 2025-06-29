@@ -21,13 +21,19 @@ public:
         outputs.push_back(output);
         output_count.store(outputs.size());
 
-        // 调试输出
+        // 调试输出 - 区分不同类型的输出
         if (output.contains("data") && output["data"].contains("output")) {
-            std::string output_text =
-                output["data"]["output"].get<std::string>();
-            std::cout << "[COLLECTED] Session: "
-                      << output["session_id"].get<std::string>()
-                      << ", Output: '" << output_text << "'" << std::endl;
+            std::string output_text = output["data"]["output"].get<std::string>();
+            std::string session_id = output.contains("session_id") ? 
+                                   output["session_id"].get<std::string>() : "unknown";
+            
+            if (!output_text.empty()) {
+                std::cout << "[COLLECTED] Session: " << session_id
+                          << ", Output: '" << output_text << "'" << std::endl;
+            } else {
+                std::cout << "[COLLECTED] Session: " << session_id
+                          << ", Empty output (write result)" << std::endl;
+            }
         }
     }
 
@@ -52,7 +58,8 @@ public:
             if (output.contains("data") && output["data"].contains("output")) {
                 std::string output_text =
                     output["data"]["output"].get<std::string>();
-                if (output_text.find(text) != std::string::npos) {
+                // 只检查非空输出，忽略写入操作的空响应
+                if (!output_text.empty() && output_text.find(text) != std::string::npos) {
                     return true;
                 }
             }
@@ -93,6 +100,9 @@ static ThreadSafeOutputCollector g_collector;
 class PtyManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        // 重置PTY管理器状态
+        PtyManager::resetPtyManager();
+        
         // 清理收集器
         g_collector.clear();
 
@@ -116,11 +126,19 @@ TEST_F(PtyManagerTest, BasicPtySession) {
     // 写入简单命令
     PtyManager::writeToPtySession("test_basic", "echo Hello PTY\r\n");
 
+    // 给命令更多时间执行
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
     // 等待输出
     EXPECT_TRUE(g_collector.wait_for_output_containing("Hello PTY"))
         << "Should receive echo output within timeout";
 
     EXPECT_GT(g_collector.count(), 0) << "Should have received some output";
+
+    // 如果测试失败，打印调试信息
+    if (!g_collector.has_output_containing("Hello PTY")) {
+        g_collector.debug_print_all();
+    }
 
     // 关闭会话
     auto result = PtyManager::closePtySession("test_basic");
@@ -132,7 +150,10 @@ TEST_F(PtyManagerTest, BasicPtySession) {
 TEST_F(PtyManagerTest, MultipleSessions) {
     // 创建多个会话
     PtyManager::writeToPtySession("session1", "echo Session-1-Output\r\n");
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    
     PtyManager::writeToPtySession("session2", "echo Session-2-Output\r\n");
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // 等待两个会话的输出
     EXPECT_TRUE(g_collector.wait_for_output_containing("Session-1-Output"))
@@ -185,13 +206,19 @@ TEST_F(PtyManagerTest, NonexistentSessionOperations) {
 TEST_F(PtyManagerTest, ShutdownAllSessions) {
     // 创建多个会话
     PtyManager::writeToPtySession("shutdown_test1", "echo Test1\r\n");
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    
     PtyManager::writeToPtySession("shutdown_test2", "echo Test2\r\n");
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    
     PtyManager::writeToPtySession("shutdown_test3", "echo Test3\r\n");
-
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // 关闭所有会话
     PtyManager::shutdownAllPtySessions();
+    
+    // 等待一下确保会话被关闭
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // 验证会话已关闭（尝试操作应该失败）
     auto resize_result = PtyManager::resizePtySession("shutdown_test1", 80, 24);
@@ -238,11 +265,22 @@ TEST_P(PtyCommandTest, DifferentCommands) {
     auto [command, expected_output] = GetParam();
 
     PtyManager::writeToPtySession("cmd_test", command + "\r\n");
+    
+    // 给命令时间执行
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     // 等待输出
     EXPECT_TRUE(g_collector.wait_for_output_containing(expected_output))
         << "Command '" << command << "' should produce output containing '"
         << expected_output << "'";
+
+    // 如果测试失败，打印调试信息
+    if (!g_collector.has_output_containing(expected_output)) {
+        std::cout << "=== Failed Command Test Debug ===" << std::endl;
+        std::cout << "Command: " << command << std::endl;
+        std::cout << "Expected: " << expected_output << std::endl;
+        g_collector.debug_print_all();
+    }
 
     PtyManager::closePtySession("cmd_test");
 }
@@ -256,7 +294,7 @@ INSTANTIATE_TEST_SUITE_P(
 int main(int argc, char** argv) {
     // 初始化日志（只初始化一次）
     Logger::init(spdlog::level::info, spdlog::level::debug);
-    
+
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

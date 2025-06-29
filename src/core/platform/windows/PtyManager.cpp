@@ -273,6 +273,13 @@ void shutdownAllPtySessions() {
     g_outputCallback = nullptr;
 }
 
+// 重置PTY管理器状态（测试时使用）
+void resetPtyManager() {
+    std::lock_guard<std::mutex> lock(g_pty_sessionsMutex);
+    g_shutdownCalled = false;
+    g_outputCallback = nullptr;
+}
+
 // ===========================================
 // 内部函数实现
 // ===========================================

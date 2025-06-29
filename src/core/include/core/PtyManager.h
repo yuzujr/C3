@@ -47,6 +47,9 @@ nlohmann::json closePtySession(const std::string& session_id);
 // 关闭所有活跃的PTY会话（应用程序退出时调用）
 void shutdownAllPtySessions();
 
+// 重置PTY管理器状态（测试时使用）
+void resetPtyManager();
+
 }  // namespace PtyManager
 
 #endif  // PTY_MANAGER_H

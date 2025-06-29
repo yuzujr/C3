@@ -457,4 +457,11 @@ void shutdownAllPtySessions() {
     Logger::info("All PTY sessions shut down");
 }
 
+// 重置PTY管理器状态（测试时使用）
+void resetPtyManager() {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    g_shutdownCalled = false;
+    g_output_callback = nullptr;
+}
+
 }  // namespace PtyManager
