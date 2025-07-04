@@ -59,12 +59,42 @@ function startServer() {
         initUploadModule();
 
         // 创建HTTP服务器
-        const app = createApp();        // 启动HTTP服务器
-        const server = app.listen(config.PORT, config.HOST, () => {
-            // 初始化WebSocket服务器，与HTTP共享端口
-            initWebSocketServer(server);
-            logWithTime(`[INIT] Server running at http://127.0.0.1:${config.PORT}`);
-        });        // 关闭处理
+        const app = createApp();
+
+        // 尝试启动服务器的函数
+        const tryStartServer = (port, isRetry = false) => {
+            const server = app.listen(port, config.HOST);
+
+            server.on('listening', () => {
+                const actualPort = server.address().port;
+                // 初始化WebSocket服务器，与HTTP共享端口
+                initWebSocketServer(server);
+                const portNote = isRetry ? ' (fallback port)' : '';
+                logWithTime(`[INIT] Server running at http://127.0.0.1:${actualPort}${portNote}`);
+            });
+
+            server.on('error', (err) => {
+                if (err.code === 'EADDRINUSE') {
+                    if (isRetry) {
+                        errorWithTime(`[INIT] Fallback port ${port} is also in use. Giving up.`);
+                        process.exit(1);
+                    } else {
+                        errorWithTime(`[INIT] Port ${port} is already in use`);
+                        const fallbackPort = port + 1;
+                        logWithTime(`[INIT] Trying fallback port ${fallbackPort}...`);
+                        tryStartServer(fallbackPort, true);
+                    }
+                } else {
+                    errorWithTime(`[INIT] Server error:`, err);
+                    process.exit(1);
+                }
+            });
+
+            return server;
+        };
+
+        // 启动服务器
+        const server = tryStartServer(config.PORT);        // 关闭处理
         let isShuttingDown = false; // 防止重复关闭
 
         const gracefulShutdown = (signal) => {
