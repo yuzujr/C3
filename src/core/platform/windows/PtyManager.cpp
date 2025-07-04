@@ -234,7 +234,8 @@ void PtyManager::Impl::writeToPtySession(const std::string& session_id,
 
     // 如果会话不存在，创建新会话
     if (!session_exists) {
-        auto create_result = createPtySession(session_id);
+        auto create_result =
+            createPtySession(session_id, 120, 40, SHELL_EXECUTABLE);
         if (!create_result["success"].get<bool>()) {
             sendOutput("shell_output", session_id,
                        {{"success", false},
