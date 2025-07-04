@@ -9,11 +9,7 @@
 #include <mutex>
 #include <thread>
 
-namespace PtyManager {
-
-// ===========================================
-// 内部数据结构和状态
-// ===========================================
+#include "core/Logger.h"
 
 // PTY会话信息
 struct PtySession {
@@ -25,21 +21,58 @@ struct PtySession {
     std::chrono::steady_clock::time_point lastUsed;
 };
 
-static std::map<std::string, PtySession> g_pty_sessions;
-static std::mutex g_pty_sessionsMutex;
-static OutputCallback g_outputCallback;
-static const auto SESSION_TIMEOUT = std::chrono::minutes(30);
-static bool g_shutdownCalled = false;
+// ===========================================
+// PtyManager::Impl 类定义
+// ===========================================
+
+class PtyManager::Impl {
+public:
+    Impl() = default;
+
+    ~Impl() {
+        shutdownAllPtySessions();
+    }
+
+    // 状态变量
+    std::map<std::string, PtySession> pty_sessions;
+    std::mutex mutex;
+    OutputCallback output_callback = nullptr;
+    static constexpr auto SESSION_TIMEOUT = std::chrono::minutes(30);
+    bool shutdown_called = false;
+
+    // 内部方法
+    nlohmann::json createResponse(
+        bool success, const std::string& message = "",
+        const std::string& session_id = "",
+        const nlohmann::json& data = nlohmann::json::object());
+
+    void sendOutput(const std::string& type, const std::string& session_id,
+                    const nlohmann::json& data);
+
+    void cleanupTimeoutPtySessions();
+
+    // 主要功能方法
+    void setOutputCallback(OutputCallback callback);
+    nlohmann::json createPtySession(const std::string& session_id, int cols,
+                                    int rows, const std::string& command);
+    void writeToPtySession(const std::string& session_id,
+                           const std::string& data);
+    nlohmann::json resizePtySession(const std::string& session_id, int cols,
+                                    int rows);
+    nlohmann::json closePtySession(const std::string& session_id);
+    void shutdownAllPtySessions();
+    void reset();
+};
 
 // ===========================================
-// 内部辅助函数
+// PtyManager::Impl 方法实现
 // ===========================================
 
 // 统一的 JSON 响应格式
-static nlohmann::json createResponse(
-    bool success, const std::string& message = "",
-    const std::string& session_id = "",
-    const nlohmann::json& data = nlohmann::json::object()) {
+nlohmann::json PtyManager::Impl::createResponse(bool success,
+                                                const std::string& message,
+                                                const std::string& session_id,
+                                                const nlohmann::json& data) {
     nlohmann::json response;
     response["success"] = success;
     response["message"] = message;
@@ -53,34 +86,78 @@ static nlohmann::json createResponse(
 }
 
 // 发送输出到服务端
-static void sendOutput(const std::string& type, const std::string& session_id,
-                       const nlohmann::json& data) {
-    if (g_outputCallback) {
+void PtyManager::Impl::sendOutput(const std::string& type,
+                                  const std::string& session_id,
+                                  const nlohmann::json& data) {
+    if (output_callback) {
         nlohmann::json response = {
             {"type", type}, {"session_id", session_id}, {"data", data}};
-        g_outputCallback(response);
+        output_callback(response);
+    }
+}
+
+// 清理超时会话
+void PtyManager::Impl::cleanupTimeoutPtySessions() {
+    std::lock_guard<std::mutex> lock(mutex);
+    auto now = std::chrono::steady_clock::now();
+
+    auto it = pty_sessions.begin();
+    while (it != pty_sessions.end()) {
+        if (now - it->second.lastUsed > SESSION_TIMEOUT) {
+            Logger::info("Cleaning up timeout PTY session: " + it->first);
+
+            // 清理资源
+            PtySession& session = it->second;
+
+            if (session.hProcess != INVALID_HANDLE_VALUE) {
+                TerminateProcess(session.hProcess, 0);
+                CloseHandle(session.hProcess);
+            }
+
+            if (session.hPseudoConsole != INVALID_HANDLE_VALUE) {
+                ClosePseudoConsole(session.hPseudoConsole);
+            }
+
+            if (session.hPipeIn != INVALID_HANDLE_VALUE) {
+                CloseHandle(session.hPipeIn);
+            }
+
+            if (session.hPipeOut != INVALID_HANDLE_VALUE) {
+                CloseHandle(session.hPipeOut);
+            }
+
+            if (session.outputThread.joinable()) {
+                session.outputThread.join();
+            }
+
+            it = pty_sessions.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 
 // 内部函数声明
-static void cleanupTimeoutPtySessions();
 static HRESULT CreatePseudoConsoleAndPipes(HPCON* phPC, HANDLE* phPipeIn,
                                            HANDLE* phPipeOut, int cols,
                                            int rows);
 static HRESULT InitializeStartupInfoAttachedToPseudoConsole(STARTUPINFOEXW*,
                                                             HPCON);
-static void PtyOutputListener(const std::string& session_id, HANDLE hPipeOut);
 
-// ===========================================
-// 外部接口实现
-// ===========================================
+// 设置输出回调函数
+void PtyManager::Impl::setOutputCallback(OutputCallback callback) {
+    std::lock_guard<std::mutex> lock(mutex);
+    output_callback = callback;
+}
 
-nlohmann::json createPtySession(const std::string& session_id, int cols,
-                                int rows, const std::string& command) {
+// 创建新的PTY会话
+nlohmann::json PtyManager::Impl::createPtySession(const std::string& session_id,
+                                                  int cols, int rows,
+                                                  const std::string& command) {
     cleanupTimeoutPtySessions();
 
-    std::lock_guard<std::mutex> lock(g_pty_sessionsMutex);
-    if (g_pty_sessions.count(session_id)) {
+    std::lock_guard<std::mutex> lock(mutex);
+    if (pty_sessions.count(session_id)) {
         return createResponse(false, "Session already exists", session_id);
     }
 
@@ -129,21 +206,30 @@ nlohmann::json createPtySession(const std::string& session_id, int cols,
     session.hPipeIn = hPipeIn;
     session.hPipeOut = hPipeOut;
     session.lastUsed = std::chrono::steady_clock::now();
-    session.outputThread =
-        std::thread(PtyOutputListener, session_id, session.hPipeIn);
+    session.outputThread = std::thread([this, session_id,
+                                        hPipeIn = session.hPipeIn]() {
+        char buffer[4096];
+        DWORD bytesRead;
+        while (ReadFile(hPipeIn, buffer, sizeof(buffer), &bytesRead, NULL) &&
+               bytesRead > 0) {
+            sendOutput("shell_output", session_id,
+                       {{"success", true},
+                        {"output", std::string(buffer, bytesRead)}});
+        }
+    });
 
-    g_pty_sessions[session_id] = std::move(session);
+    pty_sessions[session_id] = std::move(session);
     CloseHandle(piClient.hThread);
 
     return createResponse(true, "PTY session created", session_id);
 }
 
-void writeToPtySession(const std::string& session_id, const std::string& data) {
+void PtyManager::Impl::writeToPtySession(const std::string& session_id,
+                                         const std::string& data) {
     bool session_exists = false;
     {
-        std::lock_guard<std::mutex> lock(g_pty_sessionsMutex);
-        session_exists =
-            (g_pty_sessions.find(session_id) != g_pty_sessions.end());
+        std::lock_guard<std::mutex> lock(mutex);
+        session_exists = (pty_sessions.find(session_id) != pty_sessions.end());
     }
 
     // 如果会话不存在，创建新会话
@@ -160,9 +246,9 @@ void writeToPtySession(const std::string& session_id, const std::string& data) {
 
     nlohmann::json result;
     {
-        std::lock_guard<std::mutex> lock(g_pty_sessionsMutex);
-        auto it = g_pty_sessions.find(session_id);
-        if (it != g_pty_sessions.end()) {
+        std::lock_guard<std::mutex> lock(mutex);
+        auto it = pty_sessions.find(session_id);
+        if (it != pty_sessions.end()) {
             it->second.lastUsed = std::chrono::steady_clock::now();
             DWORD bytesWritten;
             if (WriteFile(it->second.hPipeOut, data.c_str(),
@@ -183,11 +269,11 @@ void writeToPtySession(const std::string& session_id, const std::string& data) {
     sendOutput("shell_output", session_id, result);
 }
 
-nlohmann::json resizePtySession(const std::string& session_id, int cols,
-                                int rows) {
-    std::lock_guard<std::mutex> lock(g_pty_sessionsMutex);
-    auto it = g_pty_sessions.find(session_id);
-    if (it == g_pty_sessions.end()) {
+nlohmann::json PtyManager::Impl::resizePtySession(const std::string& session_id,
+                                                  int cols, int rows) {
+    std::lock_guard<std::mutex> lock(mutex);
+    auto it = pty_sessions.find(session_id);
+    if (it == pty_sessions.end()) {
         return createResponse(false, "Session not found", session_id);
     }
 
@@ -200,15 +286,16 @@ nlohmann::json resizePtySession(const std::string& session_id, int cols,
                : createResponse(true, "PTY resized", session_id);
 }
 
-nlohmann::json closePtySession(const std::string& session_id) {
-    std::unique_lock<std::mutex> lock(g_pty_sessionsMutex);
-    auto it = g_pty_sessions.find(session_id);
-    if (it == g_pty_sessions.end()) {
+nlohmann::json PtyManager::Impl::closePtySession(
+    const std::string& session_id) {
+    std::unique_lock<std::mutex> lock(mutex);
+    auto it = pty_sessions.find(session_id);
+    if (it == pty_sessions.end()) {
         return createResponse(false, "Session not found", session_id);
     }
 
     PtySession session = std::move(it->second);
-    g_pty_sessions.erase(it);
+    pty_sessions.erase(it);
     lock.unlock();
 
     // 清理资源
@@ -247,21 +334,17 @@ nlohmann::json closePtySession(const std::string& session_id) {
     return result;
 }
 
-void setOutputCallback(OutputCallback callback) {
-    g_outputCallback = callback;
-}
-
-void shutdownAllPtySessions() {
+void PtyManager::Impl::shutdownAllPtySessions() {
     {
-        std::lock_guard<std::mutex> lock(g_pty_sessionsMutex);
-        if (g_shutdownCalled) return;
-        g_shutdownCalled = true;
+        std::lock_guard<std::mutex> lock(mutex);
+        if (shutdown_called) return;
+        shutdown_called = true;
     }
 
     std::vector<std::string> sessionsToClose;
     {
-        std::lock_guard<std::mutex> lock(g_pty_sessionsMutex);
-        for (const auto& [session_id, session] : g_pty_sessions) {
+        std::lock_guard<std::mutex> lock(mutex);
+        for (const auto& [session_id, session] : pty_sessions) {
             sessionsToClose.push_back(session_id);
         }
     }
@@ -270,30 +353,18 @@ void shutdownAllPtySessions() {
         closePtySession(session_id);
     }
 
-    g_outputCallback = nullptr;
+    output_callback = nullptr;
 }
 
-// 重置PTY管理器状态（测试时使用）
-void resetPtyManager() {
-    std::lock_guard<std::mutex> lock(g_pty_sessionsMutex);
-    g_shutdownCalled = false;
-    g_outputCallback = nullptr;
+void PtyManager::Impl::reset() {
+    std::lock_guard<std::mutex> lock(mutex);
+    shutdown_called = false;
+    output_callback = nullptr;
 }
 
 // ===========================================
 // 内部函数实现
 // ===========================================
-
-static void PtyOutputListener(const std::string& session_id, HANDLE hPipeOut) {
-    char buffer[4096];
-    DWORD bytesRead;
-    while (ReadFile(hPipeOut, buffer, sizeof(buffer), &bytesRead, NULL) &&
-           bytesRead > 0) {
-        sendOutput(
-            "shell_output", session_id,
-            {{"success", true}, {"output", std::string(buffer, bytesRead)}});
-    }
-}
 
 static HRESULT InitializeStartupInfoAttachedToPseudoConsole(
     STARTUPINFOEXW* pStartupInfo, HPCON hPC) {
@@ -325,23 +396,6 @@ static HRESULT InitializeStartupInfoAttachedToPseudoConsole(
     return hr;
 }
 
-static void cleanupTimeoutPtySessions() {
-    std::vector<std::string> sessionsToClose;
-    {
-        std::lock_guard<std::mutex> lock(g_pty_sessionsMutex);
-        auto now = std::chrono::steady_clock::now();
-        for (const auto& [id, session] : g_pty_sessions) {
-            if (now - session.lastUsed > SESSION_TIMEOUT) {
-                sessionsToClose.push_back(id);
-            }
-        }
-    }
-
-    for (const auto& id : sessionsToClose) {
-        closePtySession(id);
-    }
-}
-
 // Create the Pseudo Console and pipes to it
 static HRESULT CreatePseudoConsoleAndPipes(HPCON* phPC, HANDLE* phPipeIn,
                                            HANDLE* phPipeOut, int cols,
@@ -370,4 +424,47 @@ static HRESULT CreatePseudoConsoleAndPipes(HPCON* phPC, HANDLE* phPipeIn,
     return hr;
 }
 
-}  // namespace PtyManager
+// ===========================================
+// PtyManager 类实现
+// ===========================================
+
+PtyManager& PtyManager::getInstance() {
+    static PtyManager instance;
+    return instance;
+}
+
+PtyManager::PtyManager() : pImpl(std::make_unique<Impl>()) {}
+
+PtyManager::~PtyManager() = default;
+
+void PtyManager::setOutputCallback(OutputCallback callback) {
+    pImpl->setOutputCallback(callback);
+}
+
+nlohmann::json PtyManager::createPtySession(const std::string& session_id,
+                                            int cols, int rows,
+                                            const std::string& command) {
+    return pImpl->createPtySession(session_id, cols, rows, command);
+}
+
+void PtyManager::writeToPtySession(const std::string& session_id,
+                                   const std::string& data) {
+    pImpl->writeToPtySession(session_id, data);
+}
+
+nlohmann::json PtyManager::resizePtySession(const std::string& session_id,
+                                            int cols, int rows) {
+    return pImpl->resizePtySession(session_id, cols, rows);
+}
+
+nlohmann::json PtyManager::closePtySession(const std::string& session_id) {
+    return pImpl->closePtySession(session_id);
+}
+
+void PtyManager::shutdownAllPtySessions() {
+    pImpl->shutdownAllPtySessions();
+}
+
+void PtyManager::reset() {
+    pImpl->reset();
+}

@@ -21,8 +21,6 @@
 
 #include "core/Logger.h"
 
-namespace PtyManager {
-
 // PTY会话信息结构
 struct PtySession {
     int master_fd = -1;
@@ -32,22 +30,58 @@ struct PtySession {
     bool isActive = true;
 };
 
-// 全局状态
-static std::map<std::string, PtySession> g_pty_sessions;
-static std::mutex g_mutex;
-static OutputCallback g_output_callback = nullptr;
-static const auto SESSION_TIMEOUT = std::chrono::minutes(30);
-static bool g_shutdownCalled = false;
+// ===========================================
+// PtyManager::Impl 类定义
+// ===========================================
+
+class PtyManager::Impl {
+public:
+    Impl() = default;
+
+    ~Impl() {
+        shutdownAllPtySessions();
+    }
+
+    // 状态变量
+    std::map<std::string, PtySession> pty_sessions;
+    std::mutex mutex;
+    OutputCallback output_callback = nullptr;
+    static constexpr auto SESSION_TIMEOUT = std::chrono::minutes(30);
+    bool shutdown_called = false;
+
+    // 内部方法
+    nlohmann::json createResponse(
+        bool success, const std::string& message = "",
+        const std::string& session_id = "",
+        const nlohmann::json& data = nlohmann::json::object());
+
+    void sendOutput(const std::string& type, const std::string& session_id,
+                    const nlohmann::json& data);
+
+    void cleanupTimeoutPtySessions();
+
+    // 主要功能方法
+    void setOutputCallback(OutputCallback callback);
+    nlohmann::json createPtySession(const std::string& session_id, int cols,
+                                    int rows, const std::string& command);
+    void writeToPtySession(const std::string& session_id,
+                           const std::string& data);
+    nlohmann::json resizePtySession(const std::string& session_id, int cols,
+                                    int rows);
+    nlohmann::json closePtySession(const std::string& session_id);
+    void shutdownAllPtySessions();
+    void reset();
+};
 
 // ===========================================
-// 内部辅助函数
+// PtyManager::Impl 方法实现
 // ===========================================
 
 // 统一的 JSON 响应格式
-static nlohmann::json createResponse(
-    bool success, const std::string& message = "",
-    const std::string& session_id = "",
-    const nlohmann::json& data = nlohmann::json::object()) {
+nlohmann::json PtyManager::Impl::createResponse(bool success,
+                                                const std::string& message,
+                                                const std::string& session_id,
+                                                const nlohmann::json& data) {
     nlohmann::json response;
     response["success"] = success;
     response["message"] = message;
@@ -61,22 +95,23 @@ static nlohmann::json createResponse(
 }
 
 // 发送输出到服务端
-static void sendOutput(const std::string& type, const std::string& session_id,
-                       const nlohmann::json& data) {
-    if (g_output_callback) {
+void PtyManager::Impl::sendOutput(const std::string& type,
+                                  const std::string& session_id,
+                                  const nlohmann::json& data) {
+    if (output_callback) {
         nlohmann::json response = {
             {"type", type}, {"session_id", session_id}, {"data", data}};
-        g_output_callback(response);
+        output_callback(response);
     }
 }
 
 // 清理超时会话
-static void cleanupTimeoutPtySessions() {
-    std::lock_guard<std::mutex> lock(g_mutex);
+void PtyManager::Impl::cleanupTimeoutPtySessions() {
+    std::lock_guard<std::mutex> lock(mutex);
     auto now = std::chrono::steady_clock::now();
 
-    auto it = g_pty_sessions.begin();
-    while (it != g_pty_sessions.end()) {
+    auto it = pty_sessions.begin();
+    while (it != pty_sessions.end()) {
         if (now - it->second.lastUsed > SESSION_TIMEOUT) {
             Logger::info("Cleaning up timeout PTY session: " + it->first);
 
@@ -97,32 +132,29 @@ static void cleanupTimeoutPtySessions() {
                 session.outputThread.join();
             }
 
-            it = g_pty_sessions.erase(it);
+            it = pty_sessions.erase(it);
         } else {
             ++it;
         }
     }
 }
 
-// ===========================================
-// 外部接口实现
-// ===========================================
-
 // 设置输出回调函数
-void setOutputCallback(OutputCallback callback) {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    g_output_callback = callback;
+void PtyManager::Impl::setOutputCallback(OutputCallback callback) {
+    std::lock_guard<std::mutex> lock(mutex);
+    output_callback = callback;
 }
 
 // 创建新的PTY会话
-nlohmann::json createPtySession(const std::string& session_id, int cols,
-                                int rows, const std::string& command) {
+nlohmann::json PtyManager::Impl::createPtySession(const std::string& session_id,
+                                                  int cols, int rows,
+                                                  const std::string& command) {
     cleanupTimeoutPtySessions();
 
-    std::lock_guard<std::mutex> lock(g_mutex);
+    std::lock_guard<std::mutex> lock(mutex);
 
     // 检查会话是否已存在
-    if (g_pty_sessions.count(session_id)) {
+    if (pty_sessions.count(session_id)) {
         return createResponse(false, "Session already exists", session_id);
     }
 
@@ -212,18 +244,18 @@ nlohmann::json createPtySession(const std::string& session_id, int cols,
     session.isActive = true;
 
     // 创建输出读取线程
-    session.outputThread = std::thread([session_id, master_fd]() {
+    session.outputThread = std::thread([this, session_id, master_fd]() {
         char buffer[4096];
 
         while (true) {
             // 检查全局shutdown状态和会话活跃状态
             {
-                std::lock_guard<std::mutex> lock(g_mutex);
-                if (g_shutdownCalled) {
+                std::lock_guard<std::mutex> lock(mutex);
+                if (shutdown_called) {
                     break;
                 }
-                auto it = g_pty_sessions.find(session_id);
-                if (it == g_pty_sessions.end() || !it->second.isActive) {
+                auto it = pty_sessions.find(session_id);
+                if (it == pty_sessions.end() || !it->second.isActive) {
                     break;
                 }
             }
@@ -235,9 +267,9 @@ nlohmann::json createPtySession(const std::string& session_id, int cols,
 
                 // 更新最后使用时间
                 {
-                    std::lock_guard<std::mutex> lock(g_mutex);
-                    auto it = g_pty_sessions.find(session_id);
-                    if (it != g_pty_sessions.end()) {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    auto it = pty_sessions.find(session_id);
+                    if (it != pty_sessions.end()) {
                         it->second.lastUsed = std::chrono::steady_clock::now();
                     }
                 }
@@ -268,21 +300,22 @@ nlohmann::json createPtySession(const std::string& session_id, int cols,
         }
     });
 
-    g_pty_sessions[session_id] = std::move(session);
+    pty_sessions[session_id] = std::move(session);
 
     return createResponse(true, "PTY session created", session_id);
 }
 
 // 向PTY会话写入数据（如果会话不存在会自动创建）
-void writeToPtySession(const std::string& session_id, const std::string& data) {
+void PtyManager::Impl::writeToPtySession(const std::string& session_id,
+                                         const std::string& data) {
     nlohmann::json result;
 
     // 首先检查会话是否存在，不持有锁
     bool sessionExists = false;
     {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        auto it = g_pty_sessions.find(session_id);
-        if (it != g_pty_sessions.end()) {
+        std::lock_guard<std::mutex> lock(mutex);
+        auto it = pty_sessions.find(session_id);
+        if (it != pty_sessions.end()) {
             sessionExists = true;
             it->second.lastUsed = std::chrono::steady_clock::now();
             ssize_t bytes_written =
@@ -308,9 +341,9 @@ void writeToPtySession(const std::string& session_id, const std::string& data) {
 
         if (createResult["success"]) {
             // 会话创建成功，重试写入
-            std::lock_guard<std::mutex> lock(g_mutex);
-            auto it = g_pty_sessions.find(session_id);
-            if (it != g_pty_sessions.end()) {
+            std::lock_guard<std::mutex> lock(mutex);
+            auto it = pty_sessions.find(session_id);
+            if (it != pty_sessions.end()) {
                 ssize_t bytes_written =
                     write(it->second.master_fd, data.data(), data.size());
                 if (bytes_written == static_cast<ssize_t>(data.size())) {
@@ -337,12 +370,12 @@ void writeToPtySession(const std::string& session_id, const std::string& data) {
 }
 
 // 调整PTY窗口大小
-nlohmann::json resizePtySession(const std::string& session_id, int cols,
-                                int rows) {
-    std::lock_guard<std::mutex> lock(g_mutex);
+nlohmann::json PtyManager::Impl::resizePtySession(const std::string& session_id,
+                                                  int cols, int rows) {
+    std::lock_guard<std::mutex> lock(mutex);
 
-    auto it = g_pty_sessions.find(session_id);
-    if (it == g_pty_sessions.end()) {
+    auto it = pty_sessions.find(session_id);
+    if (it == pty_sessions.end()) {
         return createResponse(false, "Session not found", session_id);
     }
 
@@ -366,15 +399,16 @@ nlohmann::json resizePtySession(const std::string& session_id, int cols,
 }
 
 // 关闭PTY会话
-nlohmann::json closePtySession(const std::string& session_id) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    auto it = g_pty_sessions.find(session_id);
-    if (it == g_pty_sessions.end()) {
+nlohmann::json PtyManager::Impl::closePtySession(
+    const std::string& session_id) {
+    std::unique_lock<std::mutex> lock(mutex);
+    auto it = pty_sessions.find(session_id);
+    if (it == pty_sessions.end()) {
         return createResponse(false, "Session not found", session_id);
     }
 
     PtySession session = std::move(it->second);
-    g_pty_sessions.erase(it);
+    pty_sessions.erase(it);
     lock.unlock();
 
     // 清理资源 - 首先标记为非活跃状态
@@ -430,19 +464,19 @@ nlohmann::json closePtySession(const std::string& session_id) {
 }
 
 // 关闭所有活跃的PTY会话（应用程序退出时调用）
-void shutdownAllPtySessions() {
+void PtyManager::Impl::shutdownAllPtySessions() {
     // 设置全局shutdown标志，防止重复调用
     {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        if (g_shutdownCalled) return;
-        g_shutdownCalled = true;
+        std::lock_guard<std::mutex> lock(mutex);
+        if (shutdown_called) return;
+        shutdown_called = true;
     }
 
     // 收集需要关闭的会话ID
     std::vector<std::string> sessionsToClose;
     {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        for (const auto& [session_id, session] : g_pty_sessions) {
+        std::lock_guard<std::mutex> lock(mutex);
+        for (const auto& [session_id, session] : pty_sessions) {
             sessionsToClose.push_back(session_id);
         }
     }
@@ -453,15 +487,58 @@ void shutdownAllPtySessions() {
     }
 
     // 清空回调
-    g_output_callback = nullptr;
+    output_callback = nullptr;
     Logger::info("All PTY sessions shut down");
 }
 
 // 重置PTY管理器状态（测试时使用）
-void resetPtyManager() {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    g_shutdownCalled = false;
-    g_output_callback = nullptr;
+void PtyManager::Impl::reset() {
+    std::lock_guard<std::mutex> lock(mutex);
+    shutdown_called = false;
+    output_callback = nullptr;
 }
 
-}  // namespace PtyManager
+// ===========================================
+// PtyManager 类实现
+// ===========================================
+
+PtyManager& PtyManager::getInstance() {
+    static PtyManager instance;
+    return instance;
+}
+
+PtyManager::PtyManager() : pImpl(std::make_unique<Impl>()) {}
+
+PtyManager::~PtyManager() = default;
+
+void PtyManager::setOutputCallback(OutputCallback callback) {
+    pImpl->setOutputCallback(callback);
+}
+
+nlohmann::json PtyManager::createPtySession(const std::string& session_id,
+                                            int cols, int rows,
+                                            const std::string& command) {
+    return pImpl->createPtySession(session_id, cols, rows, command);
+}
+
+void PtyManager::writeToPtySession(const std::string& session_id,
+                                   const std::string& data) {
+    pImpl->writeToPtySession(session_id, data);
+}
+
+nlohmann::json PtyManager::resizePtySession(const std::string& session_id,
+                                            int cols, int rows) {
+    return pImpl->resizePtySession(session_id, cols, rows);
+}
+
+nlohmann::json PtyManager::closePtySession(const std::string& session_id) {
+    return pImpl->closePtySession(session_id);
+}
+
+void PtyManager::shutdownAllPtySessions() {
+    pImpl->shutdownAllPtySessions();
+}
+
+void PtyManager::reset() {
+    pImpl->reset();
+}

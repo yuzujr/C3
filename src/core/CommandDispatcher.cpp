@@ -14,13 +14,13 @@
 // 暂停截图命令
 class PauseScreenshotsCommand : public ICommand {
 private:
-    ControlCenter& m_controller;
+    UploadController& m_uploadController;
 
 public:
-    explicit PauseScreenshotsCommand(ControlCenter& controller)
-        : m_controller(controller) {}
+    explicit PauseScreenshotsCommand(UploadController& controller)
+        : m_uploadController(controller) {}
     CommandDispatcher::CommandResult execute(const nlohmann::json&) override {
-        m_controller.pause();
+        m_uploadController.pause();
         return {true, "Screenshots paused"};
     }
 };
@@ -28,13 +28,13 @@ public:
 // 恢复截图命令
 class ResumeScreenshotsCommand : public ICommand {
 private:
-    ControlCenter& m_controller;
+    UploadController& m_uploadController;
 
 public:
-    explicit ResumeScreenshotsCommand(ControlCenter& controller)
-        : m_controller(controller) {}
+    explicit ResumeScreenshotsCommand(UploadController& controller)
+        : m_uploadController(controller) {}
     CommandDispatcher::CommandResult execute(const nlohmann::json&) override {
-        m_controller.resume();
+        m_uploadController.resume();
         return {true, "Screenshots resumed"};
     }
 };
@@ -100,7 +100,8 @@ public:
         int rows = data.value("rows", 24);
 
         // 调整 PTY 会话大小
-        auto result = PtyManager::resizePtySession(session_id, cols, rows);
+        auto result =
+            PtyManager::getInstance().resizePtySession(session_id, cols, rows);
 
         Logger::info(std::format("Resize PTY session {}: {}", session_id,
                                  result["message"].get<std::string>()));
@@ -121,7 +122,7 @@ public:
         auto data = message["data"];
         std::string session_id = data.value("session_id", "default");
 
-        auto result = PtyManager::closePtySession(session_id);
+        auto result = PtyManager::getInstance().closePtySession(session_id);
 
         return {true, "Session killed", result};
     }
@@ -146,7 +147,7 @@ public:
 
         // 直接将用户输入写入到 PTY 会话，不添加额外的换行符
         // 让 shell 自己处理输入的回显和处理
-        PtyManager::writeToPtySession(session_id, input);
+        PtyManager::getInstance().writeToPtySession(session_id, input);
 
         return {true,
                 "PTY input sent",
@@ -169,7 +170,8 @@ public:
         int rows = data.value("rows", 24);
 
         // 创建新的PTY会话
-        auto result = PtyManager::createPtySession(session_id, cols, rows);
+        auto result =
+            PtyManager::getInstance().createPtySession(session_id, cols, rows);
 
         Logger::info(std::format("Create PTY session {}: {}", session_id,
                                  result["message"].get<std::string>()));
@@ -182,8 +184,9 @@ public:
 // CommandDispatcher 实现
 // ===========================================
 
-CommandDispatcher::CommandDispatcher(ControlCenter& controller, Config& config)
-    : m_controller(controller), m_config(config) {
+CommandDispatcher::CommandDispatcher(UploadController& controller,
+                                     Config& config)
+    : m_uploadController(controller), m_config(config) {
     registerCommandHandlers();
 }
 
@@ -222,9 +225,9 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& message) {
 void CommandDispatcher::registerCommandHandlers() {
     // 注册所有命令处理器
     m_commandHandlers["pause_screenshots"] =
-        std::make_unique<PauseScreenshotsCommand>(m_controller);
+        std::make_unique<PauseScreenshotsCommand>(m_uploadController);
     m_commandHandlers["resume_screenshots"] =
-        std::make_unique<ResumeScreenshotsCommand>(m_controller);
+        std::make_unique<ResumeScreenshotsCommand>(m_uploadController);
     m_commandHandlers["update_config"] =
         std::make_unique<UpdateConfigCommand>(m_config);
     m_commandHandlers["create_pty_session"] =
@@ -265,8 +268,9 @@ CommandDispatcher::CommandResult CommandDispatcher::executeCommand(
         return {false, std::format("Unknown command: {}", commandType)};
     }
 
+    auto& [_, handler] = *it;
     try {
-        return it->second->execute(message);
+        return handler->execute(message);
     } catch (const std::exception& e) {
         return {false, std::format("Command execution failed: {}", e.what())};
     }

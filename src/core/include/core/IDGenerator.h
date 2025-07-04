@@ -2,13 +2,11 @@
 #define IDGENERATOR_H
 #include <string>
 
-class IDGenerator {
-public:
-    // 禁止创建实例
-    IDGenerator() = delete;
+namespace IDGenerator {
 
-    // 生成一个唯一的UUID
-    static std::string generateUUID();
-};
+// 生成一个唯一的UUID
+std::string generateUUID();
+
+}  // namespace IDGenerator
 
 #endif  // IDGENERATOR_H

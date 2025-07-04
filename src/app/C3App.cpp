@@ -1,7 +1,6 @@
 #include "app/C3App.h"
 
 #include <chrono>
-#include <regex>
 #include <thread>
 
 C3App::C3App()
@@ -45,10 +44,11 @@ C3App::C3App()
     });
 
     // 设置响应回调函数
-    PtyManager::setOutputCallback([this](const nlohmann::json& response) {
-        // 通过 WebSocket 发送响应回服务器
-        m_wsClient.send(response);
-    });
+    PtyManager::getInstance().setOutputCallback(
+        [this](const nlohmann::json& response) {
+            // 通过 WebSocket 发送响应回服务器
+            m_wsClient.send(response);
+        });
 }
 
 C3App::~C3App() {
@@ -72,7 +72,7 @@ void C3App::stop() {
 
     // 关闭所有PTY会话
     Logger::info("Closing all PTY sessions...");
-    PtyManager::shutdownAllPtySessions();
+    PtyManager::getInstance().shutdownAllPtySessions();
 
     // 关闭 WebSocket 客户端
     Logger::info("Closing WebSocket client...");
@@ -88,7 +88,7 @@ void C3App::startWebSocketCommandListener() {
     });
 
     // 启动 WebSocket 客户端
-    m_wsClient.connect(m_config.getWebSocketUrl(), m_config.client_id,
+    m_wsClient.connect(getWebSocketUrl(), m_config.client_id,
                        m_config.skip_ssl_verification);
 }
 
@@ -134,12 +134,20 @@ void C3App::mainLoop() {
 }
 
 void C3App::captureAndUpload() {
-    auto frame = ScreenCapturer::captureScreen();
-    if (!frame.has_value()) {
+    auto raw = ScreenCapturer::captureScreen();
+    if (!raw.has_value()) {
         Logger::error("Failed to capture screen");
-    } else {
-        uploadImageWithRetry(ImageEncoder::encodeToJPEG(frame.value()));
+        return;
     }
+    std::vector<uint8_t> frame;
+    try {
+        // 编码图像
+        frame = ImageEncoder::encodeToJPEG(raw.value(), 90);
+    } catch (const std::exception& e) {
+        Logger::error(std::format("Image encoding error: {}", e.what()));
+        return;
+    }
+    uploadImageWithRetry(frame);
 }
 
 template <typename UploadFunc>
@@ -147,8 +155,8 @@ void C3App::performUploadWithRetry(const std::string& endpoint,
                                    const std::string& description,
                                    UploadFunc uploadFunc) {
     std::string upload_url =
-        std::format("{}/client/{}?client_id={}", m_config.getServerUrl(),
-                    endpoint, m_config.client_id);
+        std::format("{}/client/{}?client_id={}", getHTTPUrl(), endpoint,
+                    m_config.client_id);
     Logger::info(std::format("Uploading {} to: {}", description, upload_url));
 
     bool success = Uploader::uploadWithRetry(
@@ -194,13 +202,25 @@ void C3App::applyConfigSettings() {
 
     // 连接或重连 WebSocket 客户端
     if (m_wsClient.getUrl().empty()) {
-        m_wsClient.connect(m_config.getWebSocketUrl(), m_config.client_id,
+        m_wsClient.connect(getWebSocketUrl(), m_config.client_id,
                            m_config.skip_ssl_verification);
     } else {
         // url改变，重连ws
-        if (m_wsClient.getUrl() != m_config.getWebSocketUrl()) {
-            m_wsClient.reconnect(m_config.getWebSocketUrl(), m_config.client_id,
+        if (m_wsClient.getUrl() != getWebSocketUrl()) {
+            m_wsClient.reconnect(getWebSocketUrl(), m_config.client_id,
                                  m_config.skip_ssl_verification);
         }
     }
+}
+
+std::string C3App::getHTTPUrl() const {
+    const std::string protocol = m_config.use_ssl ? "https" : "http";
+    return std::format("{}://{}:{}", protocol, m_config.hostname,
+                       m_config.port);
+}
+
+std::string C3App::getWebSocketUrl() const {
+    const std::string protocol = m_config.use_ssl ? "wss" : "ws";
+    return std::format("{}://{}:{}", protocol, m_config.hostname,
+                       m_config.port);
 }

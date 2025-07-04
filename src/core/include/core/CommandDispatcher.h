@@ -1,14 +1,12 @@
 #ifndef COMMAND_DISPATCHER_H
 #define COMMAND_DISPATCHER_H
 
-#include <atomic>
 #include <functional>
 #include <memory>
-#include <thread>
 #include <unordered_map>
 
 #include "core/Config.h"
-#include "core/ControlCenter.h"
+#include "core/UploadController.h"
 #include "nlohmann/json.hpp"
 
 // 前向声明
@@ -16,6 +14,11 @@ class ICommand;
 
 class CommandDispatcher {
 public:
+    CommandDispatcher(UploadController& controller, Config& config);
+    ~CommandDispatcher() = default;
+    CommandDispatcher(const CommandDispatcher&) = delete;
+    CommandDispatcher& operator=(const CommandDispatcher&) = delete;
+
     // 截图回调函数类型
     using ScreenshotCallback = std::function<void()>;
 
@@ -29,11 +32,6 @@ public:
                       const nlohmann::json& d = {})
             : success(s), message(msg), data(d) {}
     };
-
-    CommandDispatcher(ControlCenter& controller, Config& config);
-    ~CommandDispatcher() = default;
-    CommandDispatcher(const CommandDispatcher&) = delete;
-    CommandDispatcher& operator=(const CommandDispatcher&) = delete;
 
     // 设置截图回调函数
     void setScreenshotCallback(ScreenshotCallback callback);
@@ -52,7 +50,9 @@ private:
     CommandResult executeCommand(const std::string& commandType,
                                  const nlohmann::json& message);
 
-    ControlCenter& m_controller;
+private:
+    // 依赖组件
+    UploadController& m_uploadController;
     Config& m_config;
     ScreenshotCallback m_screenshotCallback;
 

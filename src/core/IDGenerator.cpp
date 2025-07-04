@@ -4,7 +4,9 @@
 #include <random>
 #include <sstream>
 
-std::string IDGenerator::generateUUID() {
+namespace IDGenerator {
+
+std::string generateUUID() {
     // 使用随机数生成器
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -26,3 +28,5 @@ std::string IDGenerator::generateUUID() {
     }
     return ss.str();
 }
+
+}  // namespace IDGenerator

@@ -2,7 +2,6 @@
 #define C3_APP_H
 
 #include <atomic>
-#include <thread>
 
 #include "core/core.h"
 #include "net/net.h"
@@ -20,14 +19,15 @@ public:
     void captureAndUpload();
 
 private:
-    // 连接命令接收websocket
+    // 启动 WebSocket 命令监听器
     void startWebSocketCommandListener();
 
     // 主循环
     void mainLoop();
 
-    // 上传图像和配置文件
+    // 上传图像
     void uploadImageWithRetry(const std::vector<uint8_t>& frame);
+    // 上传配置文件
     void uploadConfigWithRetry();
 
     // 通用上传方法
@@ -39,10 +39,16 @@ private:
     // 包括上传配置文件和设置开机自启
     void applyConfigSettings();
 
+    // 辅助方法：构建 HTTP URL
+    std::string getHTTPUrl() const;
+
+    // 辅助方法：构建 WebSocket URL
+    std::string getWebSocketUrl() const;
+
 private:
     std::atomic<bool> m_running;
     Config m_config;
-    ControlCenter m_controller;
+    UploadController m_controller;
     CommandDispatcher m_dispatcher;
     WebSocketClient m_wsClient;
 };

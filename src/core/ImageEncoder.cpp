@@ -2,10 +2,12 @@
 
 #include <stdexcept>
 
+#include "core/RawImage.h"
 #include "turbojpeg.h"
 
-std::vector<uint8_t> ImageEncoder::encodeToJPEG(const RawImage& image,
-                                                int quality) {
+namespace ImageEncoder {
+
+std::vector<uint8_t> encodeToJPEG(const RawImage& image, int quality) {
     if (image.pixels.empty() || image.width <= 0 || image.height <= 0) {
         throw std::invalid_argument("Invalid RawImage input");
     }
@@ -39,8 +41,10 @@ std::vector<uint8_t> ImageEncoder::encodeToJPEG(const RawImage& image,
     tjDestroy(compressor);
 
     if (output.empty()) {
-        throw std::runtime_error("JPEG encoding failed");
+        throw std::runtime_error("output buffer is empty after compression");
     }
 
     return output;
 }
+
+}  // namespace ImageEncoder

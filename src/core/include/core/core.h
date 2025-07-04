@@ -3,7 +3,6 @@
 
 #include "core/CommandDispatcher.h"
 #include "core/Config.h"
-#include "core/ControlCenter.h"
 #include "core/IDGenerator.h"
 #include "core/ImageEncoder.h"
 #include "core/Logger.h"
@@ -11,6 +10,7 @@
 #include "core/RawImage.h"
 #include "core/ScreenCapturer.h"
 #include "core/SystemUtils.h"
+#include "core/UploadController.h"
 
 #ifdef USE_HARDCODED_CONFIG
 #include "core/HardcodedConfig.h"

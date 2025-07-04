@@ -105,20 +105,21 @@ class PtyManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
         // 重置PTY管理器状态
-        PtyManager::resetPtyManager();
+        PtyManager::getInstance().reset();
 
         // 清理收集器
         g_collector.clear();
 
         // 设置输出回调
-        PtyManager::setOutputCallback([](const nlohmann::json& response) {
-            g_collector.collect(response);
-        });
+        PtyManager::getInstance().setOutputCallback(
+            [](const nlohmann::json& response) {
+                g_collector.collect(response);
+            });
     }
 
     void TearDown() override {
         // 关闭所有会话
-        PtyManager::shutdownAllPtySessions();
+        PtyManager::getInstance().shutdownAllPtySessions();
 
         // 清理收集器
         g_collector.clear();
@@ -128,7 +129,8 @@ protected:
 // 基础PTY会话测试
 TEST_F(PtyManagerTest, BasicPtySession) {
     // 写入简单命令
-    PtyManager::writeToPtySession("test_basic", "echo Hello PTY\r\n");
+    PtyManager::getInstance().writeToPtySession("test_basic",
+                                                "echo Hello PTY\r\n");
 
     // 给命令更多时间执行
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -145,7 +147,7 @@ TEST_F(PtyManagerTest, BasicPtySession) {
     }
 
     // 关闭会话
-    auto result = PtyManager::closePtySession("test_basic");
+    auto result = PtyManager::getInstance().closePtySession("test_basic");
     EXPECT_TRUE(result["success"].get<bool>())
         << "Should successfully close session";
 }
@@ -153,10 +155,12 @@ TEST_F(PtyManagerTest, BasicPtySession) {
 // 多会话测试
 TEST_F(PtyManagerTest, MultipleSessions) {
     // 创建多个会话
-    PtyManager::writeToPtySession("session1", "echo Session-1-Output\r\n");
+    PtyManager::getInstance().writeToPtySession("session1",
+                                                "echo Session-1-Output\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    PtyManager::writeToPtySession("session2", "echo Session-2-Output\r\n");
+    PtyManager::getInstance().writeToPtySession("session2",
+                                                "echo Session-2-Output\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // 等待两个会话的输出
@@ -172,8 +176,8 @@ TEST_F(PtyManagerTest, MultipleSessions) {
     }
 
     // 关闭所有会话
-    auto result1 = PtyManager::closePtySession("session1");
-    auto result2 = PtyManager::closePtySession("session2");
+    auto result1 = PtyManager::getInstance().closePtySession("session1");
+    auto result2 = PtyManager::getInstance().closePtySession("session2");
 
     EXPECT_TRUE(result1["success"].get<bool>()) << "Should close session1";
     EXPECT_TRUE(result2["success"].get<bool>()) << "Should close session2";
@@ -182,26 +186,30 @@ TEST_F(PtyManagerTest, MultipleSessions) {
 // PTY调整大小测试
 TEST_F(PtyManagerTest, PtyResize) {
     // 创建会话
-    PtyManager::writeToPtySession("resize_test", "echo Resize Test\r\n");
+    PtyManager::getInstance().writeToPtySession("resize_test",
+                                                "echo Resize Test\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // 测试调整大小
-    auto resize_result = PtyManager::resizePtySession("resize_test", 120, 40);
+    auto resize_result =
+        PtyManager::getInstance().resizePtySession("resize_test", 120, 40);
     EXPECT_TRUE(resize_result["success"].get<bool>())
         << "Should successfully resize PTY";
 
     // 清理
-    PtyManager::closePtySession("resize_test");
+    PtyManager::getInstance().closePtySession("resize_test");
 }
 
 // 不存在会话操作测试
 TEST_F(PtyManagerTest, NonexistentSessionOperations) {
     // 测试对不存在会话的操作
-    auto resize_result = PtyManager::resizePtySession("nonexistent", 80, 24);
+    auto resize_result =
+        PtyManager::getInstance().resizePtySession("nonexistent", 80, 24);
     EXPECT_FALSE(resize_result["success"].get<bool>())
         << "Should fail to resize nonexistent session";
 
-    auto close_result = PtyManager::closePtySession("nonexistent");
+    auto close_result =
+        PtyManager::getInstance().closePtySession("nonexistent");
     EXPECT_FALSE(close_result["success"].get<bool>())
         << "Should fail to close nonexistent session";
 }
@@ -209,23 +217,27 @@ TEST_F(PtyManagerTest, NonexistentSessionOperations) {
 // 关闭所有会话测试
 TEST_F(PtyManagerTest, ShutdownAllSessions) {
     // 创建多个会话
-    PtyManager::writeToPtySession("shutdown_test1", "echo Test1\r\n");
+    PtyManager::getInstance().writeToPtySession("shutdown_test1",
+                                                "echo Test1\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-    PtyManager::writeToPtySession("shutdown_test2", "echo Test2\r\n");
+    PtyManager::getInstance().writeToPtySession("shutdown_test2",
+                                                "echo Test2\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-    PtyManager::writeToPtySession("shutdown_test3", "echo Test3\r\n");
+    PtyManager::getInstance().writeToPtySession("shutdown_test3",
+                                                "echo Test3\r\n");
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // 关闭所有会话
-    PtyManager::shutdownAllPtySessions();
+    PtyManager::getInstance().shutdownAllPtySessions();
 
     // 等待一下确保会话被关闭
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // 验证会话已关闭（尝试操作应该失败）
-    auto resize_result = PtyManager::resizePtySession("shutdown_test1", 80, 24);
+    auto resize_result =
+        PtyManager::getInstance().resizePtySession("shutdown_test1", 80, 24);
     EXPECT_FALSE(resize_result["success"].get<bool>())
         << "Session should be closed after shutdown";
 }
@@ -238,7 +250,7 @@ TEST_F(PtyManagerTest, PerformanceTest) {
     // 创建多个会话
     for (int i = 0; i < num_sessions; ++i) {
         std::string session_id = "perf_test_" + std::to_string(i);
-        PtyManager::writeToPtySession(
+        PtyManager::getInstance().writeToPtySession(
             session_id, "echo Performance Test " + std::to_string(i) + "\r\n");
     }
 
@@ -248,7 +260,7 @@ TEST_F(PtyManagerTest, PerformanceTest) {
     // 关闭所有会话
     for (int i = 0; i < num_sessions; ++i) {
         std::string session_id = "perf_test_" + std::to_string(i);
-        PtyManager::closePtySession(session_id);
+        PtyManager::getInstance().closePtySession(session_id);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -268,7 +280,7 @@ class PtyCommandTest : public PtyManagerTest,
 TEST_P(PtyCommandTest, DifferentCommands) {
     auto [command, expected_output] = GetParam();
 
-    PtyManager::writeToPtySession("cmd_test", command + "\r\n");
+    PtyManager::getInstance().writeToPtySession("cmd_test", command + "\r\n");
 
     // 给命令时间执行
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -286,7 +298,7 @@ TEST_P(PtyCommandTest, DifferentCommands) {
         g_collector.debug_print_all();
     }
 
-    PtyManager::closePtySession("cmd_test");
+    PtyManager::getInstance().closePtySession("cmd_test");
 }
 
 INSTANTIATE_TEST_SUITE_P(

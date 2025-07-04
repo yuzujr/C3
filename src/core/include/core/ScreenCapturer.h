@@ -3,7 +3,7 @@
 
 #include <optional>
 
-#include "core/RawImage.h"
+struct RawImage;
 
 class ScreenCapturer {
 public:

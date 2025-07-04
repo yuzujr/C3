@@ -7,7 +7,7 @@ target_sources(core PRIVATE
     Config.cpp
     Logger.cpp
     IDGenerator.cpp
-    ControlCenter.cpp
+    UploadController.cpp
     CommandDispatcher.cpp
     ImageEncoder.cpp
     RawImage.cpp

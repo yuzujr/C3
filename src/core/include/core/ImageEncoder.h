@@ -4,16 +4,13 @@
 #include <cstdint>
 #include <vector>
 
-#include "core/RawImage.h"
+struct RawImage;
 
-class ImageEncoder {
-public:
-    // 禁止创建实例
-    ImageEncoder() = delete;
+namespace ImageEncoder {
 
-    // 编码 RawImage 为 JPEG 格式
-    static std::vector<uint8_t> encodeToJPEG(const RawImage& image,
-                                             int quality = 90);
-};
+// 编码 RawImage 为 JPEG 格式
+std::vector<uint8_t> encodeToJPEG(const RawImage& image, int quality = 90);
+
+}  // namespace ImageEncoder
 
 #endif  // IMAGE_ENCODER_H

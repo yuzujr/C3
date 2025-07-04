@@ -4,6 +4,7 @@
 #include <X11/Xutil.h>
 
 #include "core/Logger.h"
+#include "core/RawImage.h"
 #include "core/platform/linux/X11RAIIClasses.h"
 
 std::optional<RawImage> ScreenCapturer::captureScreen() {

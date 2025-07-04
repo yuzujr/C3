@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include "core/Logger.h"
+#include "core/RawImage.h"
 #include "core/platform/windows/GDIRAIIClasses.h"
 
 std::optional<RawImage> ScreenCapturer::captureScreen() {
