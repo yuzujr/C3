@@ -22,25 +22,31 @@ function ensureUploadDirectory() {
  * Multer存储配置
  */
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const clientId = req.clientId;
-        if (!clientId) {
-            return cb(new Error("Missing or invalid client_id"));
-        } const alias = clientManager.getAlias(clientId);
-        let folderName = alias;
+    destination: async (req, file, cb) => {
+        try {
+            const clientId = req.clientId;
+            if (!clientId) {
+                return cb(new Error("Missing or invalid client_id"));
+            }
+            
+            const alias = await clientManager.getAlias(clientId);
+            let folderName = clientId; // Use client_id for directory structure, not alias
 
-        // 时间子目录
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hour = String(now.getHours()).padStart(2, '0');
-        const timeFolder = `${year}-${month}-${day}-${hour}`;
+            // 时间子目录
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hour = String(now.getHours()).padStart(2, '0');
+            const timeFolder = `${year}-${month}-${day}-${hour}`;
 
-        const fullDir = path.join(config.UPLOADS_DIR, folderName, timeFolder);
-        fs.mkdirSync(fullDir, { recursive: true });
+            const fullDir = path.join(config.UPLOADS_DIR, folderName, timeFolder);
+            fs.mkdirSync(fullDir, { recursive: true });
 
-        cb(null, fullDir);
+            cb(null, fullDir);
+        } catch (error) {
+            cb(error);
+        }
     },
 
     filename: (req, file, cb) => {

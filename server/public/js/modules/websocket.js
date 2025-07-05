@@ -49,13 +49,59 @@ function handleWebSocketMessage(data) {
             addNewScreenshot(data.screenshot_url);
         }
     } else if (data.type === 'shell_output') {
-        // 处理shell命令输出
-        if (data.client === selectedClient) {
+        // 处理shell命令输出 - 现在使用 client_id
+        if (data.client_id === selectedClient) {
             // 直接使用PTY处理函数
             handlePtyShellOutput(data);
         }
     } else if (data.type === 'client_status_change') {
-        // 处理客户端状态变化
-        handleClientStatusChange(data.client, data.online);
+        // 处理客户端状态变化 - 现在使用 client_id
+        handleClientStatusChange(data.client_id, data.online);
+    } else if (data.type === 'alias_updated') {
+        // 处理别名更新
+        handleAliasUpdated(data.client_id, data.oldAlias, data.newAlias);
+    }
+}
+
+/**
+ * 处理别名更新事件
+ * @param {string} clientId - 客户端ID
+ * @param {string} oldAlias - 旧别名
+ * @param {string} newAlias - 新别名
+ */
+async function handleAliasUpdated(clientId, oldAlias, newAlias) {
+    // 导入需要的模块
+    const { selectedClient, cachedClientList, setCachedClientList, setSkipNextDOMRebuild } = await import('./state.js');
+    const { fetchClients, updateClientHighlight } = await import('./clients.js');
+    
+    console.log(`别名更新: ${oldAlias} -> ${newAlias} (clientId: ${clientId})`);
+    
+    // 设置标志，让接下来的定时刷新跳过DOM重建
+    setSkipNextDOMRebuild(true);
+    
+    // 立即更新缓存中的客户端别名
+    const updatedClients = cachedClientList.map(client => {
+        if (client.client_id === clientId) {
+            return { ...client, alias: newAlias };
+        }
+        return client;
+    });
+    setCachedClientList(updatedClients);
+    
+    // 立即更新DOM中的别名显示
+    const clientElement = document.querySelector(`[data-client-id="${clientId}"]`);
+    if (clientElement) {
+        const nameElement = clientElement.querySelector('.client-name');
+        if (nameElement) {
+            nameElement.textContent = newAlias;
+        }
+    }
+    
+    // 如果当前选中的客户端被重命名了，更新选中状态显示
+    if (selectedClient === clientId) {
+        // 更新客户端管理列表中的别名显示
+        import('./client-management.js').then(({ updateClientManagementList }) => {
+            updateClientManagementList(updatedClients);
+        });
     }
 }

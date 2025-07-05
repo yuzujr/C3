@@ -3,6 +3,7 @@
 
 import { showToast } from '../../toast/toast.js';
 
+let currentEditingClientId = null;
 let currentEditingAlias = null;
 
 /**
@@ -50,16 +51,16 @@ export function updateClientManagementList(clients) {
     if (clients.length === 0) {
         container.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">暂无客户端</div>';
         return;
-    } const html = clients.map(client => `
-        <div class="client-manage-item" data-client-alias="${client.alias}">
+    }    const html = clients.map(client => `
+        <div class="client-manage-item" data-client-id="${client.client_id || ''}" data-client-alias="${client.alias}">
             <div class="client-info">
                 <span class="client-alias">${client.alias}</span>
             </div>
             <div class="client-actions">
-                <button class="edit-alias-btn" onclick="window.clientManagement.editAlias('${client.alias}')">
+                <button class="edit-alias-btn" onclick="window.clientManagement.editAlias('${client.client_id || ''}', '${client.alias}')">
                     重命名
                 </button>
-                <button class="delete-client-btn" onclick="window.clientManagement.deleteClient('${client.alias}')">
+                <button class="delete-client-btn" onclick="window.clientManagement.deleteClient('${client.client_id || ''}', '${client.alias}')">
                     删除
                 </button>
             </div>
@@ -71,9 +72,11 @@ export function updateClientManagementList(clients) {
 
 /**
  * 编辑客户端别名
+ * @param {string} clientId - 客户端ID  
  * @param {string} alias - 当前别名
  */
-export function editAlias(alias) {
+export function editAlias(clientId, alias) {
+    currentEditingClientId = clientId;
     currentEditingAlias = alias;
     document.getElementById('currentAliasDisplay').textContent = alias;
     document.getElementById('newAliasInput').value = '';
@@ -87,9 +90,11 @@ export function editAlias(alias) {
 
 /**
  * 删除客户端
+ * @param {string} clientId - 客户端ID
  * @param {string} alias - 客户端别名
  */
-export function deleteClient(alias) {
+export function deleteClient(clientId, alias) {
+    currentEditingClientId = clientId;
     currentEditingAlias = alias;
     document.getElementById('deleteClientName').textContent = alias;
     document.getElementById('deleteClientModal').style.display = 'block';
@@ -118,7 +123,7 @@ async function saveAliasEdit() {
     }
 
     try {
-        const response = await fetch(`/web/clients/${encodeURIComponent(currentEditingAlias)}/alias`, {
+        const response = await fetch(`/web/clients/${encodeURIComponent(currentEditingClientId)}/alias`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -128,27 +133,34 @@ async function saveAliasEdit() {
             })
         });
 
-        const result = await response.json(); if (result.success) {
+        const result = await response.json();        if (result.success) {
             showToast('别名更新成功', 'success');
             closeAliasModal();
 
-            // 刷新客户端列表
+            // 立即更新状态
+            const { selectedClient, setSelectedClient, setCachedClientList } = await import('./state.js');
+            
+            // 清空缓存，强制重新获取
+            setCachedClientList([]);
+            
+            // 如果当前选中的是被重命名的客户端，立即更新选中状态
+            if (selectedClient === currentEditingAlias) {
+                setSelectedClient(result.newAlias);
+            }
+
+            // 强制刷新客户端列表
             const { fetchClients } = await import('./clients.js');
             await fetchClients();
 
-            // 如果当前选中的是被重命名的客户端，需要更新选中状态和功能状态
-            const { selectedClient, setSelectedClient } = await import('./state.js');
-            if (selectedClient === currentEditingAlias) {
-                // 更新选中的客户端别名
-                setSelectedClient(newAlias);
-
+            // 再次检查并更新选中客户端的状态
+            if (selectedClient === result.newAlias) {
                 // 更新高亮显示
                 const { updateClientHighlight } = await import('./clients.js');
                 updateClientHighlight();
 
                 // 找到新客户端的在线状态并更新功能状态
                 const { cachedClientList } = await import('./state.js');
-                const newClientData = cachedClientList.find(c => c.alias === newAlias);
+                const newClientData = cachedClientList.find(c => c.alias === result.newAlias);
                 const isOnline = newClientData ? newClientData.online : true;
 
                 // 更新功能状态
@@ -169,7 +181,7 @@ async function saveAliasEdit() {
  */
 async function confirmDeleteClient() {
     try {
-        const response = await fetch(`/web/clients/${encodeURIComponent(currentEditingAlias)}`, {
+        const response = await fetch(`/web/clients/${encodeURIComponent(currentEditingClientId)}`, {
             method: 'DELETE'
         });
 

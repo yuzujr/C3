@@ -4,23 +4,23 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "dev": "node app.js",
-    "setup": "node setup-auth.js",
-    "config": "node setup-auth.js",
-    "check": "node check-security.js",
-    "security": "node check-security.js"
+    "check": "node scripts/check-security.js",
+    "test-db": "node scripts/test-database.js",
+    "init-db": "node database/init.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "multer": "^1.4.5-lts.2",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.7",
     "ws": "^8.18.2"
   }
 }

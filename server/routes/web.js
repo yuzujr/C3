@@ -6,8 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config');
 const { logWithTime, errorWithTime } = require('../logger');
-const { getClientScreenshots, deleteScreenshotsByTime, deleteAllScreenshots } = require('../services/screenshot');
-const { getClientConfig } = require('../services/command');
+const { getClientScreenshots, deleteScreenshotsByTime, deleteAllScreenshots } = require('../services/screenshot-service');
+const { getClientConfig } = require('../services/command-service');
 const { sendToClient, isClientOnline } = require('../websocket');
 const clientManager = require('../client-manager');
 
@@ -15,52 +15,60 @@ const router = express.Router();
 
 /**
  * 获取客户端列表
- * 返回格式: [{ alias: "test", online: true }]
+ * 返回格式: [{ client_id: "xxx", alias: "test", online: true }]
  */
-router.get('/clients', (req, res) => {
+router.get('/clients', async (req, res) => {
     try {
         const { getOnlineClients } = require('../websocket');
-        const allClients = clientManager.getAllClients();
-        const onlineAliases = getOnlineClients();
+        const allClients = await clientManager.getAllClients();
+        const onlineClientIds = getOnlineClients(); // 现在返回 client_id 列表
 
-        // 构建简化的客户端列表 - 只使用alias作为标识符
+        // 构建客户端列表 - 包含client_id和alias
         const clientsList = allClients.map(client => ({
+            client_id: client.client_id,
             alias: client.alias,
-            online: onlineAliases.includes(client.alias)
+            online: onlineClientIds.includes(client.client_id)
         }));
 
-        // 添加在线但可能不在clients.json中的客户端
-        onlineAliases.forEach(alias => {
-            const existingClient = clientsList.find(c => c.alias === alias);
+        // 添加在线但可能不在数据库中的客户端
+        onlineClientIds.forEach(client_id => {
+            const existingClient = clientsList.find(c => c.client_id === client_id);
             if (!existingClient) {
                 clientsList.push({
-                    alias: alias,
+                    client_id: client_id,
+                    alias: client_id, // 为在线但未注册的客户端，使用client_id作为临时alias
                     online: true
                 });
             }
         });
 
+        // 添加缓存头，减少前端轮询压力
+        res.set({
+            'Cache-Control': 'private, max-age=5', // 5秒缓存
+            'ETag': `"${Date.now()}"` // 简单的ETag
+        });
+
         res.json(clientsList);
     } catch (error) {
         errorWithTime('[WEB] Error getting clients:', error);
-        res.status(500).send('Failed to get clients');
+        res.status(500).json({ error: 'Failed to get clients', details: error.message });
     }
 });
 
 /**
  * 获取客户端截图列表
  */
-router.get('/screenshots/:client_alias', (req, res) => {
+router.get('/screenshots/:client_id', async (req, res) => {
     try {
-        const clientAlias = req.params.client_alias;
+        const clientId = req.params.client_id;
         const sinceTimestamp = req.query.since ? parseInt(req.query.since) : 0;
 
-        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
-            return res.status(400).send('Missing or invalid client_alias');
+        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
+            return res.status(400).send('Missing or invalid client_id');
         }
 
-        // 使用alias直接获取截图
-        const screenshots = getClientScreenshots(clientAlias, sinceTimestamp);
+        // 直接使用 client_id 获取截图，因为现在截图目录使用 client_id
+        const screenshots = getClientScreenshots(clientId, sinceTimestamp);
         res.json(screenshots);
     } catch (error) {
         errorWithTime('[WEB] Error getting screenshots:', error);
@@ -71,15 +79,15 @@ router.get('/screenshots/:client_alias', (req, res) => {
 /**
  * 获取客户端配置
  */
-router.get('/config/:clientId', (req, res) => {
+router.get('/config/:client_id', async (req, res) => {
     try {
-        const clientAlias = req.params.clientId; // 现在参数实际上是alias
+        const clientId = req.params.client_id; // 使用 client_id
 
-        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
-            return res.status(400).send('Missing or invalid client alias');
+        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
+            return res.status(400).send('Missing or invalid client_id');
         }
 
-        const config = getClientConfig(clientAlias);
+        const config = await getClientConfig(clientId);
         if (!config) {
             return res.status(404).send('Client config not found');
         }
@@ -94,27 +102,28 @@ router.get('/config/:clientId', (req, res) => {
 /**
  * 删除指定时间范围内的截图
  */
-router.delete('/delete-screenshots/:client_alias', (req, res) => {
+router.delete('/delete-screenshots/:client_id', async (req, res) => {
     try {
-        const clientAlias = req.params.client_alias;
+        const clientId = req.params.client_id;
         const { hours } = req.body;
 
-        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
-            return res.status(400).send('Missing or invalid client_alias');
+        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
+            return res.status(400).send('Missing or invalid client_id');
         }
 
         if (!hours || typeof hours !== 'number' || hours <= 0) {
             return res.status(400).send('Missing or invalid hours parameter');
         }
 
-        const result = deleteScreenshotsByTime(clientAlias, hours);
+        // 直接使用 client_id 查找截图目录
+        const result = deleteScreenshotsByTime(clientId, hours);
         res.json(result);
     } catch (error) {
         if (error.message === 'Client not found') {
-            res.status(404).send('Client not found');
+            res.status(404).json({ success: false, message: 'Client not found' });
         } else {
             errorWithTime('[WEB] Error deleting screenshots:', error);
-            res.status(500).send('Failed to delete screenshots: ' + error.message);
+            res.status(500).json({ success: false, message: 'Failed to delete screenshots: ' + error.message });
         }
     }
 });
@@ -122,39 +131,47 @@ router.delete('/delete-screenshots/:client_alias', (req, res) => {
 /**
  * 删除客户端所有截图
  */
-router.delete('/delete-all-screenshots/:client_alias', (req, res) => {
+router.delete('/delete-all-screenshots/:client_id', async (req, res) => {
     try {
-        const clientAlias = req.params.client_alias;
+        const clientId = req.params.client_id;
 
-        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
-            return res.status(400).send('Missing or invalid client_alias');
+        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
+            return res.status(400).send('Missing or invalid client_id');
         }
 
-        const result = deleteAllScreenshots(clientAlias);
+        // 直接使用 client_id 查找截图目录
+        const result = deleteAllScreenshots(clientId);
         res.json(result);
     } catch (error) {
         if (error.message === 'Client not found') {
-            res.status(404).send('Client not found');
+            res.status(404).json({ success: false, message: 'Client not found' });
         } else {
             errorWithTime('[WEB] Error deleting all screenshots:', error);
-            res.status(500).send('Failed to delete all screenshots: ' + error.message);
+            res.status(500).json({ success: false, message: 'Failed to delete all screenshots: ' + error.message });
         }
     }
 });
 
 /**
  * 更新客户端别名
- * PUT /web/clients/:currentAlias/alias
+ * PUT /web/clients/:client_id/alias
  */
-router.put('/clients/:currentAlias/alias', async (req, res) => {
+router.put('/clients/:client_id/alias', async (req, res) => {
     try {
-        const { currentAlias } = req.params;
+        const clientId = req.params.client_id;
         const { newAlias } = req.body;
 
-        if (!newAlias || typeof newAlias !== 'string') {
+        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
             return res.status(400).json({
                 success: false,
-                message: '新别名不能为空'
+                message: 'Missing or invalid client_id'
+            });
+        }
+
+        if (!newAlias || typeof newAlias !== 'string' || newAlias.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing or invalid newAlias'
             });
         }
 
@@ -166,14 +183,40 @@ router.put('/clients/:currentAlias/alias', async (req, res) => {
             });
         }
 
-        const result = await clientManager.updateAlias(currentAlias, newAlias);
+        // 获取当前别名用于广播事件
+        const currentAlias = await clientManager.getAlias(clientId);
 
-        if (result.success) {
-            res.json(result);
+        // 直接使用 client_id 更新别名
+        const success = await clientManager.updateClientAlias(clientId, newAlias);
+
+        if (success) {
+            // 通过WebSocket广播别名更新事件
+            try {
+                const { broadcastToWebClients } = require('../websocket');
+                broadcastToWebClients({
+                    type: 'alias_updated',
+                    client_id: clientId,
+                    oldAlias: currentAlias,
+                    newAlias: newAlias
+                });
+            } catch (error) {
+                errorWithTime('[WEB] Failed to broadcast alias update:', error);
+            }
+            
+            res.json({
+                success: true,
+                message: '别名更新成功',
+                oldAlias: currentAlias,
+                newAlias: newAlias
+            });
         } else {
-            res.status(400).json(result);
+            res.status(400).json({
+                success: false,
+                message: '更新别名失败'
+            });
         }
     } catch (error) {
+        errorWithTime('[WEB] Error updating alias:', error);
         res.status(500).json({
             success: false,
             message: '更新别名时发生服务器错误'
@@ -183,16 +226,16 @@ router.put('/clients/:currentAlias/alias', async (req, res) => {
 
 /**
  * 删除客户端
- * DELETE /web/clients/:alias
+ * DELETE /web/clients/:client_id
  */
-router.delete('/clients/:alias', async (req, res) => {
+router.delete('/clients/:client_id', async (req, res) => {
     try {
-        const { alias } = req.params;
+        const clientId = req.params.client_id;
 
-        const result = await clientManager.deleteClient(alias);
+        const result = await clientManager.deleteClientByClientId(clientId);
 
         if (result.success) {
-            logWithTime(`[WEB] Client deleted: ${alias}`);
+            logWithTime(`[WEB] Client deleted: ${clientId}`);
             res.json(result);
         } else {
             res.status(400).json(result);
@@ -208,17 +251,17 @@ router.delete('/clients/:alias', async (req, res) => {
 
 /**
  * 通用命令路由 - 支持所有命令类型
- * POST /web/command/:client_alias
+ * POST /web/command/:client_id
  */
-router.post('/command/:client_alias', (req, res) => {
+router.post('/command/:client_id', async (req, res) => {
     try {
-        const clientAlias = req.params.client_alias;
+        const clientId = req.params.client_id;
         const { type, data } = req.body;
 
-        if (!clientAlias || typeof clientAlias !== 'string' || clientAlias.trim() === '') {
+        if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
             return res.status(400).json({
                 success: false,
-                message: 'Missing or invalid client alias'
+                message: 'Missing or invalid client_id'
             });
         }
 
@@ -229,7 +272,8 @@ router.post('/command/:client_alias', (req, res) => {
             });
         }
 
-        if (!isClientOnline(clientAlias)) {
+        // 直接使用 client_id 检查在线状态
+        if (!isClientOnline(clientId)) {
             return res.status(404).json({
                 success: false,
                 message: 'Client is not online'
@@ -240,16 +284,19 @@ router.post('/command/:client_alias', (req, res) => {
         const message = {
             type: type,
             data: data || {}
-        };        // 为某些命令类型添加默认的session_id
+        };
+        
+        // 为某些命令类型添加默认的session_id
         if (['create_pty_session', 'pty_input', 'pty_resize', 'force_kill_session'].includes(type)) {
             if (!message.data.session_id) {
-                message.data.session_id = clientAlias; // 使用client alias作为默认session id
+                // 使用 client_id 作为默认 session id
+                message.data.session_id = clientId;
             }
         }
 
-        const sent = sendToClient(clientAlias, message);
+        const sent = sendToClient(clientId, message); // 直接使用 client_id
         if (sent) {
-            logWithTime(`[WEB] Command sent to "${clientAlias}": ${type}`);
+            logWithTime(`[WEB] Command sent to "${clientId}": ${type}`);
             res.json({
                 success: true,
                 message: `Command ${type} sent to client`

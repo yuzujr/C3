@@ -2,30 +2,21 @@
 // 配置验证脚本
 // 检查当前配置的安全性
 
-require('dotenv').config();
-const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 function loadConfig() {
-    const configPath = path.join(__dirname, 'server.config.json');
-    let externalConfig = {};
-
-    if (fs.existsSync(configPath)) {
-        try {
-            externalConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        } catch (error) {
-            console.error('❌ server.config.json 文件格式错误:', error.message);
-            return null;
-        }
-    }
-
     return {
         auth: {
-            enabled: process.env.AUTH_ENABLED !== 'false' && (externalConfig.auth?.enabled !== false),
-            username: process.env.AUTH_USERNAME || externalConfig.auth?.username || 'admin',
-            password: process.env.AUTH_PASSWORD || externalConfig.auth?.password || 'CHANGE_ME_PLEASE',
-            sessionSecret: process.env.SESSION_SECRET || externalConfig.auth?.sessionSecret || '',
-            sessionExpireHours: parseInt(process.env.SESSION_EXPIRE_HOURS) || externalConfig.auth?.sessionExpireHours || 24
+            enabled: process.env.AUTH_ENABLED !== 'false',
+            username: process.env.AUTH_USERNAME || 'admin',
+            password: process.env.AUTH_PASSWORD || 'CHANGE_ME_PLEASE',
+            sessionSecret: process.env.SESSION_SECRET || 'default-secret',
+            sessionExpireHours: parseInt(process.env.SESSION_EXPIRE_HOURS) || 24
+        },
+        server: {
+            port: parseInt(process.env.PORT) || 3000,
+            host: process.env.HOST || '0.0.0.0'
         }
     };
 }
@@ -168,6 +159,9 @@ function main() {
             console.log('   - 在生产环境中启用认证');
         }
     }
+
+    console.log('\n=====================================');
+    console.log('🔐 检查完成');
 }
 
 main();

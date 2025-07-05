@@ -1,207 +1,218 @@
 // 认证模块
-// 处理用户登录验证和会话管理
+// 处理用户登录验证和会话管理 (使用数据库)
 
-const crypto = require('crypto');
-const config = require('./config');
+const authService = require('./services/auth-service');
 const { logWithTime, errorWithTime } = require('./logger');
-
-// 存储活跃会话 (生产环境应使用Redis等)
-const activeSessions = new Map();
-
-/**
- * 生成随机会话ID
- */
-function generateSessionId() {
-    return crypto.randomBytes(32).toString('hex');
-}
 
 /**
  * 验证用户名和密码
  * @param {string} username - 用户名
  * @param {string} password - 密码
- * @returns {boolean} 验证结果
+ * @returns {Promise<object>} 登录结果
  */
-function validateCredentials(username, password) {
-    return username === config.AUTH_USERNAME && password === config.AUTH_PASSWORD;
+async function validateCredentials(username, password) {
+  try {
+    return await authService.login(username, password);
+  } catch (error) {
+    errorWithTime('[AUTH] Login validation failed:', error);
+    return { success: false, message: '登录失败' };
+  }
 }
 
 /**
  * 创建新会话
  * @param {string} username - 用户名
- * @returns {string} 会话ID
+ * @param {string} password - 密码
+ * @returns {Promise<string|null>} 会话ID
  */
-function createSession(username) {
-    const sessionId = generateSessionId();
-    const expiresAt = Date.now() + (config.SESSION_EXPIRE_HOURS * 60 * 60 * 1000);
-
-    activeSessions.set(sessionId, {
-        username,
-        createdAt: Date.now(),
-        expiresAt,
-        lastAccess: Date.now()
-    });
-
-    return sessionId;
+async function createSession(username, password) {
+  const loginResult = await validateCredentials(username, password);
+  if (loginResult.success) {
+    return loginResult.sessionId;
+  }
+  return null;
 }
 
 /**
  * 验证会话
  * @param {string} sessionId - 会话ID
- * @returns {object|null} 会话信息或null
+ * @returns {Promise<object|null>} 会话信息或null
  */
-function validateSession(sessionId) {
-    if (!sessionId || !activeSessions.has(sessionId)) {
-        return null;
-    }
-
-    const session = activeSessions.get(sessionId);
-
-    // 检查会话是否过期
-    if (Date.now() > session.expiresAt) {
-        activeSessions.delete(sessionId);
-        logWithTime(`[AUTH] Session expired: ${sessionId.substring(0, 8)}...`);
-        return null;
-    }
-
-    // 更新最后访问时间
-    session.lastAccess = Date.now();
-    return session;
+async function validateSession(sessionId) {
+  try {
+    return await authService.validateSession(sessionId);
+  } catch (error) {
+    errorWithTime('[AUTH] Session validation failed:', error);
+    return null;
+  }
 }
 
 /**
- * 销毁会话
- * @param {string} sessionId - 会话ID
+ * 认证中间件
+ * @param {object} req - 请求对象
+ * @param {object} res - 响应对象
+ * @param {function} next - 下一个中间件
  */
-function destroySession(sessionId) {
-    if (activeSessions.has(sessionId)) {
-        const session = activeSessions.get(sessionId);
-        activeSessions.delete(sessionId);
-    }
-}
+async function requireAuth(req, res, next) {
+  try {
+    const sessionId = req.cookies.sessionId;
 
-/**
- * 清理过期会话 (定期执行)
- */
-function cleanupExpiredSessions() {
-    const now = Date.now();
-    let cleanedCount = 0;
-
-    for (const [sessionId, session] of activeSessions.entries()) {
-        if (now > session.expiresAt) {
-            activeSessions.delete(sessionId);
-            cleanedCount++;
-        }
+    if (!sessionId) {
+      return res.redirect('/login');
     }
 
-    if (cleanedCount > 0) {
-        logWithTime(`[AUTH] Cleaned up ${cleanedCount} expired sessions`);
-    }
-}
-
-/**
- * 认证中间件 - 检查是否已登录
- */
-function requireAuth(req, res, next) {
-    // 如果认证被禁用，直接通过
-    if (!config.AUTH_ENABLED) {
-        return next();
-    }
-
-    const sessionId = req.cookies?.sessionId;
-    const session = validateSession(sessionId);
-
+    const session = await validateSession(sessionId);
     if (!session) {
-        // 如果是API请求，返回401
-        if (req.path.startsWith('/web/') || req.path.startsWith('/api/')) {
-            return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        // 否则重定向到登录页
-        return res.redirect('/login');
+      // 清除无效的cookie
+      res.clearCookie('sessionId');
+      return res.redirect('/login');
     }
 
-    // 将会话信息添加到请求对象
-    req.session = session;
+    // 将用户信息添加到请求对象
+    req.user = session.user;
+    req.sessionId = session.sessionId;
+
     next();
+  } catch (error) {
+    errorWithTime('[AUTH] Authentication middleware error:', error);
+    res.clearCookie('sessionId');
+    res.redirect('/login');
+  }
 }
 
 /**
- * 登录中间件 - 处理登录请求
+ * 管理员权限中间件
+ * @param {object} req - 请求对象
+ * @param {object} res - 响应对象
+ * @param {function} next - 下一个中间件
  */
-function handleLogin(req, res) {
-    const { username, password } = req.body;
+async function requireAdmin(req, res, next) {
+  try {
+    await requireAuth(req, res, () => {
+      if (req.user && req.user.role === 'admin') {
+        next();
+      } else {
+        res.status(403).json({ success: false, message: '需要管理员权限' });
+      }
+    });
+  } catch (error) {
+    errorWithTime('[AUTH] Admin middleware error:', error);
+    res.status(500).json({ success: false, message: '认证失败' });
+  }
+}
 
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password required' });
+/**
+ * 获取活跃会话统计
+ * @returns {Promise<object>} 统计信息
+ */
+async function getSessionStats() {
+  try {
+    const activeCount = await authService.getActiveSessionCount();
+    return {
+      activeSessionCount: activeCount
+    };
+  } catch (error) {
+    errorWithTime('[AUTH] Failed to get session stats:', error);
+    return {
+      activeSessionCount: 0
+    };
+  }
+}
+
+/**
+ * 登录处理函数
+ * @param {object} req - 请求对象
+ * @param {object} res - 响应对象
+ */
+async function handleLogin(req, res) {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
+  try {
+    const loginResult = await validateCredentials(username, password);
+
+    if (!loginResult.success) {
+      logWithTime(`[WEB] user: ${username} ip: ${req.ip} login failed - ${loginResult.message}`);
+      return res.status(401).json({ error: loginResult.message });
     }
-
-    if (!validateCredentials(username, password)) {
-        logWithTime(`[WEB] user: ${username} ip: ${req.ip} login failed - invalid credentials`);
-        return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // 创建会话
-    const sessionId = createSession(username);
 
     // 设置Cookie
-    res.cookie('sessionId', sessionId, {
-        httpOnly: true,
-        secure: false, // 开发环境设为false，生产环境应为true
-        sameSite: 'strict',
-        maxAge: config.SESSION_EXPIRE_HOURS * 60 * 60 * 1000
+    res.cookie('sessionId', loginResult.sessionId, {
+      httpOnly: true,
+      secure: false, // 开发环境设为false，生产环境应为true
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 24小时
     });
 
     logWithTime(`[WEB] user: ${username} ip: ${req.ip} login successfully`);
     res.json({ success: true, message: 'Login successful' });
+  } catch (error) {
+    errorWithTime('[AUTH] Login handler error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 }
 
 /**
- * 登出中间件 - 处理登出请求
+ * 登出处理函数
+ * @param {object} req - 请求对象
+ * @param {object} res - 响应对象
  */
-function handleLogout(req, res) {
-    const sessionId = req.cookies?.sessionId;
+async function handleLogout(req, res) {
+  const sessionId = req.cookies?.sessionId;
 
-    if (sessionId) {
-        destroySession(sessionId);
+  if (sessionId) {
+    try {
+      await authService.logout(sessionId);
+    } catch (error) {
+      errorWithTime('[AUTH] Session destruction failed:', error);
     }
+  }
 
-    res.clearCookie('sessionId');
-    res.json({ success: true, message: 'Logout successful' });
+  res.clearCookie('sessionId');
+
+  logWithTime(`[WEB] user logout successfully`);
+  res.json({ success: true, message: 'Logout successful' });
 }
 
 /**
  * 获取当前会话信息
+ * @param {object} req - 请求对象
+ * @param {object} res - 响应对象
  */
-function getSessionInfo(req, res) {
-    if (!config.AUTH_ENABLED) {
-        return res.json({ authenticated: false, authEnabled: false });
-    }
+async function getSessionInfo(req, res) {
+  const config = require('./config');
 
-    const sessionId = req.cookies?.sessionId;
-    const session = validateSession(sessionId);
+  if (!config.AUTH_ENABLED) {
+    return res.json({ authenticated: false, authEnabled: false });
+  }
 
-    if (!session) {
-        return res.json({ authenticated: false, authEnabled: true });
-    }
+  const sessionId = req.cookies?.sessionId;
+  const session = await validateSession(sessionId);
 
-    res.json({
-        authenticated: true,
-        authEnabled: true,
-        username: session.username,
-        loginTime: session.createdAt,
-        expiresAt: session.expiresAt
-    });
+  if (!session) {
+    return res.json({ authenticated: false, authEnabled: true });
+  }
+
+  res.json({
+    authenticated: true,
+    authEnabled: true,
+    username: session.user.username,
+    role: session.user.role,
+    userId: session.user.id
+  });
 }
 
-// 定期清理过期会话 (每小时执行一次)
-setInterval(cleanupExpiredSessions, 60 * 60 * 1000);
-
 module.exports = {
-    requireAuth,
-    handleLogin,
-    handleLogout,
-    getSessionInfo,
-    validateSession,
-    createSession,
-    destroySession
+  validateCredentials,
+  createSession,
+  validateSession,
+  requireAuth,
+  requireAdmin,
+  getSessionStats,
+  handleLogin,
+  handleLogout,
+  getSessionInfo
 };

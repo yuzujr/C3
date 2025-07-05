@@ -2,58 +2,41 @@
 
 C3 (Command-Control-C++) is a minimal command and control framework for remote system administration.
 
+**Tech Stack**: C++ client, Node.js server, PostgreSQL database, Web frontend
+
 ## Features
 
-- Remote shell access via WebSocket
-- Automated screenshot capture and upload
-- HTTPS/WSS encryption with certificate validation options
-- Web-based control interface with real-time communication
-- Cross-platform client (Windows/Linux)
-- Hardcoded configuration builds for deployment
+- Remote command execution via WebSocket (xterm.js + native pty)
+- Automated screenshot capture
+- Web-based management interface
+- Cross-platform client support
 
-## Quick Setup
+## Prerequisites
 
-**Server (Native):**
-```bash
-cd server && npm install && node app.js
-```
+- **Server**: Node.js, PostgreSQL
+- **Client**: CMake 3.16+, C++20 compiler
+- **Platform**: Linux, Windows
 
-**Server (Docker):**
-```bash
-cd server && docker-compose up -d
-```
+## Quick Start
 
-**Client:**
-```bash
-cmake -S . -B build && cmake --build build
-./build/src/C3
-```
-
-## Configuration
-
-Create `config.json`:
-```json
-{
-  "api": {
-    "hostname": "127.0.0.1",
-    "port": 3000,
-    "use_ssl": false,
-    "skip_ssl_verification": false,
-    "interval_seconds": 60,
-    "max_retries": 3,
-    "retry_delay_ms": 1000,
-    "add_to_startup": false,
-    "client_id": ""
-  }
-}
-```
-
-
-## Documentation
-
-- [Build Instructions](docs/BUILD.md) - Compilation options and deployment
-- [Setup Guide](docs/SETUP.md) - Complete installation and server configuration
+1. **Get Client**: Download from [Releases](https://github.com/yuzujr/C3/releases) or [Build from Source](docs/BUILD.md)
+2. **Setup**: Follow the [Setup Guide](docs/SETUP.md)
 
 ## Legal
 
-Educational use only. User assumes all responsibility for compliance with applicable laws.
+**⚠️ DISCLAIMER: Educational and Research Use Only**
+
+This software is provided for educational, research, and authorized system administration purposes only. Users are solely responsible for ensuring compliance with all applicable laws and regulations in their jurisdiction.
+
+**Prohibited Uses:**
+- Unauthorized access to computer systems
+- Any illegal or malicious activities
+- Violation of computer crime laws
+
+**User Responsibilities:**
+- Obtain proper authorization before deployment
+- Comply with all applicable laws and regulations
+- Use only on systems you own or have explicit permission to access
+- Respect privacy and data protection laws
+
+The developers assume no liability for misuse of this software.

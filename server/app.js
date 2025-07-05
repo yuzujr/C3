@@ -9,6 +9,7 @@ const { setupAllMiddleware } = require('./middleware');
 const { initWebSocketServer, closeWebSocketServer } = require('./websocket');
 const { initUploadModule } = require('./upload');
 const { requireAuth } = require('./auth');
+const { initDatabase } = require('./database/init');
 
 // 路由模块
 const webRoutes = require('./routes/web');
@@ -53,8 +54,16 @@ function createApp() {
 /**
  * 启动服务器
  */
-function startServer() {
+async function startServer() {
     try {
+        // 初始化数据库
+        logWithTime('[INIT] Initializing database...');
+        const dbInitialized = await initDatabase();
+        if (!dbInitialized) {
+            errorWithTime('[INIT] Database initialization failed');
+            process.exit(1);
+        }
+
         // 初始化上传模块
         initUploadModule();
 
@@ -158,8 +167,8 @@ function startServer() {
 /**
  * 应用入口点
  */
-function main() {
-    startServer();
+async function main() {
+    await startServer();
 }
 
 // 如果直接运行此文件，启动服务器

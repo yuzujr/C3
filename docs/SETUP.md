@@ -1,69 +1,175 @@
 # C3 Setup Guide
 
-This guide provides complete installation and configuration instructions for C3.
+Complete installation and configuration guide for C3 remote control system.
 
-## Server Setup
+## Prerequisites
+
+- Node.js
+- PostgreSQL (for native installation)
+- Docker and Docker Compose (for Docker installation)
+
+## Setup Methods
 
 ### Method 1: Native Installation
 
 #### 1. Install Dependencies
-
-Install [Node.js](https://nodejs.org/) (version 16 or later).
 
 ```bash
 cd server
 npm install
 ```
 
-#### 2. Configure Authentication
+#### 2. Database Configuration
 
-**Option A: Environment Variables**
+**Install PostgreSQL:**
 ```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+
+# Start and enable PostgreSQL
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+**Configure Authentication:**
+
+PostgreSQL defaults to `ident` authentication, but applications need `md5` authentication. Modify the authentication configuration:
+
+```bash
+# Find the PostgreSQL data directory
+sudo -u postgres psql -c "SHOW data_directory;"
+
+# Backup original configuration
+sudo cp /var/lib/pgsql/data/pg_hba.conf /var/lib/pgsql/data/pg_hba.conf.backup
+
+# Modify authentication methods to md5
+sudo sed -i 's/local   all             all                                     peer/local   all             all                                     md5/' /var/lib/pgsql/data/pg_hba.conf
+sudo sed -i 's/host    all             all             127.0.0.1\/32            ident/host    all             all             127.0.0.1\/32            md5/' /var/lib/pgsql/data/pg_hba.conf
+sudo sed -i 's/host    all             all             ::1\/128                 ident/host    all             all             ::1\/128                 md5/' /var/lib/pgsql/data/pg_hba.conf
+
+# Restart PostgreSQL to apply changes
+sudo systemctl restart postgresql
+```
+
+**Create Database and User:**
+```bash
+sudo -u postgres psql
+```
+
+In PostgreSQL command line:
+```sql
+CREATE USER c3user WITH PASSWORD 'your-database-password';
+CREATE DATABASE c3_db OWNER c3user;
+GRANT ALL PRIVILEGES ON DATABASE c3_db TO c3user;
+\q
+```
+
+**Important**: Replace `'your-database-password'` with a secure password of your choice. You will need to use the same password in your `.env` file's `DB_PASSWORD` setting.
+
+#### 3. Configure Environment Variables
+
+```bash
+# Use the template for native installation
 cp .env.example .env
 ```
-Edit `.env` with your settings:
-```env
-JWT_SECRET=your-secret-key
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=your-password
-SESSION_EXPIRE_HOURS=24
-```
 
-**Option B: Interactive Setup**
+Edit `.env` file with your database password and authentication settings:
+- Set `DB_PASSWORD` to match the password you used when creating the database user
+- Set `AUTH_USERNAME` and `AUTH_PASSWORD` for web interface login
+- Set `SESSION_SECRET` to a long random string (at least 32 characters)
+
+#### 4. Initialize Database
+
 ```bash
-node setup-auth.js
-```
-Follow prompts to set up admin credentials and JWT secret.
+# Test database connection
+node scripts/test-database.js
 
-#### 3. Start Server
+# Initialize database tables and default user
+node database/init.js
+```
+
+**Note:** The database schema is automatically created using Sequelize ORM models. The `init.js` script will create all necessary tables, indexes, and relationships, as well as create a default admin user.
+
+#### 5. Start Server
 
 ```bash
 node app.js
 ```
 
+#### 6. Access Web Interface
+
+Open browser and navigate to: **http://localhost:3000**
+
 ### Method 2: Docker Deployment
 
+#### 1. Prepare Configuration
 
 ```bash
 cd server
+# Use the template for Docker deployment
+cp .env.docker .env
+```
+
+**⚠️ Security Warning**: You must modify the passwords in the `.env` file before deployment:
+
+```bash
+# Edit .env file and change these values:
+# - DB_PASSWORD: Database password (used by both PostgreSQL container and application)
+# - AUTH_PASSWORD: Web interface login password
+# - SESSION_SECRET: Session encryption key (at least 32 characters)
+```
+
+**Example secure values:**
+```bash
+DB_PASSWORD=MyS3cur3DbP@ssw0rd2024
+AUTH_PASSWORD=MyAdminP@ssw0rd2024
+SESSION_SECRET=a-very-long-random-string-at-least-32-characters-long-for-session-encryption
+```
+
+#### 2. Configure Docker Permissions
+
+**Add user to docker group (Recommended):**
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+**Alternative: Use sudo for docker commands**
+
+#### 3. Start Services
+
+```bash
 docker-compose up -d
 ```
 
-Configuration is same as native installation.
+#### 4. Verify Deployment
 
----
+```bash
+# Check service status
+docker-compose ps
 
-Server will run on:
-- **HTTP Server**: Port 3000 (web interface)
-- **WebSocket Server**: Same port (real-time communication)
+# View logs
+docker-compose logs -f c3-server
+```
 
-Access the web interface at `http://localhost:3000`
+#### 5. Access Web Interface
+
+Open browser and navigate to: **http://localhost:3000**
 
 ## Client Setup
 
-### Traditional Configuration
+### 1. Get Client
 
-Create `config.json` next to the executable:
+**Option 1: Download from [Releases](https://github.com/yuzujr/C3/releases) (Recommended)**
+
+**Option 2: Compile from Source**
+
+See [BUILD.md](./BUILD.md) for detailed compilation instructions.
+
+### 2. Configure Client
+
+Move `config/config.json` next to the executable:
 
 ```json
 {
@@ -81,33 +187,60 @@ Create `config.json` next to the executable:
 }
 ```
 
-#### Configuration Parameters
+### 3. Run Client
+
+```bash
+./build/src/C3
+```
+
+
+## Configuration Reference
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NODE_ENV` | `development` | Environment mode |
+| `PORT` | `3000` | Server port |
+| `HOST` | `0.0.0.0` | Server host |
+| `AUTH_ENABLED` | `true` | Enable authentication |
+| `AUTH_USERNAME` | `admin` | Login username |
+| `AUTH_PASSWORD` | - | Login password |
+| `SESSION_SECRET` | - | Session encryption key |
+| `SESSION_EXPIRE_HOURS` | `24` | Session expiration |
+| `DB_HOST` | `localhost` | Database host |
+| `DB_PORT` | `5432` | Database port |
+| `DB_NAME` | `c3_db` | Database name |
+| `DB_USER` | `c3user` | Database username |
+| `DB_PASSWORD` | - | Database password |
+| `UPLOAD_DIR` | `uploads` | Upload directory |
+| `MAX_FILE_SIZE` | `10485760` | Max file size (bytes) |
+| `LOG_LEVEL` | `info` | Logging level |
+| `DB_LOGGING` | `false` | Database query logging |
+
+### Client Configuration
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `hostname` | string | `127.0.0.1` | Server hostname or IP address |
-| `port` | number | `3000` | Server port number |
-| `use_ssl` | boolean | `false` | Enable HTTPS/WSS encryption |
-| `skip_ssl_verification` | boolean | `false` | Skip SSL certificate validation ⚠️ |
-| `interval_seconds` | number | `60` | Screenshot capture interval |
-| `max_retries` | number | `3` | Maximum upload retry attempts |
-| `retry_delay_ms` | number | `1000` | Delay between retries |
+| `hostname` | string | `127.0.0.1` | Server hostname or IP |
+| `port` | number | `3000` | Server port |
+| `use_ssl` | boolean | `false` | Enable HTTPS/WSS |
+| `skip_ssl_verification` | boolean | `false` | Skip SSL verification ⚠️ |
+| `interval_seconds` | number | `60` | Screenshot interval |
+| `max_retries` | number | `3` | Upload retry attempts |
+| `retry_delay_ms` | number | `1000` | Retry delay |
 | `add_to_startup` | boolean | `false` | Add to system startup |
-| `client_id` | string | `""` | Unique client ID (auto-generated) |
+| `client_id` | string | `""` | Unique client ID |
 
-⚠️ **Security Warning**: Never use `skip_ssl_verification: true` in production environments.
+## Management Tools
 
+```bash
+# Security check
+node scripts/check-security.js
 
-### Hardcoded Configuration
-See [hardcoded build guide](BUILD.md#hardcoded-configuration-build) for secure deployment without config files.
+# Database test
+node scripts/test-database.js
 
-
-## Running the Client
-
-1. Ensure server is running
-2. Place `config.json` next to executable (if using traditional config)
-3. Run the C3 client:
-   ```bash
-   ./C3
-   ```
-4. Check server terminal for connection logs
+# Database reset（Warning)
+./scripts/reset-database.sh
+```

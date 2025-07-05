@@ -6,12 +6,12 @@ import { openImageModal } from './modal.js';
 
 /**
  * 获取指定客户端的截图列表
- * @param {string} clientAlias - 客户端别名
+ * @param {string} clientId - 客户端ID
  * @returns {Promise<number>} 返回当前时间戳用于下次请求
  */
-export async function fetchScreenshots(clientAlias) {
+export async function fetchScreenshots(clientId) {
     try {
-        const res = await fetch(`/web/screenshots/${clientAlias}`);
+        const res = await fetch(`/web/screenshots/${clientId}`);
 
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);

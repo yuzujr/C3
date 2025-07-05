@@ -91,96 +91,111 @@ function handleWebConnection(ws) {
  * @param {WebSocket} ws - WebSocket连接
  * @param {string} client_id - 客户端ID
  */
-function handleClientConnection(ws, client_id) {
-    const alias = clientManager.getAlias(client_id);
+async function handleClientConnection(ws, client_id) {
+    try {
+        // 直接使用 client_id 作为连接标识符
+        activeConnections.set(client_id, ws);
+        logWithTime(`[CLIENT] Client connected: ${client_id}`);
 
-    // 如果客户端没有设置别名，将其添加到映射中（使用client_id作为别名）
-    if (!clientManager.clientsMapping[client_id]) {
-        clientManager.setClient(client_id, client_id);
-    } activeConnections.set(alias, ws);
-    logWithTime(`[CLIENT] Client connected: ${alias} (${client_id})`);
-
-
-    // 广播客户端上线状态
-    broadcastToWebClients({
-        type: 'client_status_change',
-        client: alias,
-        online: true
-    }); ws.on('close', () => {
-        activeConnections.delete(alias);
-        logWithTime(`[CLIENT] Client disconnected: ${alias} (${client_id})`);
-
-        // 广播客户端下线状态
-        broadcastToWebClients({
-            type: 'client_status_change',
-            client: alias,
-            online: false
-        });
-    }); ws.on('error', (error) => {
-        errorWithTime(`[CLIENT] Client error for ${alias}:`, error);
-        activeConnections.delete(alias);
-
-
-        // 广播客户端下线状态
-        broadcastToWebClients({
-            type: 'client_status_change',
-            client: alias,
-            online: false
-        });
-    });// 处理客户端发送的消息（如shell命令输出）
-    ws.on('message', (data) => {
+        // 设置客户端在线状态
         try {
-            const message = JSON.parse(data.toString());
-            // 查找当前的alias（可能已经被更新）
-            const currentAlias = findCurrentAlias(ws) || alias;
-            handleClientMessage(currentAlias, message);
+            const clientService = require('./services/client-service');
+            await clientService.setClientOnline(client_id);
+            clientService.clearClientCaches(client_id);
         } catch (error) {
-            const currentAlias = findCurrentAlias(ws) || alias;
-            errorWithTime(`[WEBSOCKET] Invalid message from ${currentAlias}:`, error);
+            errorWithTime('[WEBSOCKET] Failed to set client online:', error);
         }
-    });
-}
 
-/**
- * 查找WebSocket连接对应的当前别名
- * @param {WebSocket} ws - WebSocket连接
- * @returns {string|null} 当前别名，如果找不到返回null
- */
-function findCurrentAlias(ws) {
-    for (const [alias, connection] of activeConnections.entries()) {
-        if (connection === ws) {
-            return alias;
-        }
+        // 广播客户端上线状态
+        broadcastToWebClients({
+            type: 'client_status_change',
+            client_id: client_id,
+            online: true
+        });
+
+        ws.on('close', () => {
+            activeConnections.delete(client_id);
+            logWithTime(`[CLIENT] Client disconnected: ${client_id}`);
+
+            // 设置客户端离线状态并清除缓存
+            try {
+                const clientService = require('./services/client-service');
+                clientService.setClientOffline(client_id);
+                clientService.clearClientCaches(client_id);
+            } catch (error) {
+                errorWithTime('[WEBSOCKET] Failed to set client offline:', error);
+            }
+
+            // 广播客户端下线状态
+            broadcastToWebClients({
+                type: 'client_status_change',
+                client_id: client_id,
+                online: false
+            });
+        });
+
+        ws.on('error', (error) => {
+            errorWithTime(`[CLIENT] Client error for ${client_id}:`, error);
+            activeConnections.delete(client_id);
+
+            // 设置客户端离线状态并清除缓存
+            try {
+                const clientService = require('./services/client-service');
+                clientService.setClientOffline(client_id);
+                clientService.clearClientCaches(client_id);
+            } catch (error) {
+                errorWithTime('[WEBSOCKET] Failed to clear client cache on error:', error);
+            }
+
+            // 广播客户端下线状态
+            broadcastToWebClients({
+                type: 'client_status_change',
+                client_id: client_id,
+                online: false
+            });
+        });
+
+        // 处理客户端发送的消息（如shell命令输出）
+        ws.on('message', (data) => {
+            try {
+                const message = JSON.parse(data.toString());
+                handleClientMessage(client_id, message);
+            } catch (error) {
+                errorWithTime(`[WEBSOCKET] Invalid message from ${client_id}:`, error);
+            }
+        });
+    } catch (error) {
+        errorWithTime('[WEBSOCKET] Error handling connection:', error);
+        ws.close();
     }
-    return null;
 }
 
 /**
  * 处理客户端发送的消息
- * @param {string} alias - 客户端别名
+ * @param {string} client_id - 客户端ID
  * @param {object} message - 客户端消息
  */
-function handleClientMessage(alias, message) {
+function handleClientMessage(client_id, message) {
     switch (message.type) {
         case 'shell_output':
-            handleShellOutput(alias, message);
+            handleShellOutput(client_id, message);
             break;
         default:
             // 尝试将未知消息作为shell输出处理
             if (message.command || message.output || message.stdout || message.result || message.data) {
-                handleShellOutput(alias, message);
+                handleShellOutput(client_id, message);
             } else {
-                logWithTime(`[WEBSOCKET] Unknown message type from ${alias}:`, message.type);
+                logWithTime(`[WEBSOCKET] Unknown message type from ${client_id}:`, message.type);
             }
     }
 }
 
 /**
  * 处理shell命令输出
- * @param {string} alias - 客户端别名
+ * @param {string} client_id - 客户端ID
  * @param {object} message - shell输出消息
  */
-function handleShellOutput(alias, message) {
+function handleShellOutput(client_id, message) {
     // 从消息中提取输出数据，支持多种可能的数据结构
     const data = message.data || message || {};
     const rawOutput = data.stdout || data.output || data.result || message.stdout || message.output || message.result || '';
@@ -190,7 +205,7 @@ function handleShellOutput(alias, message) {
     // 转发shell输出到Web客户端 - 保留原始数据和清理后的数据
     const broadcastMessage = {
         type: 'shell_output',
-        client: alias,
+        client_id: client_id,
         output: rawOutput,  // 保留原始输出（包含ANSI序列）
         clean_output: cleanAnsiEscapes(rawOutput), // 提供清理后的输出作为备选
         success: success,
@@ -219,20 +234,20 @@ function broadcastToWebClients(message) {
 
 /**
  * 向指定客户端发送消息
- * @param {string} clientAlias - 客户端别名
+ * @param {string} client_id - 客户端ID
  * @param {object} message - 要发送的消息
  * @returns {boolean} 是否发送成功
  */
-function sendToClient(clientAlias, message) {
-    const ws = activeConnections.get(clientAlias);
+function sendToClient(client_id, message) {
+    const ws = activeConnections.get(client_id);
 
     if (ws && ws.readyState === WebSocket.OPEN) {
         try {
             ws.send(JSON.stringify(message));
             return true;
         } catch (error) {
-            errorWithTime(`[WEBSOCKET] Failed to send message to ${clientAlias}:`, error);
-            activeConnections.delete(clientAlias);
+            errorWithTime(`[WEBSOCKET] Failed to send message to ${client_id}:`, error);
+            activeConnections.delete(client_id);
             return false;
         }
     }
@@ -242,21 +257,21 @@ function sendToClient(clientAlias, message) {
 
 /**
  * 检查客户端是否在线
- * @param {string} clientAlias - 客户端别名
+ * @param {string} client_id - 客户端ID
  * @returns {boolean} 是否在线
  */
-function isClientOnline(clientAlias) {
-    const ws = activeConnections.get(clientAlias);
+function isClientOnline(client_id) {
+    const ws = activeConnections.get(client_id);
     return ws && ws.readyState === WebSocket.OPEN;
 }
 
 /**
  * 获取在线客户端列表
- * @returns {Array<string>} 在线客户端别名列表
+ * @returns {Array<string>} 在线客户端ID列表
  */
 function getOnlineClients() {
-    return Array.from(activeConnections.keys()).filter(alias =>
-        isClientOnline(alias)
+    return Array.from(activeConnections.keys()).filter(client_id =>
+        isClientOnline(client_id)
     );
 }
 
@@ -281,7 +296,7 @@ function closeWebSocketServer() {
 
         // 关闭所有活跃的客户端连接
         if (activeConnections && activeConnections.size > 0) {
-            activeConnections.forEach((ws, clientId) => {
+            activeConnections.forEach((ws, client_id) => {
                 try {
                     if (ws.readyState === WebSocket.OPEN) {
                         ws.close(1000, 'Server shutting down');
@@ -311,58 +326,6 @@ function closeWebSocketServer() {
     }
 }
 
-/**
- * 更新客户端别名映射
- * 当ClientManager中的别名发生变化时调用此函数
- * @param {string} oldAlias - 旧别名
- * @param {string} newAlias - 新别名
- */
-function updateClientAlias(oldAlias, newAlias) {
-    // 检查旧别名是否有活跃连接
-    const ws = activeConnections.get(oldAlias);
-    if (ws) {
-        // 移除旧的映射
-        activeConnections.delete(oldAlias);
-        // 添加新的映射
-        activeConnections.set(newAlias, ws);
-
-        // 广播客户端状态变化（旧别名下线，新别名上线）
-        broadcastToWebClients({
-            type: 'client_status_change',
-            client: oldAlias,
-            online: false
-        });
-
-        broadcastToWebClients({
-            type: 'client_status_change',
-            client: newAlias,
-            online: true
-        });
-    }
-}
-
-/**
- * 删除客户端连接
- * 当ClientManager中的客户端被删除时调用此函数
- * @param {string} alias - 客户端别名
- */
-function removeClientConnection(alias) {
-    const ws = activeConnections.get(alias);
-    if (ws) {
-        // 关闭WebSocket连接
-        ws.close();
-        // 移除映射
-        activeConnections.delete(alias);
-
-        // 广播客户端下线状态
-        broadcastToWebClients({
-            type: 'client_status_change',
-            client: alias,
-            online: false
-        });
-    }
-}
-
 module.exports = {
     initWebSocketServer,
     broadcastToWebClients,
@@ -370,8 +333,6 @@ module.exports = {
     isClientOnline,
     getOnlineClients,
     closeWebSocketServer,
-    updateClientAlias,
-    removeClientConnection,
     activeConnections,
     webConnections
 };

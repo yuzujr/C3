@@ -1,12 +1,14 @@
 // 服务器配置模块
-// 集中管理所有配置项和常量
-
-// 加载环境变量 (必须在最开始)
-require('dotenv').config();
+// 统一使用环境变量管理所有配置项
 
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+
+// 加载环境变量 (必须在最开始)
+// 确保从正确的位置加载.env文件
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const { logWithTime, errorWithTime } = require('./logger');
 
 /**
@@ -16,81 +18,36 @@ function generateRandomSecret() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-/**
- * 加载外部配置文件
- */
-function loadExternalConfig() {
-    const configPath = path.join(__dirname, 'server.config.json'); if (fs.existsSync(configPath)) {
-        try {
-            const externalConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            logWithTime('[INIT] Loaded external configuration from server.config.json');
-            return externalConfig;
-        } catch (error) {
-            errorWithTime('[INIT] Warning: Failed to parse server.config.json:', error.message);
-            return {};
-        }
-    }
-
-    return {};
-}
-
-/**
- * 创建默认的外部配置文件模板
- */
-function createDefaultConfigTemplate() {
-    const configPath = path.join(__dirname, 'server.config.json');
-
-    if (!fs.existsSync(configPath)) {
-        const defaultConfig = {
-            "auth": {
-                "enabled": true,
-                "username": "admin",
-                "password": "admin123",
-                "sessionSecret": generateRandomSecret(),
-                "sessionExpireHours": 24
-            }, "server": {
-                "port": 3000,
-                "host": "0.0.0.0"
-            }
-        }; try {
-            fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 4));
-            logWithTime('[CONFIG] Created default configuration template: server.config.json');
-            logWithTime('[CONFIG] ⚠️  IMPORTANT: Please edit server.config.json to set your password!');
-        } catch (error) {
-            errorWithTime('[CONFIG] Failed to create default config file:', error.message);
-        }
-    }
-}
-
-// 加载外部配置
-const externalConfig = loadExternalConfig();
-
-// 如果没有外部配置文件，创建模板
-if (Object.keys(externalConfig).length === 0) {
-    createDefaultConfigTemplate();
-}
-
 // 服务器配置
-const config = {    // 端口配置 (优先使用环境变量，然后是外部配置，最后是默认值)
-    PORT: parseInt(process.env.PORT) || externalConfig.server?.port || 3000,
+const config = {
+    // 端口配置
+    PORT: parseInt(process.env.PORT) || 3000,
 
     // 网络配置
-    HOST: process.env.HOST || externalConfig.server?.host || '0.0.0.0',
+    HOST: process.env.HOST || '0.0.0.0',
 
     // 目录配置
     PUBLIC_DIR: path.join(__dirname, 'public'),
-    UPLOADS_DIR: path.join(__dirname, 'uploads'),
+    UPLOADS_DIR: process.env.UPLOAD_DIR ? path.join(__dirname, process.env.UPLOAD_DIR) : path.join(__dirname, 'uploads'),
 
     // 安全配置
-    MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+    MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024, // 10MB
     ALLOWED_FILE_TYPES: ['.jpg', '.jpeg', '.png', '.gif', '.bmp'],
 
-    // 认证配置 (优先使用环境变量，然后是外部配置，最后是默认值)
-    AUTH_ENABLED: process.env.AUTH_ENABLED === 'false' ? false : (externalConfig.auth?.enabled !== false),
-    AUTH_USERNAME: process.env.AUTH_USERNAME || externalConfig.auth?.username || 'admin',
-    AUTH_PASSWORD: process.env.AUTH_PASSWORD || externalConfig.auth?.password || 'CHANGE_ME_PLEASE',
-    SESSION_SECRET: process.env.SESSION_SECRET || externalConfig.auth?.sessionSecret || generateRandomSecret(),
-    SESSION_EXPIRE_HOURS: parseInt(process.env.SESSION_EXPIRE_HOURS) || externalConfig.auth?.sessionExpireHours || 24,
+    // 认证配置
+    AUTH_ENABLED: process.env.AUTH_ENABLED !== 'false',
+    AUTH_USERNAME: process.env.AUTH_USERNAME || 'admin',
+    AUTH_PASSWORD: process.env.AUTH_PASSWORD || 'CHANGE_ME_PLEASE',
+    SESSION_SECRET: process.env.SESSION_SECRET || generateRandomSecret(),
+    SESSION_EXPIRE_HOURS: parseInt(process.env.SESSION_EXPIRE_HOURS) || 24,
+
+    // 数据库配置
+    DB_HOST: process.env.DB_HOST || 'localhost',
+    DB_PORT: parseInt(process.env.DB_PORT) || 5432,
+    DB_NAME: process.env.DB_NAME || 'c3_db',
+    DB_USER: process.env.DB_USER || 'postgres',
+    DB_PASSWORD: process.env.DB_PASSWORD || 'password',
+    DB_LOGGING: process.env.DB_LOGGING === 'true',
 
     // 日志配置
     LOG_LEVEL: process.env.LOG_LEVEL || 'info'
@@ -119,11 +76,20 @@ function validateConfig() {
     const isDockerEnv = process.env.DOCKER_ENV === 'true' || fs.existsSync('/.dockerenv');
     if (config.HOST === '0.0.0.0' && process.env.NODE_ENV === 'production' && !isDockerEnv) {
         warnings.push('[CONFIG] ⚠️  Binding to 0.0.0.0 in production. Consider restricting to specific IP.');
-    }    // 显示警告
+    }
+
+    // 显示警告
     if (warnings.length > 0) {
         logWithTime('[CONFIG] Security Warnings:');
         warnings.forEach(warning => logWithTime(`${warning}`));
     }
+
+    // 显示配置摘要
+    logWithTime('[CONFIG] Configuration loaded:');
+    logWithTime(`[CONFIG] - Server: ${config.HOST}:${config.PORT}`);
+    logWithTime(`[CONFIG] - Auth: ${config.AUTH_ENABLED ? 'enabled' : 'disabled'}`);
+    logWithTime(`[CONFIG] - Database: ${config.DB_HOST}:${config.DB_PORT}/${config.DB_NAME}`);
+    logWithTime(`[CONFIG] - Upload dir: ${config.UPLOADS_DIR}`);
 }
 
 // 执行配置验证

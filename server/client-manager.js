@@ -1,271 +1,298 @@
 // client-manager.js
-// 统一的客户端管理器
+// 统一的客户端管理器 (使用数据库)
 // 负责处理客户端标识符的统一管理和转换
 
-const fs = require('fs');
-const path = require('path');
+const clientService = require('./services/client-service');
 const { logWithTime, errorWithTime } = require('./logger');
 
 class ClientManager {
     constructor() {
-        this.clientsJsonPath = path.join(__dirname, 'clients.json');
-        this.uploadsDir = path.join(__dirname, 'uploads');
-        this.clientsMapping = {}; // client_id -> alias 映射
-        this.loadClients();
-
-        // 监听文件变化
-        this.watchClientsFile();
-    }    /**
-     * 加载客户端映射
-     */
-    loadClients() {
-        try {
-            if (fs.existsSync(this.clientsJsonPath)) {
-                const data = fs.readFileSync(this.clientsJsonPath, 'utf-8').trim();
-                this.clientsMapping = data ? JSON.parse(data) : {};
-            } else {
-                this.clientsMapping = {};
-            }
-
-            const clientCount = Object.keys(this.clientsMapping).length;
-
-            if (clientCount > 0) {
-                logWithTime('[CLIENT-MANAGER] Registered clients:');
-                Object.entries(this.clientsMapping).forEach(([clientId, alias]) => {
-                    logWithTime(`[CLIENT-MANAGER]  - ${alias} (${clientId})`);
-                });
-            }
-        } catch (err) {
-            errorWithTime('[CLIENT-MANAGER] Failed to load clients:', err.message);
-            this.clientsMapping = {};
-        }
+        this.initializeFromDatabase();
     }
 
     /**
-     * 监听clients.json文件变化
+     * 从数据库初始化客户端信息
      */
-    watchClientsFile() {
-        if (fs.existsSync(this.clientsJsonPath)) {
-            fs.watchFile(this.clientsJsonPath, () => {
-                this.loadClients();
-            });
+    async initializeFromDatabase() {
+        try {
+            const clients = await clientService.getAllClients();
+            const onlineCount = clients.filter(c => c.online).length;
+            const totalCount = clients.length;
+            
+            logWithTime(`[CLIENT-MANAGER] Loaded ${totalCount} clients from database`);
+            
+            if (totalCount > 0) {
+                logWithTime('[CLIENT-MANAGER] Registered clients:');
+                clients.forEach(client => {
+                    const status = client.online ? '✓ online' : '○ offline';
+                    logWithTime(`[CLIENT-MANAGER]  - ${client.alias} (${client.client_id})`);
+                });
+            }
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to initialize from database:', error);
         }
     }
 
     /**
      * 通过client_id获取alias
      * @param {string} clientId - 客户端ID
-     * @returns {string} alias
+     * @returns {Promise<string>} alias
      */
-    getAlias(clientId) {
-        return this.clientsMapping[clientId] || clientId;
-    }    /**
-     * 通过alias获取client_id
-     * @param {string} alias - 客户端别名
-     * @returns {string|null} client_id
-     */
-    getClientId(alias) {
-        // 情况1：直接是clientId（在映射中作为key存在）
-        if (this.clientsMapping.hasOwnProperty(alias)) {
-            return alias;
+    async getAlias(clientId) {
+        try {
+            const client = await clientService.getClientByIdentifier(clientId);
+            return client ? client.alias : clientId;
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to get alias:', error);
+            return clientId;
         }
+    }
 
-        // 情况2：是别名，需要查找对应的clientId
-        for (const [clientId, clientAlias] of Object.entries(this.clientsMapping)) {
-            if (clientAlias === alias) {
-                return clientId;
-            }
-        }
-
-        // 情况3：都没找到，返回null
-        return null;
-    }    /**
+    /**
      * 获取所有客户端信息
-     * @returns {Array} 客户端信息数组
+     * @returns {Promise<Array>} 客户端信息数组
      */
-    getAllClients() {
-        return Object.entries(this.clientsMapping).map(([clientId, alias]) => ({
-            alias: alias,
-            online: false // 默认离线，需要WebSocket模块提供在线状态
-        }));
-    }/**
+    async getAllClients() {
+        try {
+            return await clientService.getAllClients();
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to get all clients:', error);
+            return [];
+        }
+    }
+
+    /**
      * 添加或更新客户端
      * @param {string} clientId - 客户端ID
      * @param {string} alias - 客户端别名
+     * @param {object} clientInfo - 客户端信息
      */
-    setClient(clientId, alias) {
-        this.clientsMapping[clientId] = alias;
-        this.saveClients();
+    async setClient(clientId, alias, clientInfo = {}) {
+        try {
+            await clientService.registerClient(clientId, {
+                alias,
+                ...clientInfo
+            });
+            logWithTime(`[CLIENT-MANAGER] Client registered: ${alias} (${clientId})`);
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to set client:', error);
+        }
     }
 
     /**
      * 更新客户端别名
-     * @param {string} oldAlias - 旧的别名
-     * @param {string} newAlias - 新的别名
-     * @returns {Promise<{success: boolean, message: string}>}
+     * @param {string} clientId - 客户端ID
+     * @param {string} newAlias - 新别名
      */
-    async updateAlias(oldAlias, newAlias) {
+    async updateClientAlias(clientId, newAlias) {
         try {
-            // 验证输入
-            if (!oldAlias || !newAlias) {
-                return { success: false, message: '别名不能为空' };
+            const success = await clientService.updateClientAlias(clientId, newAlias);
+            if (success) {
+                logWithTime(`[CLIENT-MANAGER] Client alias updated: ${clientId} -> ${newAlias}`);
             }
-
-            if (oldAlias === newAlias) {
-                return { success: false, message: '新别名与当前别名相同' };
-            }
-
-            // 检查新别名是否已存在
-            const existingClientId = this.getClientId(newAlias);
-            if (existingClientId) {
-                return { success: false, message: '新别名已被其他客户端使用' };
-            }
-
-            // 找到对应的clientId
-            const clientId = this.getClientId(oldAlias);
-            if (!clientId) {
-                return { success: false, message: '找不到对应的客户端' };
-            }
-
-            // 更新映射
-            this.clientsMapping[clientId] = newAlias;
-            this.saveClients();
-
-            // 重命名uploads文件夹
-            const oldDir = path.join(this.uploadsDir, oldAlias);
-            const newDir = path.join(this.uploadsDir, newAlias);
-
-            if (fs.existsSync(oldDir)) {
-                if (fs.existsSync(newDir)) {
-                    return { success: false, message: '新别名对应的文件夹已存在' };
-                }
-
-                try {
-                    fs.renameSync(oldDir, newDir);
-                } catch (renameError) {
-                    // 如果重命名失败，回滚映射更改
-                    this.clientsMapping[clientId] = oldAlias;
-                    this.saveClients();
-                    return { success: false, message: '重命名文件夹失败: ' + renameError.message };
-                }
-            }
-            logWithTime(`[CLIENT-MANAGER] Alias updated: ${oldAlias} -> ${newAlias}`);
-
-            // 通知WebSocket模块更新别名映射
-            try {
-                const { updateClientAlias } = require('./websocket');
-                updateClientAlias(oldAlias, newAlias);
-            } catch (error) {
-                errorWithTime('[CLIENT-MANAGER] Failed to notify WebSocket about alias update:', error.message);
-                // 不影响主要功能，继续执行
-            }
-
-            return { success: true, message: '别名更新成功' };
-
+            return success;
         } catch (error) {
-            errorWithTime('[CLIENT-MANAGER] Failed to update alias:', error.message);
-            return { success: false, message: '更新别名时发生错误: ' + error.message };
+            errorWithTime('[CLIENT-MANAGER] Failed to update client alias:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 设置客户端在线状态
+     * @param {string} clientId - 客户端ID
+     * @param {boolean} online - 在线状态
+     */
+    async setClientOnlineStatus(clientId, online) {
+        try {
+            if (online) {
+                await clientService.setClientOnline(clientId);
+            } else {
+                await clientService.setClientOffline(clientId);
+            }
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to set client online status:', error);
+        }
+    }
+
+    /**
+     * 删除客户端 (标记为离线，不真正删除数据库记录)
+     * @param {string} clientId - 客户端ID
+     */
+    async removeClient(clientId) {
+        try {
+            await clientService.setClientOffline(clientId);
+            logWithTime(`[CLIENT-MANAGER] Client marked offline: ${clientId}`);
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to remove client:', error);
         }
     }
 
     /**
      * 删除客户端
-     * @param {string} alias - 客户端别名
-     * @returns {Promise<{success: boolean, message: string}>}
+     * @param {string} clientId - 客户端ID
      */
-    async deleteClient(alias) {
+    async deleteClientByClientId(clientId) {
         try {
-            const clientId = this.getClientId(alias);
-            if (!clientId) {
-                return { success: false, message: '找不到对应的客户端' };
+            const client = await clientService.getClientByIdentifier(clientId);
+            if (!client) {
+                return { success: false, message: 'Client not found' };
             }
 
-            // 删除映射
-            delete this.clientsMapping[clientId];
-            this.saveClients();
+            const clientId = client.client_id;
+            
+            // 删除客户端记录
+            const result = await clientService.deleteClient(clientId);
+            
+            if (result.success) {
+                // 删除客户端上传目录
+                await this.deleteClientDirectory(clientId);
+                
+                logWithTime(`[CLIENT-MANAGER] Client deleted: ${client.alias} (${clientId})`);
+                return { success: true, message: 'Client deleted successfully' };
+            } else {
+                return result;
+            }
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to delete client:', error);
+            return { success: false, message: 'Failed to delete client' };
+        }
+    }
 
-            // 可选：删除uploads文件夹（谨慎操作）
-            const clientDir = path.join(this.uploadsDir, alias);
+    /**
+     * 删除客户端目录
+     * @param {string} clientId - 客户端ID
+     */
+    async deleteClientDirectory(clientId) {
+        const fs = require('fs');
+        const path = require('path');
+        
+        try {
+            const config = require('./config');
+            const clientDir = path.join(config.UPLOADS_DIR, clientId);
+            
             if (fs.existsSync(clientDir)) {
-                try {
-                    fs.rmSync(clientDir, { recursive: true, force: true });
-                    logWithTime(`[CLIENT-MANAGER] Deleted directory: ${alias}`);
-                } catch (deleteError) {
-                    errorWithTime('[CLIENT-MANAGER] Failed to delete directory:', deleteError.message);
-                    // 继续执行，不阻止客户端删除
-                }
-            } logWithTime(`[CLIENT-MANAGER] Deleted client: ${alias} (clientId: ${clientId})`);
-
-            // 通知WebSocket模块删除客户端连接
-            try {
-                const { removeClientConnection } = require('./websocket');
-                removeClientConnection(alias);
-            } catch (error) {
-                errorWithTime('[CLIENT-MANAGER] Failed to notify WebSocket about client deletion:', error.message);
-                // 不影响主要功能，继续执行
+                // 递归删除目录
+                fs.rmSync(clientDir, { recursive: true, force: true });
+                logWithTime(`[CLIENT-MANAGER] Deleted client directory: ${clientDir}`);
             }
-
-            return { success: true, message: '客户端删除成功' };
-
         } catch (error) {
-            errorWithTime('[CLIENT-MANAGER] Failed to delete client:', error.message);
-            return { success: false, message: '删除客户端时发生错误: ' + error.message };
+            errorWithTime(`[CLIENT-MANAGER] Failed to delete client directory for ${clientId}:`, error);
         }
     }
 
     /**
-     * 保存客户端映射到文件
+     * 根据客户端ID获取客户端信息
+     * @param {string} clientId - 客户端ID
+     * @returns {Promise<object|null>} 客户端信息
      */
-    saveClients() {
+    async getClientByClientId(clientId) {
         try {
-            fs.writeFileSync(this.clientsJsonPath, JSON.stringify(this.clientsMapping, null, 2));
-        } catch (err) {
+            return await clientService.getClientByIdentifier(clientId);
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to get client by client ID:', error);
+            return null;
         }
     }
 
     /**
-     * 检查alias是否对应实际的上传目录
-     * @param {string} alias - 客户端别名
-     * @returns {boolean}
+     * 检查客户端是否存在
+     * @param {string} clientId - 客户端ID
+     * @returns {Promise<boolean>} 是否存在
      */
-    hasUploadsDir(alias) {
-        const clientDir = path.join(this.uploadsDir, alias);
-        return fs.existsSync(clientDir) && fs.statSync(clientDir).isDirectory();
-    }
-
-    /**
-     * 规范化客户端标识符
-     * 统一使用alias作为外部API的标识符
-     * @param {string} identifier - 可能是clientId或alias
-     * @returns {string} 规范化的alias
-     */
-    normalizeIdentifier(identifier) {
-        // 如果是clientId，返回对应的alias
-        if (this.clientsMapping[identifier]) {
-            return this.clientsMapping[identifier];
-        }        // 如果是alias，直接返回
-        return identifier;
-    }
-
-    /**
-     * 清理资源（在服务器关闭时调用）
-     */    cleanup() {
+    async hasClient(clientId) {
         try {
-            // 停止文件监听
-            if (fs.existsSync(this.clientsJsonPath)) {
-                fs.unwatchFile(this.clientsJsonPath);
+            const client = await clientService.getClientByIdentifier(clientId);
+            return !!client;
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to check client existence:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 确保上传目录存在
+     * @param {string} clientId - 客户端ID
+     * @returns {Promise<string>} 客户端上传目录路径
+     */
+    async ensureClientUploadDir(clientId) {
+        const fs = require('fs');
+        const path = require('path');
+        
+        try {
+            const config = require('./config');
+            const clientDir = path.join(config.UPLOADS_DIR, clientId);
+            
+            if (!fs.existsSync(clientDir)) {
+                fs.mkdirSync(clientDir, { recursive: true });
+                logWithTime(`[CLIENT-MANAGER] Created upload directory: ${clientDir}`);
             }
-
-            // 清空内存中的映射
-            this.clientsMapping = {};
-
+            
+            return clientDir;
         } catch (error) {
-            errorWithTime('[CLIENT-MANAGER] Error during cleanup:', error);
+            errorWithTime('[CLIENT-MANAGER] Failed to ensure client upload directory:', error);
+            throw error;
         }
     }
+
+    /**
+     * 记录命令执行
+     * @param {string} clientId - 客户端ID
+     * @param {string} command - 命令
+     * @param {string} result - 结果
+     * @param {number} exitCode - 退出码
+     */
+    async logCommand(clientId, command, result, exitCode) {
+        try {
+            await clientService.logCommand(clientId, command, result, exitCode);
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to log command:', error);
+        }
+    }
+
+    /**
+     * 记录截图上传
+     * @param {string} clientId - 客户端ID
+     * @param {string} filename - 文件名
+     * @param {string} filePath - 文件路径
+     * @param {number} fileSize - 文件大小
+     */
+    async logScreenshot(clientId, filename, filePath, fileSize) {
+        try {
+            await clientService.logScreenshot(clientId, filename, filePath, fileSize);
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to log screenshot:', error);
+        }
+    }
+
+    /**
+     * 获取客户端命令历史
+     * @param {string} clientId - 客户端ID
+     * @param {number} limit - 限制条数
+     */
+    async getCommandHistory(clientId, limit = 50) {
+        try {
+            return await clientService.getCommandHistory(clientId, limit);
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to get command history:', error);
+            return [];
+        }
+    }
+
+    /**
+     * 获取客户端截图历史
+     * @param {string} clientId - 客户端ID
+     * @param {number} limit - 限制条数
+     */
+    async getScreenshotHistory(clientId, limit = 20) {
+        try {
+            return await clientService.getScreenshotHistory(clientId, limit);
+        } catch (error) {
+            errorWithTime('[CLIENT-MANAGER] Failed to get screenshot history:', error);
+            return [];
+        }
+    }
+
 }
 
-// 单例模式
-const clientManager = new ClientManager();
-
-module.exports = clientManager;
+// 导出单例实例
+module.exports = new ClientManager();

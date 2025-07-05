@@ -1,9 +1,28 @@
-version: '3.8'
-
 services:
-  screen-uploader-server:
+  postgres:
+    image: postgres:16
+    container_name: c3-postgres
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - c3-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  c3-server:
     build: .
-    container_name: screen-uploader-server
+    container_name: c3-server
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "3000:3000"
     volumes:
@@ -11,19 +30,16 @@ services:
       - ./uploads:/usr/src/app/uploads
       # 持久化日志文件
       - ./logs:/usr/src/app/logs
-      # 持久化配置文件
-      - ./server.config.json:/usr/src/app/server.config.json:ro
       # 持久化环境变量文件
       - ./.env:/usr/src/app/.env:ro
-      # 持久化客户端信息
-      - ./clients.json:/usr/src/app/clients.json
+    env_file:
+      - .env
     environment:
-      - NODE_ENV=production
       - DOCKER_ENV=true
       - TZ=Asia/Shanghai
     restart: unless-stopped
     networks:
-      - screen-uploader-network
+      - c3-network
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => { process.exit(1) })"]
       interval: 30s
@@ -31,6 +47,9 @@ services:
       retries: 3
       start_period: 40s
 
+volumes:
+  postgres_data:
+
 networks:
-  screen-uploader-network:
+  c3-network:
     driver: bridge

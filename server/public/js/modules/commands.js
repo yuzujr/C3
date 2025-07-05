@@ -42,11 +42,11 @@ export async function sendCommand(command, showToastMessage = true) {
 
 /**
  * 加载客户端配置
- * @param {string} clientAlias - 客户端别名
+ * @param {string} clientId - 客户端ID
  */
-export async function loadClientConfig(clientAlias) {
+export async function loadClientConfig(clientId) {
     try {
-        const res = await fetch(`/web/config/${clientAlias}`);
+        const res = await fetch(`/web/config/${clientId}`);
         if (!res.ok) {
             console.warn('获取配置失败');
             console.warn(await res.text());

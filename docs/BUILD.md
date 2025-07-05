@@ -1,6 +1,6 @@
 # C3 Build Instructions
 
-This document provides detailed compilation and deployment instructions for C3.
+This document provides detailed compilation and deployment instructions for C3 client.
 
 ## Prerequisites
 

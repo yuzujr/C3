@@ -236,7 +236,7 @@ function sendCustomCommand(command) {
 /**
  * 显示欢迎信息
  */
-function showWelcomeMessage() {
+async function showWelcomeMessage() {
     if (!terminal) return;
 
     // 防止重复显示欢迎信息
@@ -245,8 +245,19 @@ function showWelcomeMessage() {
         return;
     }
 
+    // 获取客户端别名用于显示
+    const { getClientAlias } = await import('./state.js');
+    const clientAlias = selectedClient ? getClientAlias(selectedClient) : 'No client selected';
+
+    // 计算动态填充空格，确保边框对齐
+    const boxWidth = 41; // 总宽度
+    const connectedToText = 'Connected to: ';
+    const usedWidth = connectedToText.length + clientAlias.length + 2; // 2 for │ characters
+    const paddingSpaces = Math.max(0, boxWidth - usedWidth);
+    const padding = ' '.repeat(paddingSpaces);
+
     const welcomeMsg = `\r\n\x1b[32m┌─ PTY Terminal ─────────────────────────┐\x1b[0m\r\n`;
-    const welcomeMsg2 = `\x1b[32m│\x1b[0m Connected to: \x1b[36m${selectedClient || 'No client selected'}\x1b[0m\x1b[32m       │\x1b[0m\r\n`;
+    const welcomeMsg2 = `\x1b[32m│\x1b[0m ${connectedToText}\x1b[36m${clientAlias}\x1b[0m${padding}\x1b[32m│\x1b[0m\r\n`;
     const welcomeMsg3 = `\x1b[32m│\x1b[0m Full PTY support with xterm.js         \x1b[32m│\x1b[0m\r\n`;
     const welcomeMsg4 = `\x1b[32m└────────────────────────────────────────┘\x1b[0m\r\n\r\n`;
 
@@ -257,11 +268,11 @@ function showWelcomeMessage() {
 /**
  * 强制显示欢迎信息（忽略防重复标志）
  */
-function forceShowWelcomeMessage() {
+async function forceShowWelcomeMessage() {
     if (!terminal) return;
 
     welcomeMessageShown = false; // 重置标志
-    showWelcomeMessage();
+    await showWelcomeMessage();
 }
 
 /**
@@ -313,15 +324,18 @@ async function killSession() {
 
     if (!confirm('确定要强制终止当前会话吗？这将关闭所有正在运行的程序。')) {
         return;
-    } try {
+    }
+
+    try {
         await sendCommand({
             type: 'force_kill_session',
             data: { session_id: selectedClient }
         }, false);
 
-        // 终止会话后清屏
+        // 终止会话后清屏并显示连接信息
         if (terminal) {
             terminal.clear();
+            forceShowWelcomeMessage();
         }
     } catch (error) {
         console.error('强制终止会话失败:', error);
@@ -332,7 +346,7 @@ async function killSession() {
 /**
  * 更新终端状态
  */
-export function updatePtyTerminalState(enabled) {
+export async function updatePtyTerminalState(enabled) {
     const buttons = ['cmdNewTerminal', 'executeCustom', 'cmdKillSession'];
     const customInput = document.getElementById('customCommand');
 
@@ -341,7 +355,9 @@ export function updatePtyTerminalState(enabled) {
         if (button) {
             button.disabled = !enabled;
         }
-    }); if (customInput) {
+    });
+
+    if (customInput) {
         customInput.disabled = !enabled;
     }
 
@@ -355,13 +371,13 @@ export function updatePtyTerminalState(enabled) {
             if (isEmpty) {
                 // 清屏后显示欢迎信息
                 terminal.clear();
-                showWelcomeMessage();
+                await showWelcomeMessage();
             }
         } catch (error) {
             console.debug('Terminal buffer check failed, showing welcome message:', error);
             // 如果检查失败，默认显示欢迎信息
             terminal.clear();
-            showWelcomeMessage();
+            await showWelcomeMessage();
         }
         // 让客户端自己显示提示符
     }
@@ -370,12 +386,12 @@ export function updatePtyTerminalState(enabled) {
 /**
  * 重置终端（切换客户端时调用）
  */
-export function resetPtyTerminal() {
+export async function resetPtyTerminal() {
     if (terminal) {
         terminal.clear();
         welcomeMessageShown = false; // 重置标志，允许重新显示欢迎信息
         if (selectedClient) {
-            showWelcomeMessage();
+            await showWelcomeMessage();
             // 让客户端自己显示提示符
         }
     } else {
