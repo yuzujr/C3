@@ -1,7 +1,7 @@
 // 高级PTY终端模块，基于xterm.js，利用后端PTY能力，支持完整的终端体验
 
 import { selectedClient } from './state.js';
-import { showToast } from '../../toast/toast.js';
+import { showWarning, showError } from '../../toast/toast.js';
 import { sendCommand } from './commands.js';
 
 // xterm.js 相关
@@ -157,7 +157,7 @@ async function initXtermTerminal() {
  */
 function sendPtyInput(input) {
   if (!selectedClient) {
-    showToast('请先选择一个客户端');
+    showWarning('请先选择一个客户端');
     return;
   }
 
@@ -175,7 +175,7 @@ function sendPtyInput(input) {
  */
 function sendNewTerminal() {
   if (!selectedClient) {
-    showToast('请先选择一个客户端');
+    showWarning('请先选择一个客户端');
     return;
   }
 
@@ -227,7 +227,7 @@ function bindTraditionalButtons() {
  */
 function sendCustomCommand(command) {
   if (!selectedClient) {
-    showToast('请先选择一个客户端');
+    showWarning('请先选择一个客户端');
     return;
   }
 
@@ -324,7 +324,7 @@ export function handlePtyShellOutput(data) {
  */
 async function killSession() {
   if (!selectedClient) {
-    showToast('请先选择一个客户端');
+    showWarning('请先选择一个客户端');
     return;
   }
 
@@ -350,7 +350,7 @@ async function killSession() {
     }
   } catch (error) {
     console.error('强制终止会话失败:', error);
-    showToast('强制终止会话失败');
+    showError('强制终止会话失败');
     // 出错时也要清除终止状态标志
     sessionTerminating = false;
   }

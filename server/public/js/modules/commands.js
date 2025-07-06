@@ -2,7 +2,7 @@
 // 处理向客户端发送命令和配置管理
 
 import { selectedClient } from './state.js';
-import { showToast } from '../../toast/toast.js';
+import { showSuccess, showError, showWarning } from '../../toast/toast.js';
 
 /**
  * 向客户端发送命令
@@ -13,7 +13,7 @@ import { showToast } from '../../toast/toast.js';
 export async function sendCommand(command, showToastMessage = true) {
   if (!selectedClient) {
     if (showToastMessage) {
-      showToast('请先选择客户端');
+      showWarning('请先选择客户端');
     }
     return null;
   }
@@ -28,13 +28,17 @@ export async function sendCommand(command, showToastMessage = true) {
     const result = await res.json();
 
     if (showToastMessage) {
-      showToast(result.success ? '命令发送成功' : `命令发送失败: ${result.message}`);
+      if (result.success) {
+        showSuccess('命令发送成功');
+      } else {
+        showError(`命令发送失败: ${result.message}`);
+      }
     }
 
     return result;
   } catch (error) {
     if (showToastMessage) {
-      showToast(`发送命令失败: ${error.message}`);
+      showError(`发送命令失败: ${error.message}`);
     }
     return null;
   }
@@ -72,7 +76,7 @@ export async function loadClientConfig(clientId) {
  */
 export async function updateClientConfig() {
   if (!selectedClient) {
-    showToast('请先选择客户端');
+    showWarning('请先选择客户端');
     return;
   }
 
@@ -85,19 +89,19 @@ export async function updateClientConfig() {
 
   // 验证必填字段
   if (!hostname || isNaN(port) || isNaN(intervalSeconds) || isNaN(maxRetries) || isNaN(retryDelayMs)) {
-    showToast('请填写正确的配置参数');
+    showError('请填写正确的配置参数');
     return;
   }
 
   // 验证端口范围
   if (port < 1 || port > 65535) {
-    showToast('端口号必须在1-65535之间');
+    showError('端口号必须在1-65535之间');
     return;
   }
 
   // 验证间隔时间
   if (intervalSeconds < 1) {
-    showToast('截图间隔必须大于0秒');
+    showError('截图间隔必须大于0秒');
     return;
   }
 
@@ -125,7 +129,7 @@ export async function updateClientConfig() {
  */
 export async function sendOfflineCommand() {
   if (!selectedClient) {
-    showToast('请先选择客户端');
+    showWarning('请先选择客户端');
     return false;
   }
 
@@ -139,14 +143,14 @@ export async function sendOfflineCommand() {
     }, false);
 
     if (result && result.success) {
-      showToast('下线命令已发送，客户端将安全退出');
+      showSuccess('下线命令已发送，客户端将安全退出');
       return true;
     } else {
-      showToast('下线命令发送失败');
+      showError('下线命令发送失败');
       return false;
     }
   } catch (error) {
-    showToast(`发送下线命令失败: ${error.message}`);
+    showError(`发送下线命令失败: ${error.message}`);
     return false;
   }
 }
