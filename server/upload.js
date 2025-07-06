@@ -5,8 +5,8 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { logWithTime, errorWithTime } = require('./logger');
-const clientManager = require('./client-manager');
+const { logWithTime } = require('./logger');
+const clientService = require('./services/client-service');
 
 /**
  * 创建上传目录（如果不存在）
@@ -29,7 +29,7 @@ const storage = multer.diskStorage({
                 return cb(new Error("Missing or invalid client_id"));
             }
             
-            const alias = await clientManager.getAlias(clientId);
+            const alias = await clientService.getAlias(clientId);
             let folderName = clientId; // Use client_id for directory structure, not alias
 
             // 时间子目录
@@ -50,9 +50,17 @@ const storage = multer.diskStorage({
     },
 
     filename: (req, file, cb) => {
-        // 生成安全的文件名，移除特殊字符
-        const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        cb(null, safeName);
+        // 生成唯一的文件名，避免命名冲突
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext);
+        const safeName = baseName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        
+        // 添加毫秒时间戳和随机数确保唯一性
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const uniqueName = `${safeName}_${timestamp}_${random}${ext}`;
+        
+        cb(null, uniqueName);
     }
 });
 

@@ -1,5 +1,5 @@
 // services/cache-service.js
-// 内存缓存服务，用于减少数据库查询
+// 简化的内存缓存服务
 
 const { logWithTime } = require('../logger');
 
@@ -7,6 +7,7 @@ class CacheService {
     constructor() {
         this.cache = new Map();
         this.cacheExpiry = new Map();
+        this.startCleanupTimer();
     }
 
     /**
@@ -18,23 +19,16 @@ class CacheService {
     set(key, value, ttl = 30000) {
         this.cache.set(key, value);
         this.cacheExpiry.set(key, Date.now() + ttl);
-        
-        // 设置定时清理
-        setTimeout(() => {
-            this.delete(key);
-        }, ttl);
     }
 
     /**
      * 获取缓存
      * @param {string} key - 缓存键
-     * @returns {*} 缓存值或undefined
      */
     get(key) {
         const expiry = this.cacheExpiry.get(key);
         
         if (!expiry || Date.now() > expiry) {
-            // 缓存已过期
             this.delete(key);
             return undefined;
         }
@@ -60,13 +54,10 @@ class CacheService {
     }
 
     /**
-     * 获取缓存统计信息
+     * 获取缓存大小
      */
-    getStats() {
-        return {
-            size: this.cache.size,
-            keys: Array.from(this.cache.keys())
-        };
+    get size() {
+        return this.cache.size;
     }
 
     /**
@@ -80,15 +71,19 @@ class CacheService {
             }
         }
     }
+
+    /**
+     * 启动定期清理任务
+     */
+    startCleanupTimer() {
+        // 每分钟清理一次过期缓存
+        setInterval(() => {
+            this.cleanExpired();
+            if (this.cache.size > 0) {
+                logWithTime(`[CACHE] Cleaned expired entries. Current size: ${this.cache.size}`);
+            }
+        }, 60000);
+    }
 }
 
-// 创建全局缓存实例
-const cacheService = new CacheService();
-
-// 每分钟清理一次过期缓存
-setInterval(() => {
-    cacheService.cleanExpired();
-    logWithTime(`[CACHE] Cleaned expired cache entries. Current size: ${cacheService.cache.size}`);
-}, 60000);
-
-module.exports = cacheService;
+module.exports = new CacheService();

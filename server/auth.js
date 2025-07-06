@@ -147,7 +147,7 @@ async function handleLogin(req, res) {
       maxAge: 24 * 60 * 60 * 1000 // 24小时
     });
 
-    logWithTime(`[WEB] user: ${username} ip: ${req.ip} login successfully`);
+    logWithTime(`[AUTH] Login: ${username} from ${req.ip}`);
     res.json({ success: true, message: 'Login successful' });
   } catch (error) {
     errorWithTime('[AUTH] Login handler error:', error);
@@ -162,9 +162,17 @@ async function handleLogin(req, res) {
  */
 async function handleLogout(req, res) {
   const sessionId = req.cookies?.sessionId;
+  let username = 'unknown';
 
   if (sessionId) {
     try {
+      // 先获取会话信息以获得用户名
+      const session = await validateSession(sessionId);
+      if (session && session.user) {
+        username = session.user.username;
+      }
+      
+      // 然后注销会话
       await authService.logout(sessionId);
     } catch (error) {
       errorWithTime('[AUTH] Session destruction failed:', error);
@@ -173,7 +181,7 @@ async function handleLogout(req, res) {
 
   res.clearCookie('sessionId');
 
-  logWithTime(`[WEB] user logout successfully`);
+  logWithTime(`[AUTH] Logout: ${username} from ${req.ip}`);
   res.json({ success: true, message: 'Logout successful' });
 }
 

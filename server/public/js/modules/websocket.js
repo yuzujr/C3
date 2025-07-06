@@ -60,6 +60,9 @@ function handleWebSocketMessage(data) {
     } else if (data.type === 'alias_updated') {
         // 处理别名更新
         handleAliasUpdated(data.client_id, data.oldAlias, data.newAlias);
+    } else if (data.type === 'client_deleted') {
+        // 处理客户端删除事件
+        handleClientDeleted(data.client_id);
     }
 }
 
@@ -104,4 +107,46 @@ async function handleAliasUpdated(clientId, oldAlias, newAlias) {
             updateClientManagementList(updatedClients);
         });
     }
+}
+
+/**
+ * 处理客户端删除事件
+ * @param {string} clientId - 被删除的客户端ID
+ */
+async function handleClientDeleted(clientId) {
+    console.log(`客户端已删除: ${clientId}`);
+    
+    // 导入需要的模块
+    const { selectedClient, cachedClientList, setCachedClientList, setSelectedClient } = await import('./state.js');
+    const { fetchClients } = await import('./clients.js');
+    
+    // 从缓存中移除该客户端
+    const updatedClients = cachedClientList.filter(client => client.client_id !== clientId);
+    setCachedClientList(updatedClients);
+    
+    // 从DOM中移除客户端元素
+    const clientElement = document.querySelector(`[data-client-id="${clientId}"]`);
+    if (clientElement) {
+        clientElement.remove();
+    }
+    
+    // 如果删除的是当前选中的客户端，清除选中状态
+    if (selectedClient === clientId) {
+        setSelectedClient(null);
+        // 清除右侧面板
+        const rightPanel = document.querySelector('.right-panel');
+        if (rightPanel) {
+            rightPanel.innerHTML = '<div class="no-client-selected">请选择一个客户端</div>';
+        }
+    }
+    
+    // 显示删除成功的提示
+    if (window.showToast) {
+        window.showToast('客户端已删除', 'success');
+    }
+    
+    // 立即刷新客户端列表以确保同步
+    setTimeout(() => {
+        fetchClients();
+    }, 100);
 }

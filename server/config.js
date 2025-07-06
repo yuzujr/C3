@@ -2,7 +2,6 @@
 // 统一使用环境变量管理所有配置项
 
 const path = require('path');
-const fs = require('fs');
 const crypto = require('crypto');
 
 // 加载环境变量 (必须在最开始)
@@ -57,39 +56,23 @@ const config = {
 function validateConfig() {
     const warnings = [];
 
-    // 检查密码安全性
+    // 安全检查（只保留最重要的）
     if (config.AUTH_PASSWORD === 'CHANGE_ME_PLEASE' || config.AUTH_PASSWORD === 'admin123') {
-        warnings.push('[CONFIG] ⚠️  Using default password! Please change AUTH_PASSWORD for security.');
+        warnings.push('⚠️  Using default password! Please change AUTH_PASSWORD for security.');
     }
 
     if (config.AUTH_PASSWORD && config.AUTH_PASSWORD.length < 8) {
-        warnings.push('[CONFIG] ⚠️  Password is too short! Recommend at least 8 characters.');
-    }
-
-    // 检查会话密钥
-    if (config.SESSION_SECRET.length < 32) {
-        warnings.push('[CONFIG] ⚠️  SESSION_SECRET is too short! Should be at least 32 characters.');
-    }
-
-    // 检查生产环境配置
-    // 在Docker环境中，绑定0.0.0.0是正常的，因为有容器网络隔离
-    const isDockerEnv = process.env.DOCKER_ENV === 'true' || fs.existsSync('/.dockerenv');
-    if (config.HOST === '0.0.0.0' && process.env.NODE_ENV === 'production' && !isDockerEnv) {
-        warnings.push('[CONFIG] ⚠️  Binding to 0.0.0.0 in production. Consider restricting to specific IP.');
+        warnings.push('⚠️  Password is too short! Recommend at least 8 characters.');
     }
 
     // 显示警告
     if (warnings.length > 0) {
         logWithTime('[CONFIG] Security Warnings:');
-        warnings.forEach(warning => logWithTime(`${warning}`));
+        warnings.forEach(warning => logWithTime(`[CONFIG] ${warning}`));
     }
 
-    // 显示配置摘要
-    logWithTime('[CONFIG] Configuration loaded:');
-    logWithTime(`[CONFIG] - Server: ${config.HOST}:${config.PORT}`);
-    logWithTime(`[CONFIG] - Auth: ${config.AUTH_ENABLED ? 'enabled' : 'disabled'}`);
-    logWithTime(`[CONFIG] - Database: ${config.DB_HOST}:${config.DB_PORT}/${config.DB_NAME}`);
-    logWithTime(`[CONFIG] - Upload dir: ${config.UPLOADS_DIR}`);
+    // 简化配置摘要
+    logWithTime(`[CONFIG] Server: ${config.HOST}:${config.PORT} | Auth: ${config.AUTH_ENABLED ? 'ON' : 'OFF'} | DB: ${config.DB_HOST}:${config.DB_PORT}/${config.DB_NAME}`);
 }
 
 // 执行配置验证

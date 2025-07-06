@@ -1,20 +1,18 @@
 // database/models/index.js
-// 数据库模型入口文件
+// 简化的数据库模型
 
 const { Sequelize, DataTypes } = require('sequelize');
-
-// PostgreSQL 数据库配置
-const isDev = process.env.NODE_ENV !== 'production';
+const config = require('../../config');
 
 const sequelize = new Sequelize(
-    process.env.DB_NAME || 'c3_db',
-    process.env.DB_USER || 'c3user',
-    process.env.DB_PASSWORD || 'c3password',
+    config.DB_NAME,
+    config.DB_USER,
+    config.DB_PASSWORD,
     {
-        host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 5432,
+        host: config.DB_HOST,
+        port: config.DB_PORT,
         dialect: 'postgres',
-        logging: false, // 彻底关闭SQL日志
+        logging: config.DB_LOGGING,
         define: {
             timestamps: true,
             createdAt: 'created_at',

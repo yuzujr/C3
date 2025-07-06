@@ -4,8 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('../config');
-const { logWithTime, errorWithTime, getBeijingTime } = require('../logger');
-const clientManager = require('../client-manager');
+const { errorWithTime, getBeijingTime } = require('../logger');
 
 /**
  * 获取客户端配置

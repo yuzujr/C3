@@ -1,5 +1,5 @@
 // services/auth-service.js
-// 新的认证服务 - 基于数据库的用户认证
+// 简化的认证服务
 
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
@@ -9,38 +9,25 @@ const cacheService = require('./cache-service');
 
 class AuthService {
     constructor() {
-        this.sessionExpireHours = 24; // 24小时过期
-        this.cleanupInterval = 60 * 60 * 1000; // 1小时清理一次过期会话
-        this.sessionCacheTime = 5 * 60 * 1000; // 会话缓存5分钟
-        this.CACHE_KEYS = {
-            SESSION: 'session:',
-            USER: 'user:'
-        };
+        this.sessionExpireHours = 24;
+        this.sessionCacheTime = 5 * 60 * 1000; // 5分钟
         this.startCleanupTimer();
     }
 
     /**
-     * 用户登录验证
+     * 用户登录
      * @param {string} username - 用户名
      * @param {string} password - 密码
-     * @returns {object|null} 登录结果
      */
     async login(username, password) {
         try {
-            // 查找用户
             const user = await User.findOne({ where: { username } });
-            if (!user) {
-                return { success: false, message: '用户名或密码错误' };
-            }
-
-            // 验证密码
-            const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-            if (!isPasswordValid) {
+            if (!user || !await bcrypt.compare(password, user.password_hash)) {
                 return { success: false, message: '用户名或密码错误' };
             }
 
             // 创建会话
-            const sessionId = this.generateSessionId();
+            const sessionId = crypto.randomBytes(32).toString('hex');
             const expiresAt = new Date(Date.now() + (this.sessionExpireHours * 60 * 60 * 1000));
 
             await UserSession.create({
@@ -49,16 +36,20 @@ class AuthService {
                 expires_at: expiresAt
             });
 
-
-            return {
-                success: true,
-                sessionId,
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    role: user.role
-                }
+            const userInfo = {
+                id: user.id,
+                username: user.username,
+                role: user.role
             };
+
+            // 缓存会话信息
+            cacheService.set(`session:${sessionId}`, {
+                sessionId,
+                user: userInfo,
+                expires_at: expiresAt
+            }, this.sessionCacheTime);
+
+            return { success: true, sessionId, user: userInfo };
         } catch (error) {
             errorWithTime('[AUTH-SERVICE] Login failed:', error);
             return { success: false, message: '登录失败' };
@@ -68,62 +59,43 @@ class AuthService {
     /**
      * 验证会话
      * @param {string} sessionId - 会话ID
-     * @returns {object|null} 验证结果
      */
     async validateSession(sessionId) {
         try {
-            if (!sessionId) {
-                return null;
+            if (!sessionId) return null;
+
+            // 检查缓存
+            const cached = cacheService.get(`session:${sessionId}`);
+            if (cached && new Date(cached.expires_at) > new Date()) {
+                return cached;
             }
 
-            // 先从缓存中获取会话
-            const cacheKey = this.CACHE_KEYS.SESSION + sessionId;
-            const cachedSession = cacheService.get(cacheKey);
-            if (cachedSession) {
-                // 检查缓存的会话是否过期
-                if (new Date(cachedSession.expires_at) > new Date()) {
-                    return cachedSession;
-                }
-                // 缓存过期，删除缓存
-                cacheService.delete(cacheKey);
-            }
-
+            // 查询数据库
             const session = await UserSession.findOne({
                 where: { session_id: sessionId },
                 include: [{ model: User }]
             });
 
-            if (!session) {
+            if (!session || new Date(session.expires_at) <= new Date()) {
+                if (session) await session.destroy();
                 return null;
             }
 
-            // 检查会话是否过期
-            if (session.expires_at < new Date()) {
-                await session.destroy();
-                return null;
-            }
-
-            // 只有距离上次更新超过1分钟才更新数据库，减少写入频率
-            const now = new Date();
-            const lastAccess = new Date(session.last_access);
-            const timeDiff = now - lastAccess;
-            
-            if (timeDiff > 60000) { // 1分钟
-                await session.update({ last_access: now });
-            }
+            // 更新最后访问时间
+            await session.update({ last_access: new Date() });
 
             const result = {
+                sessionId: session.session_id,
                 user: {
                     id: session.User.id,
                     username: session.User.username,
                     role: session.User.role
                 },
-                sessionId: session.session_id,
                 expires_at: session.expires_at
             };
 
-            // 缓存会话信息（5分钟）
-            cacheService.set(cacheKey, result, this.sessionCacheTime);
+            // 缓存结果
+            cacheService.set(`session:${sessionId}`, result, this.sessionCacheTime);
 
             return result;
         } catch (error) {
@@ -133,23 +105,53 @@ class AuthService {
     }
 
     /**
-     * 用户登出
+     * 注销会话
      * @param {string} sessionId - 会话ID
      */
     async logout(sessionId) {
         try {
-            if (sessionId) {
-                // 清除缓存
-                cacheService.delete(this.CACHE_KEYS.SESSION + sessionId);
-                
-                // 删除数据库中的会话
-                await UserSession.destroy({
-                    where: { session_id: sessionId }
-                });
-            }
+            if (!sessionId) return;
+
+            // 删除数据库中的会话
+            await UserSession.destroy({ where: { session_id: sessionId } });
+            
+            // 删除缓存
+            cacheService.delete(`session:${sessionId}`);
         } catch (error) {
             errorWithTime('[AUTH-SERVICE] Logout failed:', error);
         }
+    }
+
+    /**
+     * 清理过期会话
+     */
+    async cleanupExpiredSessions() {
+        try {
+            const { Op } = require('sequelize');
+            const deleted = await UserSession.destroy({
+                where: {
+                    expires_at: {
+                        [Op.lt]: new Date()
+                    }
+                }
+            });
+            
+            if (deleted > 0) {
+                logWithTime(`[AUTH-SERVICE] Cleaned up ${deleted} expired sessions`);
+            }
+        } catch (error) {
+            errorWithTime('[AUTH-SERVICE] Failed to cleanup expired sessions:', error);
+        }
+    }
+
+    /**
+     * 启动定期清理任务
+     */
+    startCleanupTimer() {
+        // 每小时清理一次过期会话
+        setInterval(() => {
+            this.cleanupExpiredSessions();
+        }, 60 * 60 * 1000);
     }
 
     /**
@@ -249,37 +251,6 @@ class AuthService {
             errorWithTime('[AUTH-SERVICE] Failed to get all users:', error);
             return [];
         }
-    }
-
-    /**
-     * 生成会话ID
-     * @returns {string} 会话ID
-     */
-    generateSessionId() {
-        return crypto.randomBytes(32).toString('hex');
-    }
-
-    /**
-     * 启动清理过期会话的定时器
-     */
-    startCleanupTimer() {
-        setInterval(async () => {
-            try {
-                const deletedCount = await UserSession.destroy({
-                    where: {
-                        expires_at: {
-                            [require('sequelize').Op.lt]: new Date()
-                        }
-                    }
-                });
-
-                if (deletedCount > 0) {
-                    logWithTime(`[AUTH-SERVICE] Cleaned up ${deletedCount} expired sessions`);
-                }
-            } catch (error) {
-                errorWithTime('[AUTH-SERVICE] Failed to cleanup expired sessions:', error);
-            }
-        }, this.cleanupInterval);
     }
 
     /**

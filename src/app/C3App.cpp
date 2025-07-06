@@ -64,21 +64,17 @@ int C3App::run() {
 }
 
 void C3App::stop() {
-    Logger::info("Stopping C3...");
     m_running = false;
 
-    // 集中处理所有清理工作
-    Logger::info("Performing cleanup operations...");
-
     // 关闭所有PTY会话
-    Logger::info("Closing all PTY sessions...");
+    Logger::info("Closing PTY sessions...");
     PtyManager::getInstance().shutdownAllPtySessions();
 
     // 关闭 WebSocket 客户端
     Logger::info("Closing WebSocket client...");
     m_wsClient.close();
 
-    Logger::info("All cleanup operations completed");
+    Logger::info("C3 stopped successfully");
 }
 
 void C3App::startWebSocketCommandListener() {

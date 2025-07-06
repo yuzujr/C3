@@ -488,7 +488,6 @@ void PtyManager::Impl::shutdownAllPtySessions() {
 
     // 清空回调
     output_callback = nullptr;
-    Logger::info("All PTY sessions shut down");
 }
 
 // 重置PTY管理器状态（测试时使用）

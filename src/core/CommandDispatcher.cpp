@@ -1,5 +1,6 @@
 #include "core/CommandDispatcher.h"
 
+#include <csignal>
 #include <format>
 #include <memory>
 #include <string>
@@ -180,6 +181,26 @@ public:
     }
 };
 
+// 下线命令
+class OfflineCommand : public ICommand {
+public:
+    CommandDispatcher::CommandResult execute(
+        const nlohmann::json& message) override {
+        // 检查是否有下线原因
+        std::string reason = "Server requested offline";
+        if (message.contains("data") && message["data"].contains("reason")) {
+            reason = message["data"]["reason"];
+        }
+
+        Logger::info(std::format("Offline reason: {}", reason));
+
+        // 发送SIGTERM信号给主线程
+        raise(SIGTERM);
+
+        return {true, "Offline command processed, shutting down"};
+    }
+};
+
 // ===========================================
 // CommandDispatcher 实现
 // ===========================================
@@ -208,7 +229,11 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& message) {
     }
 
     std::string commandType = message["type"];
-    Logger::info(std::format("[command] {}", commandType));
+
+    // 频繁的 PTY 输入命令不需要记录日志
+    if (commandType != "pty_input" && commandType != "pty_resize") {
+        Logger::info(std::format("[command] {}", commandType));
+    }
 
     // 执行命令
     auto result = executeCommand(commandType, message);
@@ -217,8 +242,11 @@ void CommandDispatcher::dispatchCommands(const nlohmann::json& message) {
         Logger::warn(std::format("Command '{}' failed: {}", commandType,
                                  result.message));
     } else {
-        Logger::info(std::format("Command '{}' executed successfully: {}",
-                                 commandType, result.message));
+        // 频繁的 PTY 输入命令不需要记录日志
+        if (commandType != "pty_input" && commandType != "pty_resize") {
+            Logger::info(std::format("Command '{}' executed successfully: {}",
+                                     commandType, result.message));
+        }
     }
 }
 
@@ -236,8 +264,7 @@ void CommandDispatcher::registerCommandHandlers() {
     m_commandHandlers["pty_resize"] = std::make_unique<PtyResizeCommand>();
     m_commandHandlers["force_kill_session"] =
         std::make_unique<ForceKillSessionCommand>();
-    m_commandHandlers["create_pty_session"] =
-        std::make_unique<CreatePtySessionCommand>();
+    m_commandHandlers["offline"] = std::make_unique<OfflineCommand>();
 
     // take_screenshot 命令需要在 setScreenshotCallback 中设置
 }

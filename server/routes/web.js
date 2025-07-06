@@ -2,14 +2,11 @@
 // 处理所有面向Web界面的API路由
 
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const config = require('../config');
 const { logWithTime, errorWithTime } = require('../logger');
 const { getClientScreenshots, deleteScreenshotsByTime, deleteAllScreenshots } = require('../services/screenshot-service');
 const { getClientConfig } = require('../services/command-service');
 const { sendToClient, isClientOnline } = require('../websocket');
-const clientManager = require('../client-manager');
+const clientService = require('../services/client-service');
 
 const router = express.Router();
 
@@ -20,7 +17,7 @@ const router = express.Router();
 router.get('/clients', async (req, res) => {
     try {
         const { getOnlineClients } = require('../websocket');
-        const allClients = await clientManager.getAllClients();
+        const allClients = await clientService.getAllClients();
         const onlineClientIds = getOnlineClients(); // 现在返回 client_id 列表
 
         // 构建客户端列表 - 包含client_id和alias
@@ -184,10 +181,10 @@ router.put('/clients/:client_id/alias', async (req, res) => {
         }
 
         // 获取当前别名用于广播事件
-        const currentAlias = await clientManager.getAlias(clientId);
+        const currentAlias = await clientService.getAlias(clientId);
 
         // 直接使用 client_id 更新别名
-        const success = await clientManager.updateClientAlias(clientId, newAlias);
+        const success = await clientService.updateClientAlias(clientId, newAlias);
 
         if (success) {
             // 通过WebSocket广播别名更新事件
@@ -232,10 +229,9 @@ router.delete('/clients/:client_id', async (req, res) => {
     try {
         const clientId = req.params.client_id;
 
-        const result = await clientManager.deleteClientByClientId(clientId);
+        const result = await clientService.deleteClient(clientId);
 
         if (result.success) {
-            logWithTime(`[WEB] Client deleted: ${clientId}`);
             res.json(result);
         } else {
             res.status(400).json(result);
@@ -296,7 +292,11 @@ router.post('/command/:client_id', async (req, res) => {
 
         const sent = sendToClient(clientId, message); // 直接使用 client_id
         if (sent) {
-            logWithTime(`[WEB] Command sent to "${clientId}": ${type}`);
+            // 抑制高频无用日志输出
+            const noisyCommands = ['pty_input', 'pty_resize'];
+            if (!noisyCommands.includes(type)) {
+                logWithTime(`[WEB] Command sent to "${clientId}": ${type}`);
+            }
             res.json({
                 success: true,
                 message: `Command ${type} sent to client`

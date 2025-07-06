@@ -4,7 +4,7 @@
 const express = require('express');
 const { upload, handleUploadError } = require('../upload');
 const { logWithTime, errorWithTime } = require('../logger');
-const clientManager = require('../client-manager');
+const clientService = require('../services/client-service');
 const { processNewScreenshot } = require('../services/screenshot-service');
 const { handleConfigUpdate } = require('../services/command-service');
 const { broadcastToWebClients } = require('../websocket');
@@ -27,13 +27,13 @@ router.post('/upload_screenshot', upload.single('file'), async (req, res) => {
             return res.status(400).send('No file received.');
         }
 
-        const alias = await clientManager.getAlias(clientId);
+        const alias = await clientService.getAlias(clientId);
 
         // 处理新截图
         const screenshotUrl = processNewScreenshot(req.file, clientId, alias);
 
         // 记录截图到数据库
-        await clientManager.logScreenshot(
+        await clientService.logScreenshot(
             clientId, 
             req.file.filename, 
             req.file.path, 
@@ -68,8 +68,8 @@ router.post('/upload_client_config', async (req, res) => {
         }
 
         // 更新客户端信息到数据库，保持现有别名
-        const existingAlias = await clientManager.getAlias(clientId);
-        await clientManager.setClient(clientId, existingAlias || clientId, {
+        const existingAlias = await clientService.getAlias(clientId);
+        await clientService.setClient(clientId, existingAlias || clientId, {
             hostname: configData.hostname,
             ip_address: req.ip,
             platform: configData.platform || 'unknown'
@@ -99,7 +99,7 @@ router.get('/heartbeat', async (req, res) => {
         
         // 更新客户端最后活跃时间
         try {
-            await clientManager.setClientOnlineStatus(clientId, true);
+            await clientService.setClientOnline(clientId);
         } catch (error) {
             errorWithTime('[HEARTBEAT] Failed to update client status:', error);
         }
