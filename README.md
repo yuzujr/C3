@@ -6,16 +6,16 @@ C3 (Command-Control-C++) is a minimal command and control framework for remote s
 
 ## Features
 
-- Remote command execution via WebSocket (xterm.js + native pty)
+- Reverse shell on WebSocket (xterm.js + native pty)
 - Automated screenshot capture
-- Web-based management interface
+- Web-based muti-client management interface
 - Cross-platform client support
 
 ## Prerequisites
 
 - **Server**: Node.js, PostgreSQL
 - **Client**: CMake 3.16+, C++20 compiler
-- **Platform**: Linux, Windows
+- **Platform**: Unix, Windows
 
 ## Quick Start
 
