@@ -3,6 +3,8 @@
 #include <chrono>
 #include <thread>
 
+#include "core/URLBuilder.h"
+
 C3App::C3App()
     : m_running(true),
       m_config(),
@@ -84,8 +86,9 @@ void C3App::startWebSocketCommandListener() {
     });
 
     // 启动 WebSocket 客户端
-    m_wsClient.connect(getWebSocketUrl(), m_config.client_id,
-                       m_config.skip_ssl_verification);
+    m_wsClient.connectOrReconnect(URLBuilder::buildWebSocketUrl(m_config),
+                                  m_config.client_id,
+                                  m_config.skip_ssl_verification);
 }
 
 void C3App::mainLoop() {
@@ -146,41 +149,32 @@ void C3App::captureAndUpload() {
     uploadImageWithRetry(frame);
 }
 
-template <typename UploadFunc>
-void C3App::performUploadWithRetry(const std::string& endpoint,
-                                   const std::string& description,
-                                   UploadFunc uploadFunc) {
-    std::string upload_url =
-        std::format("{}/client/{}?client_id={}", getHTTPUrl(), endpoint,
-                    m_config.client_id);
-    Logger::info(std::format("Uploading {} to: {}", description, upload_url));
+void C3App::uploadImageWithRetry(const std::vector<uint8_t>& frame) {
+    std::string endPoint = std::format("/client/upload_screenshot?client_id={}",
+                                       m_config.client_id);
+    std::string uploadUrl = URLBuilder::buildAPIUrl(m_config, endPoint);
+    Logger::info(std::format("Uploading to: {}", uploadUrl));
 
-    bool success = Uploader::uploadWithRetry(
+    Uploader::uploadWithRetry(
         [&]() {
-            return uploadFunc(upload_url);
+            return Uploader::uploadImageWithSSL(frame, uploadUrl,
+                                                m_config.skip_ssl_verification);
         },
         m_config.max_retries, m_config.retry_delay_ms);
-
-    if (!success) {
-        Logger::error(std::format("{} upload failed after {} attempts.",
-                                  description, m_config.max_retries));
-    }
-}
-
-void C3App::uploadImageWithRetry(const std::vector<uint8_t>& frame) {
-    performUploadWithRetry("upload_screenshot", "screenshot",
-                           [&](const std::string& url) {
-                               return Uploader::uploadImageWithSSL(
-                                   frame, url, m_config.skip_ssl_verification);
-                           });
 }
 
 void C3App::uploadConfigWithRetry() {
-    performUploadWithRetry(
-        "upload_client_config", "config", [&](const std::string& url) {
+    std::string endPoint = std::format(
+        "/client/upload_client_config?client_id={}", m_config.client_id);
+    std::string uploadUrl = URLBuilder::buildAPIUrl(m_config, endPoint);
+    Logger::info(std::format("Uploading to: {}", uploadUrl));
+
+    Uploader::uploadWithRetry(
+        [&]() {
             return Uploader::uploadConfigWithSSL(
-                m_config.toJson(), url, m_config.skip_ssl_verification);
-        });
+                m_config.toJson(), uploadUrl, m_config.skip_ssl_verification);
+        },
+        m_config.max_retries, m_config.retry_delay_ms);
 }
 
 void C3App::applyConfigSettings() {
@@ -196,27 +190,8 @@ void C3App::applyConfigSettings() {
         Logger::info("Removed from startup successfully");
     }
 
-    // 连接或重连 WebSocket 客户端
-    if (m_wsClient.getUrl().empty()) {
-        m_wsClient.connect(getWebSocketUrl(), m_config.client_id,
-                           m_config.skip_ssl_verification);
-    } else {
-        // url改变，重连ws
-        if (m_wsClient.getUrl() != getWebSocketUrl()) {
-            m_wsClient.reconnect(getWebSocketUrl(), m_config.client_id,
-                                 m_config.skip_ssl_verification);
-        }
-    }
-}
-
-std::string C3App::getHTTPUrl() const {
-    const std::string protocol = m_config.use_ssl ? "https" : "http";
-    return std::format("{}://{}:{}", protocol, m_config.hostname,
-                       m_config.port);
-}
-
-std::string C3App::getWebSocketUrl() const {
-    const std::string protocol = m_config.use_ssl ? "wss" : "ws";
-    return std::format("{}://{}:{}", protocol, m_config.hostname,
-                       m_config.port);
+    // 确保 WebSocket 连接
+    m_wsClient.connectOrReconnect(URLBuilder::buildWebSocketUrl(m_config),
+                                  m_config.client_id,
+                                  m_config.skip_ssl_verification);
 }

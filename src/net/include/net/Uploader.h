@@ -57,6 +57,8 @@ public:
                     start + std::chrono::milliseconds(retry_delay_ms));
             }
         }
+        Logger::error(
+            std::format("Upload failed after {} attempts.", max_retries));
         return false;
     }
 

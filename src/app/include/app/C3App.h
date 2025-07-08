@@ -30,20 +30,9 @@ private:
     // 上传配置文件
     void uploadConfigWithRetry();
 
-    // 通用上传方法
-    template <typename UploadFunc>
-    void performUploadWithRetry(const std::string& endpoint,
-                                const std::string& description,
-                                UploadFunc uploadFunc);
     // 应用配置设置
     // 包括上传配置文件和设置开机自启
     void applyConfigSettings();
-
-    // 辅助方法：构建 HTTP URL
-    std::string getHTTPUrl() const;
-
-    // 辅助方法：构建 WebSocket URL
-    std::string getWebSocketUrl() const;
 
 private:
     std::atomic<bool> m_running;

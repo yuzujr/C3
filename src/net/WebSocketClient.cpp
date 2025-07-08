@@ -14,31 +14,17 @@ WebSocketClient::~WebSocketClient() {
     ix::uninitNetSystem();
 }
 
-std::string WebSocketClient::getUrl() const {
-    std::string fullUrl = m_ws.getUrl();
-
-    // 找到第三个斜杠的位置，截取基本URL
-    size_t protocolEnd = fullUrl.find("://");
-    if (protocolEnd != std::string::npos) {
-        size_t pathStart = fullUrl.find("/", protocolEnd + 3);
-        if (pathStart != std::string::npos) {
-            return fullUrl.substr(0, pathStart);
-        }
-    }
-
-    return fullUrl;  // 如果解析失败，返回原URL
-}
-
 void WebSocketClient::close() {
     m_ws.close();
 }
 
-void WebSocketClient::reconnect(const std::string& url,
-                                const std::string& client_id,
-                                bool skip_ssl_verification) {
-    // 重新连接
-    close();
-    connect(url, client_id, skip_ssl_verification);
+void WebSocketClient::connectOrReconnect(const std::string& url,
+                                         const std::string& client_id,
+                                         bool skip_ssl_verification) {
+    if (m_baseUrl.empty() || m_baseUrl != url) {
+        close();
+        connect(url, client_id, skip_ssl_verification);
+    }
 }
 
 void WebSocketClient::send(const nlohmann::json& message) {
@@ -59,6 +45,7 @@ void WebSocketClient::send(const nlohmann::json& message) {
 void WebSocketClient::connect(const std::string& url,
                               const std::string& client_id,
                               bool skip_ssl_verification) {
+    m_baseUrl = url;
     std::string ws_url =
         std::format("{}/client/commands?client_id={}", url, client_id);
     m_ws.setUrl(ws_url);
