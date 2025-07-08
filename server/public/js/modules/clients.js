@@ -6,6 +6,7 @@ import { selectedClient, setSelectedClient, cachedClientList, setCachedClientLis
 import { fetchScreenshots } from './screenshots.js';
 import { loadClientConfig } from './commands.js';
 import { showError } from '../../toast/toast.js';
+import { buildUrl } from './path-utils.js';
 
 /**
  * 比较两个客户端列表是否相同
@@ -95,7 +96,7 @@ export function updateClientFeatures(isOnline) {
  */
 export async function fetchClients() {
   try {
-    const res = await fetch('/web/clients');
+    const res = await fetch(buildUrl('/web/clients'));
 
     // 检查HTTP响应状态
     if (!res.ok) {

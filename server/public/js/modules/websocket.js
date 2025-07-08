@@ -3,15 +3,16 @@
 
 import { selectedClient, setWebSocket } from './state.js';
 import { addNewScreenshot } from './screenshots.js';
-import { handlePtyShellOutput } from './pty-terminal.js';  // 新的PTY处理函数
+import { handlePtyShellOutput } from './pty-terminal.js';
 import { handleClientStatusChange } from './clients.js';
+import { buildWebSocketUrl } from './path-utils.js';
 
 /**
  * 初始化 WebSocket 连接
  */
 export function initWebSocket() {
-  // 使用当前页面的端口，支持HTTP和WebSocket共享端口
-  const wsUrl = `ws://${window.location.hostname}:${window.location.port}?type=web`;
+  const wsUrl = buildWebSocketUrl();
+  console.log('WebSocket连接URL:', wsUrl);
 
   const webSocket = new WebSocket(wsUrl);
   setWebSocket(webSocket);

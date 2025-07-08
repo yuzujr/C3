@@ -37,16 +37,14 @@ sudo systemctl enable postgresql
 PostgreSQL defaults to `ident` authentication, but applications need `md5` authentication. Modify the authentication configuration:
 
 ```bash
-# Find the PostgreSQL data directory
-sudo -u postgres psql -c "SHOW data_directory;"
-
-# Backup original configuration
-sudo cp /var/lib/pgsql/data/pg_hba.conf /var/lib/pgsql/data/pg_hba.conf.backup
+# Find and configure PostgreSQL authentication
+HBA_FILE=$(sudo -u postgres psql -t -c "SHOW hba_file;" | xargs)
+sudo cp "$HBA_FILE" "$HBA_FILE.backup"
 
 # Modify authentication methods to md5
-sudo sed -i 's/local   all             all                                     peer/local   all             all                                     md5/' /var/lib/pgsql/data/pg_hba.conf
-sudo sed -i 's/host    all             all             127.0.0.1\/32            ident/host    all             all             127.0.0.1\/32            md5/' /var/lib/pgsql/data/pg_hba.conf
-sudo sed -i 's/host    all             all             ::1\/128                 ident/host    all             all             ::1\/128                 md5/' /var/lib/pgsql/data/pg_hba.conf
+sudo sed -i 's/local   all             all                                     peer/local   all             all                                     md5/' "$HBA_FILE"
+sudo sed -i 's/host    all             all             127.0.0.1\/32            ident/host    all             all             127.0.0.1\/32            md5/' "$HBA_FILE"
+sudo sed -i 's/host    all             all             ::1\/128                 ident/host    all             all             ::1\/128                 md5/' "$HBA_FILE"
 
 # Restart PostgreSQL to apply changes
 sudo systemctl restart postgresql
@@ -78,6 +76,14 @@ Edit `.env` file with your database password and authentication settings:
 - Set `DB_PASSWORD` to match the password you used when creating the database user
 - Set `AUTH_USERNAME` and `AUTH_PASSWORD` for web interface login
 - Set `SESSION_SECRET` to a long random string (at least 32 characters)
+- Set `BASE_PATH` to the URL path prefix if deploying under a subdirectory (e.g., `/c3` for `http://domain.com/c3/`), leave empty for root deployment
+
+**Note:** Other configuration parameters not detailed here are also important for specific use cases. Please refer to the complete [configuration reference](#configuration-reference) section below for all available options.
+
+Check configuration security:
+```bash
+node scripts/check-security.js
+```
 
 #### 4. Initialize Database
 
@@ -199,7 +205,7 @@ Move `config/config.json` next to the executable:
 ### Environment Variables
 
 | Variable | Default | Description |
-|----------|---------|-------------|
+| `BASE_PATH` | `""` | Base URL path prefix |
 | `NODE_ENV` | `development` | Environment mode |
 | `PORT` | `3000` | Server port |
 | `HOST` | `0.0.0.0` | Server host |

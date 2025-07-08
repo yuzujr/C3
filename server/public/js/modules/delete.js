@@ -4,6 +4,7 @@
 import { selectedClient } from './state.js';
 import { fetchScreenshots } from './screenshots.js';
 import { showSuccess, showError, showWarning } from '../../toast/toast.js';
+import { buildUrl } from './path-utils.js';
 
 /**
  * 通用的删除函数
@@ -29,7 +30,7 @@ async function performDelete(endpoint, body = null, errorPrefix = '删除') {
       requestOptions.body = JSON.stringify(body);
     }
 
-    const response = await fetch(endpoint, requestOptions);
+    const response = await fetch(buildUrl(endpoint), requestOptions);
 
     if (response.ok) {
       const result = await response.json();

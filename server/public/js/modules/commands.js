@@ -3,6 +3,7 @@
 
 import { selectedClient } from './state.js';
 import { showSuccess, showError, showWarning } from '../../toast/toast.js';
+import { buildUrl } from './path-utils.js';
 
 /**
  * 向客户端发送命令
@@ -19,7 +20,7 @@ export async function sendCommand(command, showToastMessage = true) {
   }
 
   try {
-    const res = await fetch(`/web/command/${selectedClient}`, {
+    const res = await fetch(buildUrl(`/web/command/${selectedClient}`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(command)
@@ -50,7 +51,7 @@ export async function sendCommand(command, showToastMessage = true) {
  */
 export async function loadClientConfig(clientId) {
   try {
-    const res = await fetch(`/web/config/${clientId}`);
+    const res = await fetch(buildUrl(`/web/config/${clientId}`));
     if (!res.ok) {
       console.warn('获取配置失败');
       console.warn(await res.text());

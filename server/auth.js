@@ -2,7 +2,32 @@
 // 处理用户登录验证和会话管理 (使用数据库)
 
 const authService = require('./services/auth-service');
+const config = require('./config');
 const { logWithTime, errorWithTime } = require('./logger');
+
+/**
+ * 构建重定向URL，智能检测当前路径
+ * @param {object} req - 请求对象
+ * @param {string} path - 目标路径
+ * @returns {string} 完整的重定向路径
+ */
+function buildRedirectUrl(req, path) {
+  // 如果配置了 BASE_PATH，直接使用
+  if (config.BASE_PATH) {
+    return config.BASE_PATH + path;
+  }
+
+  // 智能检测：如果请求来自子路径，保持一致
+  const pathname = req.originalUrl.split('?')[0];
+  const pathParts = pathname.split('/').filter(part => part);
+
+  // 如果第一个路径段不是常见页面，可能是base path
+  if (pathParts.length > 0 && !['login', 'auth', 'web', 'client'].includes(pathParts[0])) {
+    return '/' + pathParts[0] + path;
+  }
+
+  return path;
+}
 
 /**
  * 验证用户名和密码
@@ -58,14 +83,14 @@ async function requireAuth(req, res, next) {
     const sessionId = req.cookies.sessionId;
 
     if (!sessionId) {
-      return res.redirect('/login');
+      return res.redirect(buildRedirectUrl(req, '/login'));
     }
 
     const session = await validateSession(sessionId);
     if (!session) {
       // 清除无效的cookie
       res.clearCookie('sessionId');
-      return res.redirect('/login');
+      return res.redirect(buildRedirectUrl(req, '/login'));
     }
 
     // 将用户信息添加到请求对象
@@ -76,7 +101,7 @@ async function requireAuth(req, res, next) {
   } catch (error) {
     errorWithTime('[AUTH] Authentication middleware error:', error);
     res.clearCookie('sessionId');
-    res.redirect('/login');
+    res.redirect(buildRedirectUrl(req, '/login'));
   }
 }
 
@@ -171,7 +196,7 @@ async function handleLogout(req, res) {
       if (session && session.user) {
         username = session.user.username;
       }
-      
+
       // 然后注销会话
       await authService.logout(sessionId);
     } catch (error) {
@@ -222,5 +247,6 @@ module.exports = {
   getSessionStats,
   handleLogin,
   handleLogout,
-  getSessionInfo
+  getSessionInfo,
+  buildRedirectUrl
 };

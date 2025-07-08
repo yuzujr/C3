@@ -23,24 +23,48 @@ function createApp() {
   const app = express();    // 设置中间件
   setupAllMiddleware(app);
 
+  // 创建子路由器来处理基础路径
+  const router = express.Router();
+
   // 认证路由 (不需要认证)
-  app.use('/auth', authRoutes);
+  router.use('/auth', authRoutes);
+
+  // 页面渲染中间件 - 注入配置信息
+  function injectConfig(req, res, next) {
+    const originalSend = res.send;
+    res.send = function (data) {
+      if (typeof data === 'string' && data.includes('</head>')) {
+        const configScript = `<script>window.APP_CONFIG = { BASE_PATH: '${config.BASE_PATH}' };</script>`;
+        data = data.replace('</head>', configScript + '</head>');
+      }
+      originalSend.call(this, data);
+    };
+    next();
+  }
 
   // 登录页面路由 (不需要认证)
-  app.get('/login', (req, res) => {
+  router.get('/login', injectConfig, (req, res) => {
     res.sendFile(path.join(config.PUBLIC_DIR, 'login.html'));
   });
 
   // 主页重定向到登录检查
-  app.get('/', requireAuth, (req, res) => {
+  router.get('/', requireAuth, injectConfig, (req, res) => {
     res.sendFile(path.join(config.PUBLIC_DIR, 'index.html'));
   });
 
   // Web API路由 (需要认证)
-  app.use('/web', requireAuth, webRoutes);
+  router.use('/web', requireAuth, webRoutes);
 
   // 客户端API路由 (不需要认证，客户端直接访问)
-  app.use('/client', clientRoutes);
+  router.use('/client', clientRoutes);
+
+  // 如果设置了BASE_PATH，使用子路径
+  if (config.BASE_PATH) {
+    app.use(config.BASE_PATH, router);
+  }
+
+  // 同时保持根路径路由（向后兼容）
+  app.use('/', router);
 
   // 错误处理中间件
   app.use((error, req, res, next) => {

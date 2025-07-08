@@ -2,6 +2,7 @@
 // 处理客户端别名编辑和删除功能
 
 import { showSuccess, showError, showWarning } from '../../toast/toast.js';
+import { buildUrl } from './path-utils.js';
 
 let currentEditingClientId = null;
 let currentEditingAlias = null;
@@ -123,7 +124,7 @@ async function saveAliasEdit() {
   }
 
   try {
-    const response = await fetch(`/web/clients/${encodeURIComponent(currentEditingClientId)}/alias`, {
+    const response = await fetch(buildUrl(`/web/clients/${encodeURIComponent(currentEditingClientId)}/alias`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
@@ -181,7 +182,7 @@ async function saveAliasEdit() {
  */
 async function confirmDeleteClient() {
   try {
-    const response = await fetch(`/web/clients/${encodeURIComponent(currentEditingClientId)}`, {
+    const response = await fetch(buildUrl(`/web/clients/${encodeURIComponent(currentEditingClientId)}`), {
       method: 'DELETE'
     });
 
