@@ -12,7 +12,6 @@ import { buildWebSocketUrl } from './path-utils.js';
  */
 export function initWebSocket() {
   const wsUrl = buildWebSocketUrl();
-  console.log('WebSocket连接URL:', wsUrl);
 
   const webSocket = new WebSocket(wsUrl);
   setWebSocket(webSocket);
