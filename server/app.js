@@ -67,7 +67,7 @@ function createApp() {
   app.use('/', router);
 
   // 错误处理中间件
-  app.use((error, req, res, next) => {
+  app.use((error, req, res, _next) => {
     errorWithTime('[APP] Unhandled error:', error);
     res.status(500).send('Internal server error');
   });

@@ -2,6 +2,7 @@
 // 简化的WebSocket服务器
 
 const WebSocket = require('ws');
+const { URL } = require('url');
 const { logWithTime, errorWithTime } = require('./logger');
 const clientService = require('./services/client-service');
 
@@ -11,14 +12,6 @@ let wsServer = null;
 // 连接管理
 const activeConnections = new Map(); // client_id -> WebSocket
 const webConnections = new Set(); // Web界面的WebSocket连接
-
-/**
- * 清理ANSI转义序列
- */
-function cleanAnsiEscapes(text) {
-  if (typeof text !== 'string') return text;
-  return text.replace(/\x1b\[[0-9;]*[mGKH]/g, '');
-}
 
 /**
  * 初始化WebSocket服务器

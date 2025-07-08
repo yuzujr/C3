@@ -8,7 +8,7 @@ const crypto = require('crypto');
 // 确保从正确的位置加载.env文件
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const { logWithTime, errorWithTime } = require('./logger');
+const { logWithTime } = require('./logger');
 
 /**
  * 生成随机密钥

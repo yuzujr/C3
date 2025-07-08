@@ -30,7 +30,7 @@ export function initWebSocket() {
     }
   };
 
-  webSocket.onclose = (event) => {
+  webSocket.onclose = (_event) => {
     console.log('WebSocket连接已关闭, 3秒后重连...');
     setTimeout(initWebSocket, 3000);
   };
@@ -76,7 +76,6 @@ function handleWebSocketMessage(data) {
 async function handleAliasUpdated(clientId, oldAlias, newAlias) {
   // 导入需要的模块
   const { selectedClient, cachedClientList, setCachedClientList, setSkipNextDOMRebuild } = await import('./state.js');
-  const { fetchClients, updateClientHighlight } = await import('./clients.js');
 
   console.log(`别名更新: ${oldAlias} -> ${newAlias} (clientId: ${clientId})`);
 

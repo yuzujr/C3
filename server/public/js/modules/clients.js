@@ -270,10 +270,6 @@ export async function selectClient(clientId, isOnline = true) {
     });
   }
 
-  // 获取客户端别名用于截图和配置加载
-  const client = cachedClientList.find(c => c.client_id === clientId);
-  const clientAlias = client ? client.alias : clientId;
-
   // 始终加载截图（在线和离线都可以查看）
   try {
     await fetchScreenshots(clientId);

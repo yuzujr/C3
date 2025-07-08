@@ -545,6 +545,7 @@ class ClientService {
         const checkInterval = setInterval(() => {
           if (!websocket.isClientOnline(clientId)) {
             clearInterval(checkInterval);
+            clearTimeout(timeoutHandle);
             resolveOnce(true, `Client ${clientId} disconnected successfully after offline command`);
           }
         }, 50); // 减少检查间隔到50ms

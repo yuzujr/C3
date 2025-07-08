@@ -2,7 +2,6 @@
 // 支持多个toast同时显示、队列管理、不同类型的提示
 
 let toastCounter = 0;
-const toastQueue = [];
 const activeToasts = new Map();
 
 /**
@@ -29,7 +28,7 @@ export function showToast(message, type = 'info', duration = 3000, closable = tr
   activeToasts.set(toastId, toastElement);
 
   // 触发入场动画
-  requestAnimationFrame(() => {
+  window.requestAnimationFrame(() => {
     toastElement.classList.add('show');
   });
 

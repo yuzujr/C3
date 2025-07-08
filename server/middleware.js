@@ -4,6 +4,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const { URL } = require('url');
 const config = require('./config');
 
 /**
@@ -53,7 +54,7 @@ function clientIdMiddleware(req, res, next) {
     }
 
     next();
-  } catch (e) {
+  } catch {
     req.clientId = null;
     next(); // 保证不中断流程
   }

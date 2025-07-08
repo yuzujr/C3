@@ -307,7 +307,7 @@ export function handlePtyShellOutput(data) {
   }
 
   // 使用原始输出
-  let output = data.output || '';
+  const output = data.output || '';
 
   // 使用 xterm.js 直接写入原始数据
   if (terminal) {

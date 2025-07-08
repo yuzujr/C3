@@ -1,7 +1,7 @@
 // 截图处理模块
 // 处理截图的获取、显示和新截图的添加
 
-import { selectedClient, imageUrls, setImageUrls, addNewImageUrl } from './state.js';
+import { imageUrls, setImageUrls, addNewImageUrl } from './state.js';
 import { openImageModal } from './modal.js';
 import { buildUrl } from './path-utils.js';
 
