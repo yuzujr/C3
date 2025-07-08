@@ -12,6 +12,10 @@ std::string URLBuilder::buildHTTPUrl(const Config& config) {
     // 添加基础路径
     if (!config.base_path.empty()) {
         url += config.base_path;
+        // 确保以/结尾，以匹配Nginx的location规则
+        if (!config.base_path.ends_with("/")) {
+            url += "/";
+        }
     }
 
     return url;
@@ -25,6 +29,10 @@ std::string URLBuilder::buildWebSocketUrl(const Config& config) {
     // 添加基础路径
     if (!config.base_path.empty()) {
         url += config.base_path;
+        // 确保以/结尾，以匹配Nginx的location规则
+        if (!config.base_path.ends_with("/")) {
+            url += "/";
+        }
     }
 
     return url;
@@ -33,14 +41,6 @@ std::string URLBuilder::buildWebSocketUrl(const Config& config) {
 std::string URLBuilder::buildAPIUrl(const Config& config,
                                     const std::string& endpoint) {
     std::string base_url = buildHTTPUrl(config);
-
-    // 如果endpoint不以'/'开头且base_url不以'/'结尾
-    // 确保有斜杠分隔
-    if (!endpoint.empty() && endpoint[0] != '/' && !base_url.empty() &&
-        base_url.back() != '/') {
-        base_url += '/';
-    }
-
     base_url += endpoint;
     return base_url;
 }

@@ -47,7 +47,7 @@ void WebSocketClient::connect(const std::string& url,
                               bool skip_ssl_verification) {
     m_baseUrl = url;
     std::string ws_url =
-        std::format("{}/client/commands?client_id={}", url, client_id);
+        std::format("{}?type=client&client_id={}", url, client_id);
     m_ws.setUrl(ws_url);
 
     // 配置SSL/TLS设置

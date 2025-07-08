@@ -41,5 +41,8 @@ export function buildWebSocketUrl() {
   const host = window.location.host;
   const basePath = getBasePath();
 
-  return `${protocol}//${host}${basePath}?type=web`;
+  // 确保basePath以/结尾，以匹配Nginx的location规则
+  const normalizedBasePath = basePath.endsWith('/') ? basePath : basePath + '/';
+
+  return `${protocol}//${host}${normalizedBasePath}?type=web`;
 }

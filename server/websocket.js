@@ -37,10 +37,11 @@ function handleWebSocketConnection(ws, req) {
 
     if (connection_type === 'web') {
       handleWebConnection(ws);
-    } else if (client_id) {
+    } else if (connection_type === 'client' && client_id) {
       handleClientConnection(ws, client_id);
     } else {
-      ws.close(4000, '缺少 client_id');
+      logWithTime('[WEBSOCKET] Invalid connection parameters, closing connection');
+      ws.close(4000, '无效的连接参数');
     }
   } catch (error) {
     errorWithTime('[WEBSOCKET] Error handling connection:', error);
