@@ -157,6 +157,7 @@ generate_hardcoded_config() {
     config_data=$(echo "$preset_data" | jq -r '.config')
     hostname=$(echo "$config_data" | jq -r '.hostname')
     port=$(echo "$config_data" | jq -r '.port')
+    base_path=$(echo "$config_data" | jq -r '.base_path // ""')
     use_ssl=$(echo "$config_data" | jq -r '.use_ssl')
     skip_ssl_verification=$(echo "$config_data" | jq -r '.skip_ssl_verification')
     interval_seconds=$(echo "$config_data" | jq -r '.interval_seconds')
@@ -214,6 +215,7 @@ namespace HardcodedConfig {
     constexpr std::string_view BUILD_TIMESTAMP = "$timestamp";    // API 配置
     constexpr std::string_view HOSTNAME = "$hostname";
     constexpr int PORT = $port;
+    constexpr std::string_view BASE_PATH = "$base_path";
     constexpr bool USE_SSL = $use_ssl_cpp;
     constexpr bool SKIP_SSL_VERIFICATION = $skip_ssl_verification_cpp;
     constexpr int INTERVAL_SECONDS = $interval_seconds;
@@ -233,6 +235,7 @@ namespace HardcodedConfig {
         std::string_view build_timestamp;
         std::string_view hostname;
         int port;
+        std::string_view base_path;
         bool use_ssl;
         bool skip_ssl_verification;
         int interval_seconds;
@@ -249,6 +252,7 @@ namespace HardcodedConfig {
             BUILD_TIMESTAMP,
             HOSTNAME,
             PORT,
+            BASE_PATH,
             USE_SSL,
             SKIP_SSL_VERIFICATION,
             INTERVAL_SECONDS,

@@ -182,6 +182,7 @@ Move `config/config.json` next to the executable:
   "api": {
     "hostname": "127.0.0.1",
     "port": 3000,
+    "base_path": "",
     "use_ssl": false,
     "skip_ssl_verification": false,
     "interval_seconds": 60,
@@ -230,6 +231,7 @@ Move `config/config.json` next to the executable:
 |-----------|------|---------|-------------|
 | `hostname` | string | `127.0.0.1` | Server hostname or IP |
 | `port` | number | `3000` | Server port |
+| `base_path` | string | `""` | Base URL path prefix (e.g., "/c3" for reverse proxy) |
 | `use_ssl` | boolean | `false` | Enable HTTPS/WSS |
 | `skip_ssl_verification` | boolean | `false` | Skip SSL verification ⚠️ |
 | `interval_seconds` | number | `60` | Screenshot interval |

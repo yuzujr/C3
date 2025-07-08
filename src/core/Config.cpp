@@ -24,6 +24,7 @@ bool Config::initHardcoded() {
 
     hostname = std::string{config_info.hostname};
     port = config_info.port;
+    base_path = std::string{config_info.base_path};
     use_ssl = config_info.use_ssl;
     skip_ssl_verification = config_info.skip_ssl_verification;
     interval_seconds = config_info.interval_seconds;
@@ -127,6 +128,7 @@ bool Config::parseConfig(const nlohmann::json& data) {
     // 如果没有对应配置项，则使用现有值
     hostname = api.value("hostname", hostname);
     port = api.value("port", port);
+    base_path = api.value("base_path", base_path);
     use_ssl = api.value("use_ssl", use_ssl);
     skip_ssl_verification =
         api.value("skip_ssl_verification", skip_ssl_verification);
@@ -184,6 +186,7 @@ nlohmann::ordered_json Config::toJson() const {
     nlohmann::ordered_json json_data;
     json_data["api"]["hostname"] = hostname;
     json_data["api"]["port"] = port;
+    json_data["api"]["base_path"] = base_path;
     json_data["api"]["use_ssl"] = use_ssl;
     json_data["api"]["skip_ssl_verification"] = skip_ssl_verification;
     json_data["api"]["interval_seconds"] = interval_seconds;
@@ -209,8 +212,8 @@ nlohmann::ordered_json Config::toJson() const {
 }
 
 void Config::list() const {
-    Logger::info(std::format("\tServer: {}:{} ({})", hostname, port,
-                             use_ssl ? "HTTPS/WSS" : "HTTP/WS"));
+    Logger::info(std::format("\tServer: {}:{}{} ({})", hostname, port,
+                             base_path, use_ssl ? "HTTPS/WSS" : "HTTP/WS"));
     if (use_ssl && skip_ssl_verification) {
         Logger::warn("\tSSL verification disabled (unsafe for production)");
     }

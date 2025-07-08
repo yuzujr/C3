@@ -2,6 +2,7 @@
   "api": {
     "hostname": "127.0.0.1",
     "port": 3000,
+    "base_path": "",
     "use_ssl": false,
     "skip_ssl_verification": false,
     "interval_seconds": 60,

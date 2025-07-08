@@ -11,6 +11,7 @@ target_sources(core PRIVATE
     CommandDispatcher.cpp
     ImageEncoder.cpp
     RawImage.cpp
+    URLBuilder.cpp
 )
 # platform-specific source files
 if(WIN32)

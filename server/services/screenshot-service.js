@@ -38,7 +38,10 @@ function getClientScreenshots(clientId, sinceTimestamp = 0) {
 
         // 只返回指定时间之后的图片
         if (fileStat.mtimeMs > sinceTimestamp) {
-          result.push(`/uploads/${clientId}/${dateDir}/${file}`);
+          // 构建包含base_path的完整URL
+          const relativeUrl = `/uploads/${clientId}/${dateDir}/${file}`;
+          const fullUrl = config.BASE_PATH ? config.BASE_PATH + relativeUrl : relativeUrl;
+          result.push(fullUrl);
         }
       });
     });
@@ -176,7 +179,10 @@ function processNewScreenshot(file, clientId, alias) {
   try {
     // 构建截图URL
     const pathAfterUploads = file.path.split('uploads')[1];
-    const screenshotUrl = `/uploads${pathAfterUploads.replace(/\\/g, '/')}`;
+    const relativeUrl = `/uploads${pathAfterUploads.replace(/\\/g, '/')}`;
+
+    // 添加base_path支持
+    const screenshotUrl = config.BASE_PATH ? config.BASE_PATH + relativeUrl : relativeUrl;
 
     const displayName = alias ? `${alias} (${clientId})` : clientId;
     logWithTime('[CLIENT] Screenshot uploaded from:', displayName);

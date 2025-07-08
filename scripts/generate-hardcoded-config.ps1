@@ -161,6 +161,7 @@ namespace HardcodedConfig {
     constexpr std::string_view BUILD_TIMESTAMP = "$timestamp";      // API 配置
     constexpr std::string_view HOSTNAME = "$($config.hostname)";
     constexpr int PORT = $($config.port);
+    constexpr std::string_view BASE_PATH = "$($config.base_path ?? "")";
     constexpr bool USE_SSL = $($config.use_ssl.ToString().ToLower());
     constexpr bool SKIP_SSL_VERIFICATION = $($config.skip_ssl_verification.ToString().ToLower());
     constexpr int INTERVAL_SECONDS = $($config.interval_seconds);
@@ -180,6 +181,7 @@ namespace HardcodedConfig {
         std::string_view build_timestamp;
         std::string_view hostname;
         int port;
+        std::string_view base_path;
         bool use_ssl;
         bool skip_ssl_verification;
         int interval_seconds;
@@ -196,6 +198,7 @@ namespace HardcodedConfig {
             BUILD_TIMESTAMP,
             HOSTNAME,
             PORT,
+            BASE_PATH,
             USE_SSL,
             SKIP_SSL_VERIFICATION,
             INTERVAL_SECONDS,

@@ -83,6 +83,8 @@ public:
     std::string hostname = std::string{default_hostname};
     // 服务器端口
     int port = default_port;
+    // 基础路径，用于反向代理部署（如"/c3"）
+    std::string base_path = std::string{default_base_path};
     // 是否使用SSL/TLS加密 (HTTPS/WSS)
     bool use_ssl = default_use_ssl;
     // 是否跳过SSL证书验证 (仅用于测试)
@@ -109,6 +111,7 @@ private:
     // 默认配置文件内容
     static constexpr std::string_view default_hostname = "127.0.0.1";
     static constexpr int default_port = 3000;
+    static constexpr std::string_view default_base_path = "";
     static constexpr bool default_use_ssl = false;
     static constexpr bool default_skip_ssl_verification = false;
     static constexpr int default_interval_seconds = 60;
