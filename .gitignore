@@ -17,8 +17,6 @@ compile_commands.json
 server/node_modules/
 server/logs/
 server/uploads/
-server/server.config.json
+
 # server environment files
 .env
-.env.local
-.env.production

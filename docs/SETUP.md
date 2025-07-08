@@ -117,39 +117,13 @@ cd server
 cp .env.docker .env
 ```
 
-**⚠️ Security Warning**: You must modify the passwords in the `.env` file before deployment:
-
-```bash
-# Edit .env file and change these values:
-# - DB_PASSWORD: Database password (used by both PostgreSQL container and application)
-# - AUTH_PASSWORD: Web interface login password
-# - SESSION_SECRET: Session encryption key (at least 32 characters)
-```
-
-**Example secure values:**
-```bash
-DB_PASSWORD=MyS3cur3DbP@ssw0rd2024
-AUTH_PASSWORD=MyAdminP@ssw0rd2024
-SESSION_SECRET=a-very-long-random-string-at-least-32-characters-long-for-session-encryption
-```
-
-#### 2. Configure Docker Permissions
-
-**Add user to docker group (Recommended):**
-```bash
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-**Alternative: Use sudo for docker commands**
-
-#### 3. Start Services
+#### 2. Start Services
 
 ```bash
 docker-compose up -d
 ```
 
-#### 4. Verify Deployment
+#### 3. Verify Deployment
 
 ```bash
 # Check service status
@@ -159,7 +133,7 @@ docker-compose ps
 docker-compose logs -f c3-server
 ```
 
-#### 5. Access Web Interface
+#### 4. Access Web Interface
 
 Open browser and navigate to: **http://localhost:3000**
 

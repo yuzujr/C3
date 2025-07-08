@@ -14,7 +14,7 @@ RUN mkdir -p uploads logs && \
 COPY package*.json ./
 
 # 安装项目依赖
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install
 
 # 复制项目文件到工作目录
 COPY . .

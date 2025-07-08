@@ -60,7 +60,7 @@ function validateConfig() {
   const warnings = [];
 
   // 安全检查（只保留最重要的）
-  if (config.AUTH_PASSWORD === 'CHANGE_ME_PLEASE' || config.AUTH_PASSWORD === 'admin123') {
+  if (config.AUTH_PASSWORD === 'your-secure-password-here' || config.AUTH_PASSWORD === 'admin123') {
     warnings.push('⚠️  Using default password! Please change AUTH_PASSWORD for security.');
   }
 
