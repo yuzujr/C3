@@ -18,5 +18,9 @@ server/node_modules/
 server/logs/
 server/uploads/
 
+# server-go files
+server-go/logs/
+server-go/uploads/
+
 # server environment files
 .env

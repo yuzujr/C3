@@ -4,6 +4,21 @@
 
 #include "core/Config.h"
 
+std::string URLBuilder::buildBaseUrl(const std::string& protocol,
+                                     const std::string& hostname, int port,
+                                     bool use_ssl) {
+    const int default_port = use_ssl ? 443 : 80;
+
+    std::string url = std::format("{}://{}", protocol, hostname);
+
+    // 只有在非标准端口时才添加端口号
+    if (port != default_port) {
+        url += std::format(":{}", port);
+    }
+
+    return url;
+}
+
 std::string URLBuilder::buildHTTPUrl(const Config& config) {
     const std::string protocol = config.use_ssl ? "https" : "http";
     std::string url =
@@ -43,19 +58,4 @@ std::string URLBuilder::buildAPIUrl(const Config& config,
     std::string base_url = buildHTTPUrl(config);
     base_url += endpoint;
     return base_url;
-}
-
-std::string URLBuilder::buildBaseUrl(const std::string& protocol,
-                                     const std::string& hostname, int port,
-                                     bool use_ssl) {
-    const int default_port = use_ssl ? 443 : 80;
-
-    std::string url = std::format("{}://{}", protocol, hostname);
-
-    // 只有在非标准端口时才添加端口号
-    if (port != default_port) {
-        url += std::format(":{}", port);
-    }
-
-    return url;
 }

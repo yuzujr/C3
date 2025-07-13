@@ -112,19 +112,6 @@ router.get('/heartbeat', async (req, res) => {
     });
 });
 
-/**
- * 获取服务器状态
- */
-router.get('/status', (req, res) => {
-    res.json({
-        status: 'running',
-        version: '1.6.0',
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        timestamp: Date.now()
-    });
-});
-
 // 错误处理中间件
 router.use(handleUploadError);
 
