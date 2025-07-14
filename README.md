@@ -4,6 +4,19 @@ C3 (Command-Control-C++) is a minimal command and control framework for remote s
 
 **Tech Stack**: C++ client, Node.js server, PostgreSQL database, Web frontend
 
+## Go Server Rewrite Progress
+
+The Node.js server is currently being rewritten in Go to improve performance, simplify deployment, and enhance overall stability.
+
+### ✅ Completed
+
+* Basic client upload API implemented
+
+### 🔜 Upcoming
+
+* Implement WebSocket communication with clients
+* Connect and sync with the web frontend
+
 ## Features
 
 - Reverse shell on WebSocket (xterm.js + native pty)
