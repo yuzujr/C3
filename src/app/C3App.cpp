@@ -132,20 +132,22 @@ void C3App::mainLoop() {
 }
 
 void C3App::captureAndUpload() {
-    auto raw = ScreenCapturer::captureScreen();
-    if (!raw.has_value()) {
+    std::vector<RawImage> rawVec = ScreenCapturer::captureAllMonitors();
+    if (rawVec.empty()) {
         Logger::error("Failed to capture screen");
         return;
     }
-    std::vector<uint8_t> frame;
-    try {
-        // 编码图像
-        frame = ImageEncoder::encodeToJPEG(raw.value(), 90);
-    } catch (const std::exception& e) {
-        Logger::error(std::format("Image encoding error: {}", e.what()));
-        return;
+    for (const auto& raw : rawVec) {
+        std::vector<uint8_t> frame;
+        try {
+            // 编码图像
+            frame = ImageEncoder::encodeToJPEG(raw, 90);
+        } catch (const std::exception& e) {
+            Logger::error(std::format("Image encoding error: {}", e.what()));
+            return;
+        }
+        uploadImageWithRetry(frame);
     }
-    uploadImageWithRetry(frame);
 }
 
 void C3App::uploadImageWithRetry(const std::vector<uint8_t>& frame) {

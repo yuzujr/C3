@@ -1,7 +1,7 @@
 #ifndef SCREEN_CAPTURER_H
 #define SCREEN_CAPTURER_H
 
-#include <optional>
+#include <vector>
 
 struct RawImage;
 
@@ -11,7 +11,7 @@ public:
     ScreenCapturer() = delete;
 
     // 截取屏幕并返回图像
-    static std::optional<RawImage> captureScreen();
+    static std::vector<RawImage> captureAllMonitors();
 };
 
 #endif  // SCREEN_CAPTURER_H

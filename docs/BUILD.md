@@ -17,7 +17,7 @@ This document provides detailed compilation and deployment instructions for C3 c
 ```bash
 sudo apt update
 sudo apt install build-essential cmake git
-sudo apt install libx11-dev libssl-dev libcurl4-openssl-dev
+sudo apt install libx11-dev libxinerama-dev libssl-dev libcurl4-openssl-dev
 ```
 
 ### Third-party Libraries
