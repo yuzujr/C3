@@ -14,7 +14,7 @@ const router = express.Router();
 /**
  * 客户端上传截图
  */
-router.post('/upload_screenshot', upload.single('file'), async (req, res) => {
+router.post('/screenshot', upload.single('file'), async (req, res) => {
     try {
         const clientId = req.clientId;
 
@@ -58,7 +58,7 @@ router.post('/upload_screenshot', upload.single('file'), async (req, res) => {
 /**
  * 客户端上传配置
  */
-router.post('/upload_client_config', async (req, res) => {
+router.post('/client_config', async (req, res) => {
     try {
         const clientId = req.query.client_id;
         const configData = req.body;

@@ -15,8 +15,8 @@ import (
 
 // RegisterClientRoutes 注册客户端相关接口
 func RegisterClientRoutes(r *gin.RouterGroup) {
-	r.POST("/upload_screenshot", uploadScreenshot)
-	r.POST("/upload_client_config", uploadClientConfig)
+	r.POST("/screenshot", uploadScreenshot)
+	r.POST("/client_config", uploadClientConfig)
 }
 
 // 上传截图
