@@ -1,30 +1,45 @@
 package main
 
 import (
+	"log"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
-	"github.com/yuzujr/C3/config"
-	"github.com/yuzujr/C3/pkg/log"
-	"github.com/yuzujr/C3/routes"
+	"github.com/joho/godotenv"
+	"github.com/yuzujr/C3/internal/config"
+	"github.com/yuzujr/C3/internal/database"
+	"github.com/yuzujr/C3/internal/logger"
+	"github.com/yuzujr/C3/internal/routes"
 )
 
 func main() {
-	log.Infof("Starting C3 server...")
+	logger.Infof("Starting C3 server...")
 
+	// config
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
 	cfg := config.Get()
+
+	// database
+	database.InitDatabase()
+
+	// http server
 	gin.SetMode(gin.ReleaseMode)
-	e := gin.New()
+	r := gin.New()
 
 	// 中间件
-	e.Use(gin.Recovery())
+	r.Use(gin.Recovery())
 
 	// 注册路由
-	clientGroup := e.Group(cfg.Server.BasePath + "client") // 例如 /c3
+	clientGroup := r.Group(cfg.Server.BasePath + "client") // 例如 /c3
 	routes.RegisterClientRoutes(clientGroup)
 
 	// 启动
-	addr := cfg.Server.Host + ":" + cfg.Server.Port
-	log.Infof("Listening on %s", addr)
-	if err := e.Run(addr); err != nil {
-		log.Errorf("Failed to start server: %v", err)
+	addr := cfg.Server.Host + ":" + strconv.Itoa(cfg.Server.Port)
+	logger.Infof("Listening on %s", addr)
+	if err := r.Run(addr); err != nil {
+		logger.Errorf("Failed to start server: %v", err)
 	}
 }

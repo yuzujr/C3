@@ -1,4 +1,4 @@
-package log
+package logger
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yuzujr/C3/config"
+	"github.com/yuzujr/C3/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -28,12 +28,21 @@ func Infof(format string, args ...any)  { GetLogger().Sugar().Infof(format, args
 func Errorf(format string, args ...any) { GetLogger().Sugar().Errorf(format, args...) }
 func Debugf(format string, args ...any) { GetLogger().Sugar().Debugf(format, args...) }
 func Warnf(format string, args ...any)  { GetLogger().Sugar().Warnf(format, args...) }
+func Fatalf(format string, args ...any) { GetLogger().Sugar().Fatalf(format, args...) }
 
 // 初始化 zap 日志系统
 func initLogger() {
 	cfg := config.Get()
 	logDir := cfg.Log.Directory
 	level := parseLevel(cfg.Log.Level)
+
+	// 如果是测试环境，不写文件日志，只输出到控制台
+	if isTestEnv() {
+		consoleEncoder := zapcore.NewConsoleEncoder(getEncoderConfig())
+		core := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), level)
+		logger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+		return
+	}
 
 	_ = os.MkdirAll(logDir, os.ModePerm)
 
@@ -61,6 +70,8 @@ func parseLevel(lvl string) zapcore.Level {
 		return zapcore.WarnLevel
 	case "error":
 		return zapcore.ErrorLevel
+	case "fatal":
+		return zapcore.FatalLevel
 	default:
 		return zapcore.InfoLevel
 	}
@@ -87,7 +98,7 @@ func getEncoderConfig() zapcore.EncoderConfig {
 		LevelKey:       "L",
 		CallerKey:      "C",
 		MessageKey:     "M",
-		EncodeLevel:    zapcore.CapitalColorLevelEncoder, // 彩色输出
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
 		EncodeTime:     beijingTimeEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 		EncodeDuration: zapcore.StringDurationEncoder,
@@ -98,4 +109,9 @@ func getEncoderConfig() zapcore.EncoderConfig {
 func beijingTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	bt := t.UTC().Add(8 * time.Hour)
 	enc.AppendString(bt.Format("2006-01-02 15:04:05"))
+}
+
+// 判断是否测试环境
+func isTestEnv() bool {
+	return os.Getenv("ENV") == "test"
 }

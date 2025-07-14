@@ -3,9 +3,8 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 	"sync"
-
-	"github.com/joho/godotenv"
 )
 
 var (
@@ -21,20 +20,27 @@ func Get() *Config {
 }
 
 func load() {
-	err := godotenv.Load()
+	// PORT
+	port, err := strconv.Atoi(os.Getenv("PORT"))
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		log.Fatalf("Invalid PORT value: %v", err)
+	}
+	// DB
+	dbPort, err := strconv.Atoi(os.Getenv("DB_PORT"))
+	if err != nil {
+		log.Fatalf("Invalid DB_PORT value: %v", err)
 	}
 
 	cfg = &Config{
 		Server: ServerConfig{
 			BasePath: os.Getenv("BASE_PATH"),
 			Host:     os.Getenv("HOST"),
-			Port:     os.Getenv("PORT"),
+			Port:     port,
+			Env:      os.Getenv("ENV"),
 		},
-		Database: DatabaseConfig{
+		DB: DatabaseConfig{
 			Host:     os.Getenv("DB_HOST"),
-			Port:     os.Getenv("DB_PORT"),
+			Port:     dbPort,
 			Name:     os.Getenv("DB_NAME"),
 			User:     os.Getenv("DB_USER"),
 			Password: os.Getenv("DB_PASSWORD"),
@@ -51,29 +57,30 @@ func load() {
 		},
 		Log: LogConfig{
 			Directory: os.Getenv("LOG_DIR"),
-			Level:    os.Getenv("LOG_LEVEL"),
+			Level:     os.Getenv("LOG_LEVEL"),
 		},
 	}
 }
 
 type (
 	Config struct {
-		Server   ServerConfig
-		Database DatabaseConfig
-		Auth     AuthConfig
-		Upload   UploadConfig
-		Log      LogConfig
+		Server ServerConfig
+		DB     DatabaseConfig
+		Auth   AuthConfig
+		Upload UploadConfig
+		Log    LogConfig
 	}
 
 	ServerConfig struct {
 		BasePath string
 		Host     string
-		Port     string
+		Port     int
+		Env      string
 	}
 
 	DatabaseConfig struct {
 		Host     string
-		Port     string
+		Port     int
 		Name     string
 		User     string
 		Password string
@@ -93,6 +100,6 @@ type (
 
 	LogConfig struct {
 		Directory string
-		Level string
+		Level     string
 	}
 )

@@ -88,30 +88,6 @@ router.post('/upload_client_config', async (req, res) => {
     }
 });
 
-/**
- * 客户端心跳检测
- */
-router.get('/heartbeat', async (req, res) => {
-    const clientId = req.clientId;
-
-    if (clientId) {
-        logWithTime(`[HEARTBEAT] Client ${clientId} is alive`);
-        
-        // 更新客户端最后活跃时间
-        try {
-            await clientService.setClientOnline(clientId);
-        } catch (error) {
-            errorWithTime('[HEARTBEAT] Failed to update client status:', error);
-        }
-    }
-
-    res.json({
-        status: 'ok',
-        timestamp: Date.now(),
-        server_time: new Date().toISOString()
-    });
-});
-
 // 错误处理中间件
 router.use(handleUploadError);
 

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yuzujr/C3/pkg/log"
+	"github.com/yuzujr/C3/internal/logger"
 )
 
 // RegisterClientRoutes 注册客户端相关接口
@@ -14,11 +14,11 @@ func RegisterClientRoutes(r *gin.RouterGroup) {
 }
 
 func uploadScreenshot(c *gin.Context) {
-	log.Infof("[UPLOAD] Upload screenshot endpoint hit")
+	logger.Infof("[UPLOAD] Upload screenshot endpoint hit")
 	c.JSON(http.StatusCreated, gin.H{"message": "Screenshot uploaded"})
 }
 
 func uploadClientConfig(c *gin.Context) {
-	log.Infof("[CONFIG] Upload client config endpoint hit")
+	logger.Infof("[CONFIG] Upload client config endpoint hit")
 	c.JSON(http.StatusOK, gin.H{"message": "Client config received"})
 }
