@@ -6,66 +6,93 @@
 #include "core/RawImage.h"
 #include "core/platform/windows/GDIRAIIClasses.h"
 
-std::optional<RawImage> ScreenCapturer::captureScreen() {
+struct CaptureContext {
+    std::vector<RawImage>* out;
+};
+
+static BOOL monitorEnumProc(HMONITOR hMon, HDC, LPRECT, LPARAM lParam);
+
+std::vector<RawImage> ScreenCapturer::captureAllMonitors() {
+    std::vector<RawImage> results;
+
+    CaptureContext ctx{&results};
+
+    if (!EnumDisplayMonitors(nullptr, nullptr, monitorEnumProc,
+                             reinterpret_cast<LPARAM>(&ctx))) {
+        Logger::error("EnumDisplayMonitors failed");
+    }
+
+    return results;
+}
+
+static BOOL monitorEnumProc(HMONITOR hMon, HDC, LPRECT, LPARAM lParam) {
+    auto* ctx = reinterpret_cast<CaptureContext*>(lParam);
+    MONITORINFOEXA mi = {};
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfoA(hMon, &mi)) {
+        Logger::warn("Failed to get monitor info");
+        return TRUE;
+    }
+
+    RECT r = mi.rcMonitor;
+    int width = r.right - r.left;
+    int height = r.bottom - r.top;
+
     // 获取屏幕DC
     HDC hScreenDC = GetDC(nullptr);
     if (!hScreenDC) {
-        Logger::error("GetDC failed");
-        return std::nullopt;
+        Logger::warn("GetDC failed");
+        return TRUE;
     }
     auto screenDcGuard = std::shared_ptr<void>(nullptr, [hScreenDC](void*) {
         ReleaseDC(nullptr, hScreenDC);
     });
 
-    // 创建内存DC
+    // 创建兼容内存DC
     GDIContext memoryDC(CreateCompatibleDC(hScreenDC));
     if (!memoryDC) {
-        Logger::error("CreateCompatibleDC failed");
-        return std::nullopt;
+        Logger::warn("CreateCompatibleDC failed");
+        return TRUE;
     }
 
-    // 创建兼容位图 (RAII自动管理DeleteObject)
-    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-
-    GDIBitmap bitmap(
-        CreateCompatibleBitmap(hScreenDC, screenWidth, screenHeight));
+    // 创建位图
+    GDIBitmap bitmap(CreateCompatibleBitmap(hScreenDC, width, height));
     if (!bitmap) {
-        Logger::error("CreateCompatibleBitmap failed");
-        return std::nullopt;
+        Logger::warn("CreateCompatibleBitmap failed");
+        return TRUE;
     }
 
-    // 选择位图到DC (RAII自动恢复原对象)
+    // 选择到 DC
     SelectObjectGuard selectGuard(memoryDC, bitmap);
 
-    // 执行位块传输
-    if (!BitBlt(memoryDC, 0, 0, screenWidth, screenHeight, hScreenDC, 0, 0,
+    // 截图
+    if (!BitBlt(memoryDC, 0, 0, width, height, hScreenDC, r.left, r.top,
                 SRCCOPY)) {
-        Logger::error("BitBlt failed");
-        return std::nullopt;
+        Logger::warn(std::format("BitBlt failed for monitor: {}", mi.szDevice));
+        return TRUE;
     }
 
     // 获取位图信息
     BITMAP bmp;
     if (!GetObject(bitmap, sizeof(BITMAP), &bmp)) {
-        Logger::error("GetObject failed");
-        return std::nullopt;
+        Logger::warn("GetObject failed");
+        return TRUE;
     }
 
-    // 读取位图数据
-    int bytesPerPixel = 4;  // 通常为32位BGRA
+    // 获取像素数据（BGRA）
+    const int bytesPerPixel = 4;
     int imageSize = bmp.bmWidth * bmp.bmHeight * bytesPerPixel;
     std::vector<uint8_t> buffer(imageSize);
     if (!GetBitmapBits(bitmap, imageSize, buffer.data())) {
-        Logger::error("GetBitmapBits failed");
-        return std::nullopt;
+        Logger::warn("GetBitmapBits failed");
+        return TRUE;
     }
 
-    // 转换到RGB格式
+    // 转换为RGB格式
     RawImage result;
     result.width = bmp.bmWidth;
     result.height = bmp.bmHeight;
-    result.pixels.resize(result.width * result.height * 3);  // RGB输出
+    result.pixels.resize(result.width * result.height * 3);
 
     for (int y = 0; y < result.height; ++y) {
         for (int x = 0; x < result.width; ++x) {
@@ -82,5 +109,6 @@ std::optional<RawImage> ScreenCapturer::captureScreen() {
         }
     }
 
-    return result;
+    ctx->out->push_back(std::move(result));
+    return TRUE;
 }
