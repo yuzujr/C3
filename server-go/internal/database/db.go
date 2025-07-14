@@ -38,5 +38,5 @@ func InitDatabase() {
 		&models.Screenshot{},
 	)
 
-	logger.Infof("[DATABASE] Connected successfully")
+	logger.Infof("Database connected successfully")
 }

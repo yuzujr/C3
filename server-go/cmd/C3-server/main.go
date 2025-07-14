@@ -13,8 +13,6 @@ import (
 )
 
 func main() {
-	logger.Infof("Starting C3 server...")
-
 	// config
 	err := godotenv.Load()
 	if err != nil {

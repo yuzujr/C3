@@ -7,6 +7,14 @@ import (
 	"sync"
 )
 
+type Config struct {
+	Server ServerConfig
+	DB     DatabaseConfig
+	Auth   AuthConfig
+	Upload UploadConfig
+	Log    LogConfig
+}
+
 var (
 	cfg  *Config
 	once sync.Once
@@ -61,45 +69,3 @@ func load() {
 		},
 	}
 }
-
-type (
-	Config struct {
-		Server ServerConfig
-		DB     DatabaseConfig
-		Auth   AuthConfig
-		Upload UploadConfig
-		Log    LogConfig
-	}
-
-	ServerConfig struct {
-		BasePath string
-		Host     string
-		Port     int
-		Env      string
-	}
-
-	DatabaseConfig struct {
-		Host     string
-		Port     int
-		Name     string
-		User     string
-		Password string
-	}
-
-	AuthConfig struct {
-		Enabled            bool
-		Username           string
-		Password           string
-		SessionSecret      string
-		SessionExpireHours string
-	}
-
-	UploadConfig struct {
-		Directory string
-	}
-
-	LogConfig struct {
-		Directory string
-		Level     string
-	}
-)

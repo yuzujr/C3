@@ -1,0 +1,99 @@
+package services
+
+import (
+	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/yuzujr/C3/internal/config"
+	"github.com/yuzujr/C3/internal/database"
+	"github.com/yuzujr/C3/internal/logger"
+	"github.com/yuzujr/C3/internal/models"
+)
+
+// 查询别名
+func GetAlias(clientID string) (string, error) {
+	var client models.Client
+	err := database.DB.Where("client_id = ?", clientID).First(&client).Error
+	if err != nil {
+		return "", err
+	}
+	return client.Alias, nil
+}
+
+// 设置或更新客户端信息
+func SetClient(clientID, aliasIfEmpty string, info map[string]string) error {
+	var client models.Client
+	err := database.DB.Where("client_id = ?", clientID).First(&client).Error
+
+	if err != nil {
+		// 不存在则新建
+		client = models.Client{
+			ClientID:     clientID,
+			Alias:        aliasIfEmpty,
+			IPAddress:    info["ip_address"],
+			OnlineStatus: true,
+			LastSeen:     time.Now(),
+		}
+		return database.DB.Create(&client).Error
+	}
+
+	// 更新
+	client.IPAddress = info["ip_address"]
+	client.LastSeen = time.Now()
+	return database.DB.Save(&client).Error
+}
+
+// 保存客户端配置
+func SaveClientConfig(clientConfig models.ClientConfig) error {
+	// 验证配置
+	if err := validateApiConfig(clientConfig.Api); err != nil {
+		logger.Errorf("Invalid client config: %v", err)
+		return err
+	}
+
+	// 保存配置文件到UPLOAD_DIR/client_id/config.json
+	dir := filepath.Join(config.Get().Upload.Directory, clientConfig.ClientID)
+	if dir == "" {
+		return errors.New("upload directory is not set")
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		logger.Errorf("Failed to create config directory: %v", err)
+		return err
+	}
+	configPath := filepath.Join(dir, "config.json")
+	file, err := os.Create(configPath)
+	if err != nil {
+		logger.Errorf("Failed to create config file: %v", err)
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(clientConfig); err != nil {
+		logger.Errorf("Failed to write config to file: %v", err)
+		return err
+	}
+	return nil
+}
+
+// 记录截图信息到数据库
+func LogScreenshot(clientID string, filename, path string, size int64) error {
+	// 查 client 的主键 ID
+	var client models.Client
+	if err := database.DB.Where("client_id = ?", clientID).First(&client).Error; err != nil {
+		return err
+	}
+
+	screenshot := models.Screenshot{
+		ClientID: client.ClientID,
+		Filename: filename,
+		FilePath: path,
+		FileSize: int(size),
+	}
+
+	return database.DB.Create(&screenshot).Error
+}
