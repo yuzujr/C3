@@ -18,7 +18,6 @@ public:
     // 如果当前连接的URL与新URL不同，则需要重新连接
     // 其余情况什么都不做
     void connectOrReconnect(const std::string& url,
-                            const std::string& client_id,
                             bool skip_ssl_verification = false);
 
     // 发送消息到服务器
@@ -32,12 +31,10 @@ private:
     void onMessage(const ix::WebSocketMessage& msg) const;
 
     // 连接到 WebSocket 服务器
-    void connect(const std::string& url, const std::string& client_id,
-                 bool skip_ssl_verification = false);
+    void connect(const std::string& url, bool skip_ssl_verification = false);
 
     ix::WebSocket m_ws;
     std::function<void(const nlohmann::json&)> m_commandCallback;
-    std::string m_baseUrl;  // 保存原始的基础URL（不包含路径和查询参数）
 };
 
 #endif  // WEBSOCKET_CLIENT_H

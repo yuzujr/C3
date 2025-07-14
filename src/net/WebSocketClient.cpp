@@ -19,11 +19,11 @@ void WebSocketClient::close() {
 }
 
 void WebSocketClient::connectOrReconnect(const std::string& url,
-                                         const std::string& client_id,
+
                                          bool skip_ssl_verification) {
-    if (m_baseUrl.empty() || m_baseUrl != url) {
+    if (m_ws.getUrl().empty() || m_ws.getUrl() != url) {
         close();
-        connect(url, client_id, skip_ssl_verification);
+        connect(url, skip_ssl_verification);
     }
 }
 
@@ -43,15 +43,12 @@ void WebSocketClient::send(const nlohmann::json& message) {
 }
 
 void WebSocketClient::connect(const std::string& url,
-                              const std::string& client_id,
+
                               bool skip_ssl_verification) {
-    m_baseUrl = url;
-    std::string ws_url =
-        std::format("{}?type=client&client_id={}", url, client_id);
-    m_ws.setUrl(ws_url);
+    m_ws.setUrl(url);
 
     // 配置SSL/TLS设置
-    if (ws_url.starts_with("wss://")) {
+    if (url.starts_with("wss://")) {
         ix::SocketTLSOptions tlsOptions;
 
         if (skip_ssl_verification) {

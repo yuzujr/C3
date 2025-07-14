@@ -6,6 +6,7 @@ add_library(net STATIC)
 target_sources(net PRIVATE
     Uploader.cpp
     WebSocketClient.cpp
+    URLBuilder.cpp
 )
 
 
