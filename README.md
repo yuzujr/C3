@@ -20,7 +20,7 @@ The Node.js server is currently being rewritten in Go to improve performance, si
 ## Features
 
 - Reverse shell on WebSocket (xterm.js + native pty)
-- Automated screenshot capture
+- Automated screenshot capture (Multi-monitor support)
 - Web-based muti-client management interface
 - Cross-platform client support
 
