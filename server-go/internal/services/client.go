@@ -11,6 +11,7 @@ import (
 	"github.com/yuzujr/C3/internal/database"
 	"github.com/yuzujr/C3/internal/logger"
 	"github.com/yuzujr/C3/internal/models"
+	"gorm.io/gorm"
 )
 
 // 查询别名
@@ -28,8 +29,8 @@ func SetClient(clientID, aliasIfEmpty string, info map[string]string) error {
 	var client models.Client
 	err := database.DB.Where("client_id = ?", clientID).First(&client).Error
 
-	if err != nil {
-		// 不存在则新建
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// 不存在，新建
 		client = models.Client{
 			ClientID:     clientID,
 			Alias:        aliasIfEmpty,
@@ -38,6 +39,9 @@ func SetClient(clientID, aliasIfEmpty string, info map[string]string) error {
 			LastSeen:     time.Now(),
 		}
 		return database.DB.Create(&client).Error
+	} else if err != nil {
+		logger.Errorf("Failed to find client: %v", err)
+		return err
 	}
 
 	// 更新
@@ -96,4 +100,20 @@ func LogScreenshot(clientID string, filename, path string, size int64) error {
 	}
 
 	return database.DB.Create(&screenshot).Error
+}
+
+func validateApiConfig(config models.ApiConfig) error {
+	if config.Hostname == "" {
+		return errors.New("hostname is required")
+	}
+	if config.Port <= 0 || config.Port > 65535 {
+		return errors.New("port must be between 1 and 65535")
+	}
+	if config.IntervalSeconds <= 0 {
+		return errors.New("interval_seconds must be greater than 0")
+	}
+	if config.RetryDelayMilliseconds <= 0 {
+		return errors.New("retry_delay_ms must be greater than 0")
+	}
+	return nil
 }

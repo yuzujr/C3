@@ -2,6 +2,7 @@
 #define C3_APP_H
 
 #include <atomic>
+#include <string>
 
 #include "core/core.h"
 #include "net/net.h"
@@ -40,6 +41,19 @@ private:
     UploadController m_controller;
     CommandDispatcher m_dispatcher;
     WebSocketClient m_wsClient;
+
+    std::string getConfigEndpoint() const {
+        return std::format("client/client_config?client_id={}",
+                           m_config.client_id);
+    }
+    std::string getScreenshotEndpoint() const {
+        return std::format("client/screenshot?client_id={}",
+                           m_config.client_id);
+    }
+    std::string getWebSocketEndpoint() const {
+        return std::format("client/ws?type=client&client_id={}",
+                           m_config.client_id);
+    }
 };
 
 #endif  // C3_APP_H

@@ -8,6 +8,7 @@ import (
 	"github.com/yuzujr/C3/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -23,7 +24,9 @@ func InitDatabase() {
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  dsn,
 		PreferSimpleProtocol: true, // 使用 simple protocol（pgx 特性）
-	}), &gorm.Config{})
+	}), &gorm.Config{
+		Logger: gormLogger.Default.LogMode(gormLogger.Silent), // 禁用 GORM 日志
+	})
 
 	if err != nil {
 		logger.Fatalf("failed to connect to database: %v", err)

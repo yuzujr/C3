@@ -11,17 +11,19 @@ import (
 	"github.com/yuzujr/C3/internal/models"
 	"github.com/yuzujr/C3/internal/services"
 	"github.com/yuzujr/C3/internal/utils"
+	"github.com/yuzujr/C3/internal/websocket"
 )
 
 // RegisterClientRoutes 注册客户端相关接口
 func RegisterClientRoutes(r *gin.RouterGroup) {
-	r.POST("/screenshot", uploadScreenshot)
-	r.POST("/client_config", uploadClientConfig)
+	r.POST("/screenshot", handleClientScreenshot)
+	r.POST("/client_config", handleClientConfig)
+	r.GET("/ws", websocket.ServeWs)
 }
 
 // 上传截图
 // 要求客户端已存在
-func uploadScreenshot(c *gin.Context) {
+func handleClientScreenshot(c *gin.Context) {
 	clientID := c.Query("client_id")
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -57,7 +59,7 @@ func uploadScreenshot(c *gin.Context) {
 
 // 上传客户端配置
 // 若为新客户端，则创建新记录；若已存在，则更新记录
-func uploadClientConfig(c *gin.Context) {
+func handleClientConfig(c *gin.Context) {
 	var config models.ClientConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
 		logger.Errorf("Invalid client config: %v", err)

@@ -84,8 +84,7 @@ void C3App::startWebSocketCommandListener() {
     });
 
     // 启动 WebSocket 客户端
-    std::string endpoint =
-        std::format("?type=client&client_id={}", m_config.client_id);
+    std::string endpoint = getWebSocketEndpoint();
     std::string wsUrl = URLBuilder::buildWebSocketUrl(m_config, endpoint);
     m_wsClient.connectOrReconnect(wsUrl, m_config.skip_ssl_verification);
 }
@@ -151,8 +150,7 @@ void C3App::captureAndUpload() {
 }
 
 void C3App::uploadImageWithRetry(const std::vector<uint8_t>& frame) {
-    std::string endPoint =
-        std::format("client/screenshot/?client_id={}", m_config.client_id);
+    std::string endPoint = getScreenshotEndpoint();
     std::string uploadUrl = URLBuilder::buildHTTPUrl(m_config, endPoint);
     Logger::info(std::format("Uploading to: {}", uploadUrl));
 
@@ -165,8 +163,7 @@ void C3App::uploadImageWithRetry(const std::vector<uint8_t>& frame) {
 }
 
 void C3App::uploadConfigWithRetry() {
-    std::string endPoint =
-        std::format("client/client_config/?client_id={}", m_config.client_id);
+    std::string endPoint = getConfigEndpoint();
     std::string uploadUrl = URLBuilder::buildHTTPUrl(m_config, endPoint);
     Logger::info(std::format("Uploading to: {}", uploadUrl));
 
@@ -192,8 +189,7 @@ void C3App::applyConfigSettings() {
     }
 
     // 确保 WebSocket 连接
-    std::string endpoint =
-        std::format("?type=client&client_id={}", m_config.client_id);
+    std::string endpoint = getWebSocketEndpoint();
     std::string wsUrl = URLBuilder::buildWebSocketUrl(m_config, endpoint);
     m_wsClient.connectOrReconnect(wsUrl,
 

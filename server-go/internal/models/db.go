@@ -10,6 +10,7 @@ type User struct {
 	PasswordHash string `gorm:"size:255;not null"`
 	Role         string `gorm:"size:20;default:admin"`
 	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type Client struct {
@@ -19,6 +20,7 @@ type Client struct {
 	OnlineStatus bool   `gorm:"default:false"`
 	LastSeen     time.Time
 	CreatedAt    time.Time
+	UpdatedAt    time.Time
 
 	CommandLogs []CommandLog `gorm:"foreignKey:ClientID"`
 	Screenshots []Screenshot `gorm:"foreignKey:ClientID"`
@@ -30,7 +32,9 @@ type CommandLog struct {
 	Command    string `gorm:"type:text;not null"`
 	Result     string `gorm:"type:text"`
 	ExitCode   int
-	ExecutedAt time.Time `gorm:"autoCreateTime"`
+	
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 type Screenshot struct {
@@ -39,5 +43,7 @@ type Screenshot struct {
 	Filename   string `gorm:"size:255;not null"`
 	FilePath   string `gorm:"size:500;not null"`
 	FileSize   int
-	UploadedAt time.Time `gorm:"autoCreateTime"`
+
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }

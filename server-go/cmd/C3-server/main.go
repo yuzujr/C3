@@ -10,6 +10,7 @@ import (
 	"github.com/yuzujr/C3/internal/database"
 	"github.com/yuzujr/C3/internal/logger"
 	"github.com/yuzujr/C3/internal/routes"
+	"github.com/yuzujr/C3/internal/websocket"
 )
 
 func main() {
@@ -26,6 +27,9 @@ func main() {
 	// http server
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+
+	// websocket hub
+	go websocket.HubInstance.Run()
 
 	// 中间件
 	r.Use(gin.Recovery())

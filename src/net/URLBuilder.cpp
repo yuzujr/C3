@@ -30,12 +30,20 @@ std::string URLBuilder::buildHTTPUrl(const Config& config,
                                      const std::string& endpoint) {
     const std::string protocol = config.use_ssl ? "https" : "http";
 
-    return buildBaseUrl(protocol, config) + endpoint;
+    return buildBaseUrl(protocol, config) + cleanEndpoint(endpoint);
 }
 
 std::string URLBuilder::buildWebSocketUrl(const Config& config,
                                           const std::string& endpoint) {
     const std::string protocol = config.use_ssl ? "wss" : "ws";
 
-    return buildBaseUrl(protocol, config) + endpoint;
+    return buildBaseUrl(protocol, config) + cleanEndpoint(endpoint);
+}
+
+std::string URLBuilder::cleanEndpoint(const std::string& endpoint) {
+    size_t pos = endpoint.find_first_not_of('/');
+    if (pos == std::string::npos) {
+        return "";
+    }
+    return endpoint.substr(pos);
 }

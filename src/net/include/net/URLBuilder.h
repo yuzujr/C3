@@ -39,6 +39,13 @@ private:
      */
     static std::string buildBaseUrl(const std::string& protocol,
                                     const Config& config);
+
+    /**
+     *去掉前导斜杠的端点
+     * @param endpoint API端点
+     * @return 去掉前导斜杠的端点字符串
+     */
+    static std::string cleanEndpoint(const std::string& endpoint);
 };
 
 #endif  // URL_BUILDER_H
