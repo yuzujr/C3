@@ -1,6 +1,8 @@
 package websocket
 
 import (
+	"encoding/json"
+
 	"github.com/gorilla/websocket"
 	"github.com/yuzujr/C3/internal/logger"
 )
@@ -9,6 +11,32 @@ type client struct {
 	Conn *websocket.Conn
 	Send chan []byte
 	ID   string
+}
+
+type Command struct {
+	Type string `json:"type"`
+	Data any    `json:"data"`
+}
+
+func SendCommandToClient(clientID string, message Command) {
+	// 将命令转换为JSON格式
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		logger.Errorf("Failed to marshal message for client %s: %v", clientID, err)
+		return
+	}
+
+	// 查找客户端并发送消息
+	client, ok := HubInstance.Clients[clientID]
+	if !ok {
+		logger.Errorf("Client %s not found", clientID)
+		return
+	}
+	select {
+	case client.Send <- messageBytes:
+	default:
+		logger.Errorf("Failed to send message to client %s: channel full", clientID)
+	}
 }
 
 func (c *client) readPump() {

@@ -74,10 +74,10 @@ func handleClientConfig(c *gin.Context) {
 		return
 	}
 
-	// 设置或更新客户端信息
-	services.SetClient(clientID, clientID, map[string]string{
-		"client_id":  clientID,
-		"ip_address": c.ClientIP(),
+	// 创建或更新客户端信息
+	services.SetClient(clientID, &models.Client{
+		IPAddress:    c.ClientIP(),
+		OnlineStatus: true,
 	})
 
 	// 保存配置文件

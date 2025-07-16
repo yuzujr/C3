@@ -14,6 +14,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// 获取客户端信息
+func GetClient(clientID string) (*models.Client, error) {
+	var client models.Client
+	err := database.DB.Where("client_id = ?", clientID).First(&client).Error
+	if err != nil {
+		return nil, err
+	}
+	return &client, nil
+}
+
 // 查询别名
 func GetAlias(clientID string) (string, error) {
 	var client models.Client
@@ -25,7 +35,7 @@ func GetAlias(clientID string) (string, error) {
 }
 
 // 设置或更新客户端信息
-func SetClient(clientID, aliasIfEmpty string, info map[string]string) error {
+func SetClient(clientID string, info *models.Client) error {
 	var client models.Client
 	err := database.DB.Where("client_id = ?", clientID).First(&client).Error
 
@@ -33,9 +43,9 @@ func SetClient(clientID, aliasIfEmpty string, info map[string]string) error {
 		// 不存在，新建
 		client = models.Client{
 			ClientID:     clientID,
-			Alias:        aliasIfEmpty,
-			IPAddress:    info["ip_address"],
-			OnlineStatus: true,
+			Alias:        clientID,
+			IPAddress:    info.IPAddress,
+			OnlineStatus: info.OnlineStatus,
 			LastSeen:     time.Now(),
 		}
 		return database.DB.Create(&client).Error
@@ -45,7 +55,16 @@ func SetClient(clientID, aliasIfEmpty string, info map[string]string) error {
 	}
 
 	// 更新
-	client.IPAddress = info["ip_address"]
+	if info.ClientID != "" {
+		client.ClientID = info.ClientID
+	}
+	if info.Alias != "" {
+		client.Alias = info.Alias
+	}
+	if info.IPAddress != "" {
+		client.IPAddress = info.IPAddress
+	}
+	client.OnlineStatus = info.OnlineStatus
 	client.LastSeen = time.Now()
 	return database.DB.Save(&client).Error
 }

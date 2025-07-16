@@ -16,10 +16,11 @@ import (
 func initLogger() {
 	cfg := config.Get()
 	logDir := cfg.Log.Directory
+	env := cfg.Server.Env
 	level := parseLevel(cfg.Log.Level)
 
 	// 如果是测试环境，不写文件日志，只输出到控制台
-	if isTestEnv() {
+	if env == "test" {
 		consoleEncoder := zapcore.NewConsoleEncoder(getEncoderConfig())
 		core := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), level)
 		logger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
@@ -88,9 +89,4 @@ func getEncoderConfig() zapcore.EncoderConfig {
 // 设置日志格式
 func localTimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	enc.AppendString(t.Format("2006-01-02 15:04:05"))
-}
-
-// 判断是否测试环境
-func isTestEnv() bool {
-	return os.Getenv("ENV") == "test"
 }
