@@ -11,11 +11,11 @@ The Node.js server is currently being rewritten in Go to improve performance, si
 ### ✅ Completed
 
 * Basic client upload API implemented
+* Implement WebSocket communication with clients
 
 ### 🔜 Upcoming
 
-* Implement WebSocket communication with clients
-* Connect and sync with the web frontend
+* Connect and sync with web frontend
 
 ## Features
 
