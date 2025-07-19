@@ -1,10 +1,6 @@
-# C3 Build Instructions
+## Client build
 
-This document provides detailed compilation and deployment instructions for C3 client.
-
-## Prerequisites
-
-### Required Tools
+### Prerequisites
 
 - **CMake** 3.16 or later - [Download](https://cmake.org/download/)
 - **C++20 Compatible Compiler**:
@@ -62,9 +58,6 @@ cmake --build build --config Release -j$(nproc)
 ```
 
 3. **Run**
-```bash
-./build/src/C3
-```
 
 
 ## Hardcoded Configuration Build

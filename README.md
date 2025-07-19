@@ -1,30 +1,33 @@
 # C3
 
-C3 (Command-Control-C++) is a minimal command and control framework for remote system administration.
+C3 (Command-Control-C++) is a lightweight command and control framework for remote system administration.
 
-**Tech Stack**: C++ client, Node.js server, PostgreSQL database, Web frontend
+**Tech Stack**: 
+- C++ client
+- Go server
+- PostgreSQL database
+- Web frontend
 
-## Go Server Rewrite Progress
-The Go server has been migrated to [C3-server](https://github.com/yuzujr/C3-server). Future changes to the client code will not maintain backward compatibility with the Node.js server. Once the refactor is complete, the Node.js server will be removed. The last available version of the Node.js server is [Release v1.9.0](https://github.com/yuzujr/C3/releases/tag/v1.9.0).
-
+## Server
+The server code is maintained in a separate repository: [C3-server](https://github.com/yuzujr/C3-server).
+> **Note:** Versions prior to **v1.9.0** used a Node.js–based implementation, which is now officially deprecated. [Legacy releases](https://github.com/yuzujr/C3/releases) remain available for download if you need them.
 
 ## Features
 
-- Reverse shell on WebSocket (xterm.js + native pty)
-- Automated screenshot capture (Multi-monitor support)
-- Web-based muti-client management interface
-- Cross-platform client support
+- **Web frontend**: A pretty web interface that provides:
+  - Multi-user management
+  - Sending real-time commands
+  - Viewing screenshots (supports multiple monitors)
+  - A reverse shell based on xterm.js (frontend), WebSocket (communication), and pty (backend), offering millisecond-level responsiveness and a native experience
 
-## Prerequisites
-
-- **Server**: Node.js, PostgreSQL
-- **Client**: CMake 3.16+, C++20 compiler
-- **Platform**: Unix, Windows
+- **WebSocket Communication**: Enables real-time interaction with clients.
+- **Database Integration**: Uses PostgreSQL for persistent storage.
+- **Environment Configuration**: Uses `.env` files for easy configuration management.
 
 ## Quick Start
 
-1. **Get Client**: Download from [Releases](https://github.com/yuzujr/C3/releases) or [Build from Source](docs/BUILD.md)
-2. **Setup**: Follow the [Setup Guide](docs/SETUP.md)
+1. **Get Client**: Download from [Releases](https://github.com/yuzujr/C3/releases) or [Build from Source](docs/build.md)
+2. **Setup**: Follow the [Setup Guide](docs/setup.md)
 
 ## Legal
 
