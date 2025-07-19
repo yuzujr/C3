@@ -1,9 +1,8 @@
 # development files
 .cache/
+.vscode/
 build/
 build-hardcoded/
-build-lsp/
-.vscode/
 release/
 cicd/
 
@@ -12,11 +11,3 @@ src/core/include/core/HardcodedConfig.h
 
 # lsp files
 compile_commands.json
-
-# server files
-server/node_modules/
-server/logs/
-server/uploads/
-
-# server environment files
-.env
