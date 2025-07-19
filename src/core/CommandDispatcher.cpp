@@ -112,7 +112,7 @@ public:
 };
 
 // 强制终止会话命令
-class ForceKillSessionCommand : public ICommand {
+class PtyKillSessionCommand : public ICommand {
 public:
     CommandDispatcher::CommandResult execute(
         const nlohmann::json& message) override {
@@ -157,7 +157,7 @@ public:
 };
 
 // 创建PTY会话命令
-class CreatePtySessionCommand : public ICommand {
+class PtyCreateSessionCommand : public ICommand {
 public:
     CommandDispatcher::CommandResult execute(
         const nlohmann::json& message) override {
@@ -258,12 +258,12 @@ void CommandDispatcher::registerCommandHandlers() {
         std::make_unique<ResumeScreenshotsCommand>(m_uploadController);
     m_commandHandlers["update_config"] =
         std::make_unique<UpdateConfigCommand>(m_config);
-    m_commandHandlers["create_pty_session"] =
-        std::make_unique<CreatePtySessionCommand>();
+    m_commandHandlers["pty_create_session"] =
+        std::make_unique<PtyCreateSessionCommand>();
     m_commandHandlers["pty_input"] = std::make_unique<PtyInputCommand>();
     m_commandHandlers["pty_resize"] = std::make_unique<PtyResizeCommand>();
-    m_commandHandlers["force_kill_session"] =
-        std::make_unique<ForceKillSessionCommand>();
+    m_commandHandlers["pty_kill_session"] =
+        std::make_unique<PtyKillSessionCommand>();
     m_commandHandlers["offline"] = std::make_unique<OfflineCommand>();
 
     // take_screenshot 命令需要在 setScreenshotCallback 中设置

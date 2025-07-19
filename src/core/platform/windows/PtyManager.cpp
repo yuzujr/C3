@@ -330,7 +330,7 @@ nlohmann::json PtyManager::Impl::closePtySession(
     auto result = createResponse(true, "Session closed", session_id);
 
     // 发送关闭结果到服务端
-    sendOutput("kill_session_result", session_id, result);
+    sendOutput("shell_output", session_id, result);
 
     return result;
 }

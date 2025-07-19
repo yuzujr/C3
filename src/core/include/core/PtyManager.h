@@ -28,7 +28,7 @@ public:
 
     // 输出回调函数类型：当PTY有输出时调用
     // 参数: {
-    //   type: 输出类型 (如 "shell_output", "kill_session_result")
+    //   type: 输出类型 (如 "shell_output")
     //   session_id: 会话ID
     //   data: 输出数据
     // }

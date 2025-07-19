@@ -51,8 +51,7 @@ private:
                            m_config.client_id);
     }
     std::string getWebSocketEndpoint() const {
-        return std::format("client/ws?type=client&client_id={}",
-                           m_config.client_id);
+        return std::format("ws?type=client&client_id={}", m_config.client_id);
     }
 };
 
