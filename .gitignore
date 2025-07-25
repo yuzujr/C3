@@ -3,8 +3,8 @@
 .vscode/
 build/
 build-hardcoded/
-release/
-cicd/
+releases/
+ci/
 
 # auto-generated files
 src/core/include/core/HardcodedConfig.h
