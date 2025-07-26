@@ -1,20 +1,22 @@
 ## Client build
 
+### Xmake Recommended
+xmake is a modern and efficient C/C++ build system that automatically downloads dependencies and builds the C3 project at blazing fast speed.
+
+[-> Getting started with xmake](./build-xmake.md)
+
 ### Prerequisites
 
 - **CMake** 3.16 or later - [Download](https://cmake.org/download/)
 - **C++20 Compatible Compiler**:
   - Windows: MSVC (Visual Studio 2019+)
   - Linux: GCC 10+ or Clang 12+
+- **System libraries** (Ubuntu/Debian):
+  ```bash
+  sudo apt install libx11-dev libxinerama-dev libssl-dev libcurl4-openssl-dev
+  ```
 
-### System Dependencies
-
-**Linux (Ubuntu/Debian)**
-```bash
-sudo apt update
-sudo apt install build-essential cmake git
-sudo apt install libx11-dev libxinerama-dev libssl-dev libcurl4-openssl-dev
-```
+---
 
 ### Third-party Libraries
 
@@ -35,8 +37,9 @@ The following libraries are automatically downloaded and built by CMake:
 
 ## Standard Build
 
+Build and run the normal (non–hardcoded) binary:
 
-1. **Configure Build**
+1. **Configure**
 ```bash
 mkdir build
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -52,35 +55,48 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 | `BUILD_TESTS` | `ON` | Build unit tests |
 
 
-2. **Compile**
+2. **Build**
 ```bash
 cmake --build build --config Release -j$(nproc)
 ```
 
-3. **Run**
-
+3. **Test**
+```bash
+cd build
+ctest
+```
 
 ## Hardcoded Configuration Build
 
-For secure deployment without config files:
+Embed all runtime configuration into the binary (no external config files). **Before configuring**, you must generate the header file:
 
 1. **Edit Build Presets**
+
+   `config/build-presets.json`
+
+2. **Generate header**
+
+   * **Linux/macOS**:
+
+     ```bash
+     ./scripts/generate-hardcoded-config.sh -p development
+     ```
+   * **Windows PowerShell**:
+
+     ```powershell
+     .\scripts\generate-hardcoded-config.ps1 -p development
+     ```
+
+   This will produce (for example) `src/core/include/core/HardcodedConfig.h` with all your settings.
+
+3. **Configure**
+
    ```bash
-   vim config/build-presets.json
+   cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release
    ```
 
-2. **Generate Hardcoded Config**
-```bash
-# Windows
-.\scripts\generate-hardcoded-config.ps1 -p development
+4. **Build**
 
-# Linux
-./scripts/generate-hardcoded-config.sh -p development
-```
-
-3. **Build with Hardcoded Config**
    ```bash
-   mkdir build-hardcoded
-   cmake -S . -B build-hardcoded -DUSE_HARDCODED_CONFIG=ON -DCMAKE_BUILD_TYPE=Release
    cmake --build build-hardcoded --config Release -j
    ```

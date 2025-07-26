@@ -1,12 +1,10 @@
 ## Client Setup
 
 ### 1. Get Client
-
-**Option 1: Download from [Releases](https://github.com/yuzujr/C3/releases) (Recommended)**
-
-**Option 2: Compile from Source**
-
-See [build.md](./build.md) for detailed compilation instructions.
+   - Download from [Releases](https://github.com/yuzujr/C3/releases)  
+   - Build from source:  
+     - [CMake guide](docs/build-cmake.md)  
+     - [Xmake guide](docs/build-xmake.md)
 
 ### 2. Configure
 

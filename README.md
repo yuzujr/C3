@@ -26,7 +26,11 @@ The server code is maintained in a separate repository: [C3-server](https://gith
 
 ## Quick Start
 
-1. **Get Client**: Download from [Releases](https://github.com/yuzujr/C3/releases) or [Build from Source](docs/build.md)
+1. **Get Client**  
+   - Download from [Releases](https://github.com/yuzujr/C3/releases)  
+   - Build from source:  
+     - [CMake guide](docs/build-cmake.md)  
+     - [Xmake guide](docs/build-xmake.md)
 2. **Setup**: Follow the [Setup Guide](docs/setup.md)
 
 ## Legal
