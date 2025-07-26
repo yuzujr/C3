@@ -9,6 +9,5 @@ target_link_libraries(test_pty
         gtest
 )
 
-# 让 gtest 自动发现测试
 include(GoogleTest)
 gtest_discover_tests(test_pty)

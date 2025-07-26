@@ -26,7 +26,7 @@ add_subdirectory(src)
 # build tests
 if(BUILD_TESTS)
     enable_testing()
-    add_subdirectory(test/test_pty)
+    add_subdirectory(test)
     message(STATUS "Building with tests enabled")
 else()
     message(STATUS "Building without tests")

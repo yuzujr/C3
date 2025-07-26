@@ -1,0 +1,7 @@
+target("test_pty")
+  set_kind("binary")
+  set_default(false)
+  add_deps("core")
+  add_files("test_pty/test_pty.cpp")
+  add_packages("gtest")
+  add_tests("default")

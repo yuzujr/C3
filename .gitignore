@@ -1,8 +1,10 @@
 # development files
 .cache/
 .vscode/
+.xmake/
 build/
 build-hardcoded/
+build-xmake/
 releases/
 ci/
 
