@@ -211,7 +211,8 @@ CommandDispatcher::CommandDispatcher(UploadController& controller,
     registerCommandHandlers();
 }
 
-void CommandDispatcher::setScreenshotCallback(ScreenshotCallback callback) {
+void CommandDispatcher::registerScreenshotCallback(
+    ScreenshotCallback callback) {
     m_screenshotCallback = callback;
 
     // 更新截图命令的回调
@@ -266,7 +267,7 @@ void CommandDispatcher::registerCommandHandlers() {
         std::make_unique<PtyKillSessionCommand>();
     m_commandHandlers["offline"] = std::make_unique<OfflineCommand>();
 
-    // take_screenshot 命令需要在 setScreenshotCallback 中设置
+    // take_screenshot 命令需要在 registerScreenshotCallback 中设置
 }
 
 CommandDispatcher::CommandResult CommandDispatcher::validateCommandMessage(

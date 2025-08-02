@@ -12,28 +12,30 @@ public:
     C3App();
     ~C3App();
 
+    friend class CommandDispatcher;
+
     // 启动应用程序
     int run();
     // 停止应用程序（用于信号处理）
     void stop();
-    // 截图并上传（远程命令回调函数）
-    void captureAndUpload();
 
 private:
-    // 启动 WebSocket 命令监听器
+    // 启动 WebSocket 客户端
     void startWebSocketCommandListener();
 
     // 主循环
     void mainLoop();
 
+    // 应用配置
+    void applyConfigSettings();
+
+    // 截图并上传
+    void captureAndUpload();
+
     // 上传图像
     void uploadImageWithRetry(const std::vector<uint8_t>& frame);
     // 上传配置文件
     void uploadConfigWithRetry();
-
-    // 应用配置设置
-    // 包括上传配置文件和设置开机自启
-    void applyConfigSettings();
 
 private:
     std::atomic<bool> m_running;

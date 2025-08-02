@@ -1,7 +1,5 @@
 #include "core/platform/windows/GDIRAIIClasses.h"
 
-#include <stdexcept>
-
 // GDIContext 实现
 GDIContext::GDIContext(HDC hdc) noexcept : m_hdc(hdc) {}
 
@@ -98,11 +96,7 @@ HBITMAP GDIBitmap::get() const noexcept {
 
 // SelectObjectGuard 实现
 SelectObjectGuard::SelectObjectGuard(HDC hdc, HGDIOBJ obj)
-    : m_hdc(hdc), m_oldObj(SelectObject(hdc, obj)) {
-    if (!m_oldObj) {
-        throw std::runtime_error("SelectObject failed");
-    }
-}
+    : m_hdc(hdc), m_oldObj(SelectObject(hdc, obj)) {}
 
 SelectObjectGuard::~SelectObjectGuard() {
     if (m_hdc && m_oldObj) {

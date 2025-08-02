@@ -90,7 +90,7 @@ void WebSocketClient::onMessage(const ix::WebSocketMessage& msg) const {
     }
 }
 
-void WebSocketClient::setOnCommandCallback(
+void WebSocketClient::registerOnCommandCallback(
     std::function<void(const nlohmann::json&)> callback) {
     m_commandCallback = callback;
 }

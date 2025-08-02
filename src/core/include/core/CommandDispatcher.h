@@ -34,7 +34,7 @@ public:
     };
 
     // 设置截图回调函数
-    void setScreenshotCallback(ScreenshotCallback callback);
+    void registerScreenshotCallback(ScreenshotCallback callback);
 
     // 分发接收到的命令
     void dispatchCommands(const nlohmann::json& message);

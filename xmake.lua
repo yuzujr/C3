@@ -3,7 +3,7 @@
 -- 项目基础配置
 set_project("C3")
 set_version("1.10.0")
-set_languages("cxx20")
+set_languages("cxx23")
 set_warnings("all", "error")
 
 -- 编译模式

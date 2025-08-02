@@ -11,8 +11,8 @@ endif()
 
 # generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# c++ standard is 20
-set(CMAKE_CXX_STANDARD 20)
+# c++ standard is 23
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # disable compiler extensions
 set(CMAKE_CXX_EXTENSIONS OFF)

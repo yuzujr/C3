@@ -111,7 +111,7 @@ protected:
         g_collector.clear();
 
         // 设置输出回调
-        PtyManager::getInstance().setOutputCallback(
+        PtyManager::getInstance().registerOutputCallback(
             [](const nlohmann::json& response) {
                 g_collector.collect(response);
             });

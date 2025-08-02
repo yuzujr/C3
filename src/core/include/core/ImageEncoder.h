@@ -2,6 +2,8 @@
 #define IMAGE_ENCODER_H
 
 #include <cstdint>
+#include <expected>
+#include <string>
 #include <vector>
 
 struct RawImage;
@@ -9,7 +11,8 @@ struct RawImage;
 namespace ImageEncoder {
 
 // 编码 RawImage 为 JPEG 格式
-std::vector<uint8_t> encodeToJPEG(const RawImage& image, int quality = 90);
+std::expected<std::vector<uint8_t>, std::string> encodeToJPEG(
+    const RawImage& image, int quality = 90);
 
 }  // namespace ImageEncoder
 

@@ -24,19 +24,7 @@ int main() {
     // 注册信号处理器
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
-    try {
-        C3App app;
-        g_appInstance = &app;  // 设置全局实例指针
-        int result = app.run();
-        g_appInstance = nullptr;  // 清除全局实例指针
-        return result;
-    } catch (const std::exception& e) {
-        Logger::error(std::format("Application error: {}", e.what()));
-        // 如果应用实例存在，调用其统一的停止清理方法
-        if (g_appInstance) {
-            g_appInstance->stop();
-        }
-        g_appInstance = nullptr;  // 清除全局实例指针
-        return 1;
-    }
+    C3App app;
+    g_appInstance = &app;  // 设置全局实例指针
+    return app.run();
 }

@@ -35,7 +35,7 @@ public:
     using OutputCallback = std::function<void(const nlohmann::json&)>;
 
     // 设置输出回调函数
-    void setOutputCallback(OutputCallback callback);
+    void registerOutputCallback(OutputCallback callback);
 
     // 创建一个新的PTY会话
     nlohmann::json createPtySession(

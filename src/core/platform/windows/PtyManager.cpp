@@ -52,7 +52,7 @@ public:
     void cleanupTimeoutPtySessions();
 
     // 主要功能方法
-    void setOutputCallback(OutputCallback callback);
+    void registerOutputCallback(OutputCallback callback);
     nlohmann::json createPtySession(const std::string& session_id, int cols,
                                     int rows, const std::string& command);
     void writeToPtySession(const std::string& session_id,
@@ -145,7 +145,7 @@ static HRESULT InitializeStartupInfoAttachedToPseudoConsole(STARTUPINFOEXW*,
                                                             HPCON);
 
 // 设置输出回调函数
-void PtyManager::Impl::setOutputCallback(OutputCallback callback) {
+void PtyManager::Impl::registerOutputCallback(OutputCallback callback) {
     std::lock_guard<std::mutex> lock(mutex);
     output_callback = callback;
 }
@@ -438,8 +438,8 @@ PtyManager::PtyManager() : pImpl(std::make_unique<Impl>()) {}
 
 PtyManager::~PtyManager() = default;
 
-void PtyManager::setOutputCallback(OutputCallback callback) {
-    pImpl->setOutputCallback(callback);
+void PtyManager::registerOutputCallback(OutputCallback callback) {
+    pImpl->registerOutputCallback(callback);
 }
 
 nlohmann::json PtyManager::createPtySession(const std::string& session_id,

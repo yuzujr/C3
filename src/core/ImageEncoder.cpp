@@ -1,25 +1,28 @@
 #include "core/ImageEncoder.h"
 
-#include <stdexcept>
-
 #include "core/RawImage.h"
 #include "turbojpeg.h"
 
 namespace ImageEncoder {
 
-std::vector<uint8_t> encodeToJPEG(const RawImage& image, int quality) {
+std::expected<std::vector<uint8_t>, std::string> encodeToJPEG(
+    const RawImage& image, int quality) {
+    // 检查 RawImage 是否有效
     if (image.pixels.empty() || image.width <= 0 || image.height <= 0) {
-        throw std::invalid_argument("Invalid RawImage input");
+        return std::unexpected(
+            "Invalid RawImage input: image is empty or has invalid "
+            "dimensions.");
     }
 
     tjhandle compressor = tjInitCompress();
     if (!compressor) {
-        throw std::runtime_error("Failed to initialize TurboJPEG compressor");
+        return std::unexpected("Failed to initialize TurboJPEG compressor.");
     }
 
     unsigned char* jpegBuf = nullptr;
     unsigned long jpegSize = 0;
 
+    // 压缩图像
     int result = tjCompress2(compressor,
                              image.pixels.data(),  // RGB 数据
                              image.width,
@@ -40,11 +43,12 @@ std::vector<uint8_t> encodeToJPEG(const RawImage& image, int quality) {
     if (jpegBuf) tjFree(jpegBuf);
     tjDestroy(compressor);
 
+    // 检查输出是否为空
     if (output.empty()) {
-        throw std::runtime_error("output buffer is empty after compression");
+        return std::unexpected("Encoded JPEG output is empty.");
     }
 
-    return output;
+    return output;  // 返回编码后的图像数据
 }
 
 }  // namespace ImageEncoder

@@ -15,22 +15,30 @@ C3App::C3App()
 #ifdef USE_HARDCODED_CONFIG
     // 硬编码配置模式
     Logger::info("=== C3 Initializing Hardcoded Configuration ===");
-    if (!m_config.initHardcoded()) {
+    if (m_config.initHardcoded()) {
+        Logger::info("Hardcoded config initialized successfully");
+        m_config.listHardcoded();
+    } else {
         Logger::error("Failed to initialize hardcoded config");
-        throw std::runtime_error("Failed to initialize hardcoded config");
+        m_running = false;  // 停止运行
     }
-    Logger::info("Hardcoded config initialized successfully");
-    m_config.listHardcoded();
 #else
     // 配置文件模式
     Logger::info("=== C3 Starting with Config File Mode ===");
-    if (!m_config.load("config.json")) {
+    if (m_config.load("config.json")) {
+        Logger::info("Config loaded successfully");
+        m_config.list();
+    } else {
         Logger::error("Failed to load config.json");
-        throw std::runtime_error("Failed to load config.json");
+        m_running = false;  // 停止运行
     }
-    Logger::info("Config loaded successfully");
-    m_config.list();
 #endif
+
+    // 如果配置加载失败，跳过后续操作
+    if (!m_running) {
+        Logger::error("Initialization failed. Exiting...");
+        return;  // 终止构造函数
+    }
 
     // 应用配置设置
     applyConfigSettings();
@@ -39,12 +47,12 @@ C3App::C3App()
     SystemUtils::enableHighDPI();
 
     // 设置截图回调函数
-    m_dispatcher.setScreenshotCallback([this]() {
+    m_dispatcher.registerScreenshotCallback([this]() {
         captureAndUpload();
     });
 
     // 设置响应回调函数
-    PtyManager::getInstance().setOutputCallback(
+    PtyManager::getInstance().registerOutputCallback(
         [this](const nlohmann::json& response) {
             // 通过 WebSocket 发送响应回服务器
             m_wsClient.send(response);
@@ -58,9 +66,13 @@ C3App::~C3App() {
 }
 
 int C3App::run() {
-    startWebSocketCommandListener();
-    mainLoop();
-    return 0;
+    if (m_running) {
+        startWebSocketCommandListener();
+        mainLoop();
+        return 0;
+    }
+    // 初始化时出错
+    return -1;
 }
 
 void C3App::stop() {
@@ -79,9 +91,10 @@ void C3App::stop() {
 
 void C3App::startWebSocketCommandListener() {
     // 设置接收到命令时的回调
-    m_wsClient.setOnCommandCallback([this](const nlohmann::json& commands) {
-        m_dispatcher.dispatchCommands(commands);
-    });
+    m_wsClient.registerOnCommandCallback(
+        [this](const nlohmann::json& commands) {
+            m_dispatcher.dispatchCommands(commands);
+        });
 
     // 启动 WebSocket 客户端
     std::string endpoint = getWebSocketEndpoint();
@@ -138,13 +151,16 @@ void C3App::captureAndUpload() {
     }
     for (const auto& raw : rawVec) {
         std::vector<uint8_t> frame;
-        try {
-            // 编码图像
-            frame = ImageEncoder::encodeToJPEG(raw, 90);
-        } catch (const std::exception& e) {
-            Logger::error(std::format("Image encoding error: {}", e.what()));
-            return;
+        // 编码图像
+        auto result = ImageEncoder::encodeToJPEG(raw, 90);
+        if (result) {
+            std::vector<uint8_t> jpegData = result.value();
+            uploadImageWithRetry(jpegData);
+        } else {
+            std::string errorMsg = result.error();
+            Logger::error(std::format("JPEG encoding failed: {}", errorMsg));
         }
+
         uploadImageWithRetry(frame);
     }
 }

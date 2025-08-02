@@ -24,7 +24,7 @@ public:
     void send(const nlohmann::json& message);
 
     // 设置命令接收后的回调
-    void setOnCommandCallback(
+    void registerOnCommandCallback(
         std::function<void(const nlohmann::json&)> callback);
 
 private:
