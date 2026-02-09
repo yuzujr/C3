@@ -3,8 +3,8 @@
 -- 项目基础配置
 set_project("C3")
 set_version("1.10.0")
-set_languages("cxx23")
 set_warnings("all", "error")
+add_cxxflags("-std=c++23")
 
 -- 编译模式
 add_rules("mode.debug", "mode.release")

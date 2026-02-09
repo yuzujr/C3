@@ -20,6 +20,7 @@ ExternalProject_Add(
     -DENABLE_SHARED=OFF
     -DENABLE_STATIC=ON
   INSTALL_COMMAND cmake --build . --target install --config Release
+  BUILD_BYPRODUCTS "${TURBOJPEG_LIBRARY_DIR}/${TURBOJPEG_LIBRARY_NAME}"
 )
 
 add_library(jpeg STATIC IMPORTED GLOBAL)
