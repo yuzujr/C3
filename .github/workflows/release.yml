@@ -18,8 +18,6 @@ jobs:
         include:
           - os: ubuntu-latest
             os_name: linux
-          - os: macos-latest
-            os_name: darwin
           - os: windows-latest
             os_name: windows
 
