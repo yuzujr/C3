@@ -1,0 +1,119 @@
+name: release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build-${{ matrix.os_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            os_name: linux
+          - os: macos-latest
+            os_name: darwin
+          - os: windows-latest
+            os_name: windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxinerama-dev libssl-dev libcurl4-openssl-dev
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          VERSION: ${{ github.ref_name }}
+          OS_NAME: ${{ matrix.os_name }}
+        run: |
+          set -euo pipefail
+          ARCH_RAW="${RUNNER_ARCH}"
+          case "${ARCH_RAW}" in
+            X64) ARCH="amd64" ;;
+            ARM64) ARCH="arm64" ;;
+            *) ARCH="$(echo "${ARCH_RAW}" | tr '[:upper:]' '[:lower:]')" ;;
+          esac
+
+          PKG="c3_${VERSION}_${OS_NAME}_${ARCH}"
+          mkdir -p "dist" "package/${PKG}"
+          BIN="$(find build -type f -name 'C3' -perm -111 | head -n 1 || true)"
+          if [ -z "${BIN}" ]; then
+            echo "C3 binary not found under build/"
+            find build -maxdepth 3 -type f
+            exit 1
+          fi
+          cp "${BIN}" "package/${PKG}/"
+          cp "config/config.json" "package/${PKG}/config.json"
+          cp "README.md" "LICENSE" "package/${PKG}/"
+          (cd package && tar -czf "../dist/${PKG}.tar.gz" "${PKG}")
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          VERSION: ${{ github.ref_name }}
+          OS_NAME: ${{ matrix.os_name }}
+        run: |
+          $arch = "${env:RUNNER_ARCH}"
+          if ($arch -eq "X64") { $arch = "amd64" }
+          elseif ($arch -eq "ARM64") { $arch = "arm64" }
+          else { $arch = $arch.ToLower() }
+
+          $pkg = "c3_${env:VERSION}_${env:OS_NAME}_${arch}"
+          New-Item -ItemType Directory -Force -Path "dist" | Out-Null
+          New-Item -ItemType Directory -Force -Path "package\$pkg" | Out-Null
+
+          $bin = Get-ChildItem -Path "build" -Recurse -Filter "C3.exe" | Select-Object -First 1
+          if (-not $bin) { throw "C3.exe not found under build/" }
+          Copy-Item $bin.FullName "package\$pkg\"
+          Copy-Item "config\config.json" "package\$pkg\config.json"
+          Copy-Item "README.md","LICENSE" "package\$pkg\"
+
+          Compress-Archive -Path "package\$pkg\*" -DestinationPath "dist\$pkg.zip"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os_name }}
+          path: dist/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
