@@ -65,7 +65,7 @@ jobs:
             exit 1
           fi
           cp "${BIN}" "package/${PKG}/"
-          cp "config/config.json" "package/${PKG}/config.json"
+          cp -r "config" "docs" "scripts" "package/${PKG}/"
           cp "README.md" "LICENSE" "package/${PKG}/"
           (cd package && tar -czf "../dist/${PKG}.tar.gz" "${PKG}")
 
