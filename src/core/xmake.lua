@@ -37,6 +37,44 @@ target("core")
         )
         -- X11 Xinerama由用户通过包管理器安装，链接时用系统库名
         add_syslinks("X11", "Xinerama")
+
+        -- Wayland wlr-screencopy 可选后端
+        if has_config("wlr_screencopy") then
+            add_defines("C3_HAS_WLR_SCREENCOPY")
+            add_files("platform/linux/WlrScreenCapturer.cpp")
+            add_packages("pkgconfig::wayland-client")
+            add_syslinks("rt")  -- for shm_open
+
+            -- 使用 wayland-scanner 生成协议代码
+            on_load(function (target)
+                local find_program = import("lib.detect.find_program")
+                local wayland_scanner = find_program("wayland-scanner")
+                if not wayland_scanner then
+                    raise("wayland-scanner not found. Install wayland-dev or disable wlr_screencopy via `xmake f --wlr_screencopy=n`.")
+                end
+
+                local gendir = path.join(os.projectdir(), "build", "wayland-protocols")
+                os.mkdir(gendir)
+
+                local protocoldir = path.join(os.projectdir(), "thirdparty", "wayland-protocols", "protocols")
+                for _, xml in ipairs(os.files(path.join(protocoldir, "*.xml"))) do
+                    local base   = path.basename(xml)
+                    local header = path.join(gendir, base .. "-client-protocol.h")
+                    local code   = path.join(gendir, base .. "-protocol.c")
+
+                    os.execv(wayland_scanner, {"client-header", xml, header})
+                    os.execv(wayland_scanner, {"private-code",  xml, code})
+                end
+
+                -- 添加生成的 .c 文件
+                local cfiles = os.files(path.join(gendir, "*.c"))
+                if #cfiles > 0 then
+                    target:add("files", cfiles)
+                end
+                -- 添加生成目录到头文件搜索路径
+                target:add("includedirs", gendir)
+            end)
+        end
     end
 
     -- 第三方静态库

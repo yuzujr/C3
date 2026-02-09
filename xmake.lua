@@ -20,6 +20,12 @@ option("hardcode_config")
     set_description("是否使用硬编码配置（USE_HARDCODED_CONFIG）")
 option_end()
 
+option("wlr_screencopy")
+    set_default(true)
+    set_showmenu(true)
+    set_description("启用 Wayland wlr-screencopy 截屏后端")
+option_end()
+
 -- 第三方依赖，全部静态链接
 add_requires(
     "cpr", 
@@ -30,6 +36,11 @@ add_requires(
     "gtest",
     {configs = {shared = false}}
 )
+
+-- Wayland wlr-screencopy 可选依赖
+if is_plat("linux") and has_config("wlr_screencopy") then
+    add_requires("pkgconfig::wayland-client")
+end
 
 includes("src")
 includes("test")

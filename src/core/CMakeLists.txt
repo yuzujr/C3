@@ -27,6 +27,13 @@ elseif(UNIX)
         platform/linux/X11RAIIClasses.cpp
         platform/linux/PtyManager.cpp
     )
+    # Wayland wlr-screencopy 可选后端
+    if(ENABLE_WLR_SCREENCOPY)
+        target_sources(core PRIVATE
+            platform/linux/WlrScreenCapturer.cpp
+        )
+        target_compile_definitions(core PUBLIC C3_HAS_WLR_SCREENCOPY)
+    endif()
 endif()
 
 
@@ -62,4 +69,9 @@ elseif(UNIX)
     target_link_libraries(core PRIVATE 
         thirdparty::X11_wrapper
     )
+    if(ENABLE_WLR_SCREENCOPY)
+        target_link_libraries(core PRIVATE
+            thirdparty::wayland_protocols
+        )
+    endif()
 endif()

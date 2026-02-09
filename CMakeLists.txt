@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(C3 LANGUAGES CXX)
+project(C3 LANGUAGES C CXX)
 
 # CMake build options
 option(BUILD_TESTS "Build unit tests" ON)

@@ -8,7 +8,23 @@
 #include "core/RawImage.h"
 #include "core/platform/linux/X11RAIIClasses.h"
 
+#ifdef C3_HAS_WLR_SCREENCOPY
+#include "core/platform/linux/WlrScreenCapturer.h"
+#endif
+
 std::vector<RawImage> ScreenCapturer::captureAllMonitors() {
+#ifdef C3_HAS_WLR_SCREENCOPY
+    // 优先尝试 Wayland wlr-screencopy 协议
+    if (WlrScreenCapturer::isAvailable()) {
+        Logger::info("Using wlr-screencopy (Wayland) backend");
+        auto images = WlrScreenCapturer::captureAllMonitors();
+        if (!images.empty()) {
+            return images;
+        }
+        Logger::warn("wlr-screencopy capture failed, falling back to X11");
+    }
+#endif
+
     std::vector<RawImage> images;
 
     X11DisplayRAII display(XOpenDisplay(nullptr));

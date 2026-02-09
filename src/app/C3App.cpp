@@ -150,7 +150,6 @@ void C3App::captureAndUpload() {
         return;
     }
     for (const auto& raw : rawVec) {
-        std::vector<uint8_t> frame;
         // 编码图像
         auto result = ImageEncoder::encodeToJPEG(raw, 90);
         if (result) {
@@ -160,8 +159,6 @@ void C3App::captureAndUpload() {
             std::string errorMsg = result.error();
             Logger::error(std::format("JPEG encoding failed: {}", errorMsg));
         }
-
-        uploadImageWithRetry(frame);
     }
 }
 
